@@ -10,10 +10,10 @@
 #include "StringOperations.h"
 
 
-const TString datacard = "limits_Spring17v2p2_ttbarincl/noCSV63445464.txt";
+const TString datacard = "limits_Spring17v2p2_ttbarincl_datacard_ljets_jge6_t3_hdecay.txt";
 const TString templatesNominal = "limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
 const TString templatesTTBB = "limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
-const TString CMSSW_BASE = "/afs/desy.de/user/m/matsch/CMSSW_7_4_7";
+const TString CMSSW_BASE = "/nfs/dust/cms/user/pkeicher/CMSSW_7_4_7";
 const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.1 --rMin=-10 --rMax=10 --saveNormalizations --saveShapes";
 
 
@@ -21,10 +21,11 @@ void createPseudoData(const TString& outdir,
 		      const int nExperiments,
 		      const double expectSignal=1.) {
 
-  std::vector<Category::Type> categories = { Category::SL_44,
-					     Category::SL_54,
-					     Category::SL_63,
-					     Category::SL_64  };
+  std::vector<Category::Type> categories = { //Category::SL_44,
+					     //Category::SL_54,
+					     Category::SL_63//,
+					     //Category::SL_64 
+					    };
 
   std::vector<Process> processes;
 

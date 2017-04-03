@@ -94,7 +94,7 @@ std::vector<TString> PseudoDataGenerator::run(const std::vector<Category::Type>&
       for(unsigned int iBin = 0; iBin < nBins; ++iBin) {
 	const double mean = meansPerCategory[category].at(iBin);
 	// convert into int
-	const int meanInt = rand_.Uniform()>0.5 ? ceil(mean) : floor(mean);
+	const int meanInt = rand_.Uniform()>0.5 ? ceil(mean) : floor(mean); //trying for int casts
 	const double val = usePoissonStatistics_ ? rand_.Poisson(meanInt) : mean;
 	pseudoDataHist->SetBinContent(iBin+1,val);
       }
