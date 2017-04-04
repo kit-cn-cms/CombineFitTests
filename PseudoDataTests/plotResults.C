@@ -148,17 +148,23 @@ void compareNuisanceParameters(const std::vector<PseudoExperiments>& exps,
 
     TH1* hNPs = new TH1D("hNPs",TString(";;"+np).Data(),exps.size(),0,exps.size()); //Histogram to collect one np from all pseudo experiments
 
-    TH1D* hCompareNPMeansList[2] = {(TH1D*)hNPs->Clone(TString("mean_"+np+"_PostfitB").Data()),(TH1D*)hNPs->Clone(TString("mean_"+np+"_PostfitS").Data())};
+    TH1D* hCompareNPMeansList[2] = {(TH1D*)hNPs->Clone(TString("_mean_"+np+"_PostfitB").Data()),(TH1D*)hNPs->Clone(TString("_mean_"+np+"_PostfitS").Data())};
+    TH1D* hCompareNPMediansList[2] = {(TH1D*)hNPs->Clone(TString("_median_"+np+"_PostfitB").Data()),(TH1D*)hNPs->Clone(TString("_median_"+np+"_PostfitS").Data())};
     TH1* hPrefit = static_cast<TH1*>(hNPs->Clone(TString("hPrefit_"+np).Data()));
 
     int iE = 0;
     for(auto& exp: exps) {
       const int bin = iE+1;
 
-      hCompareNPMeansList[0]->SetBinContent(bin,exp.npPostfitBMean(np));
-      hCompareNPMeansList[0]->SetBinError(bin,exp.npPostfitBRMS(np));
-      hCompareNPMeansList[1]->SetBinContent(bin,exp.npPostfitSMean(np));
-      hCompareNPMeansList[1]->SetBinError(bin,exp.npPostfitSRMS(np));
+      hCompareNPMeansList[0]->SetBinContent(bin,exp.npPostfitBMean(np) );
+      hCompareNPMeansList[0]->SetBinError(bin,exp.npPostfitB(np)->GetMeanError() );
+      hCompareNPMediansList[0]->SetBinContent(bin,getMedian(exp.npPostfitB(np) ));
+      hCompareNPMediansList[0]->SetBinError(bin,exp.npPostfitBRMS(np));
+
+      hCompareNPMeansList[1]->SetBinContent(bin,exp.npPostfitSMean(np) );
+      hCompareNPMeansList[1]->SetBinError(bin,exp.npPostfitS(np)->GetMeanError() );
+      hCompareNPMediansList[1]->SetBinContent(bin,getMedian(exp.npPostfitS(np) ));
+      hCompareNPMediansList[1]->SetBinError(bin,exp.npPostfitSRMS(np));
       hPrefit->SetBinContent(bin,exp.npPrefitMean(np));
       hPrefit->SetBinError(bin,exp.npPrefitRMS(np));
       setXRange(hPrefit, -1, 1);
@@ -187,8 +193,11 @@ void compareNuisanceParameters(const std::vector<PseudoExperiments>& exps,
     compareDistributions(histsPostfitS,labels,outLabel+"_"+np+"_PostfitS",true);
 
     // plot np means
-    for(int i=0; i<2; i++) compareMeanValues(hCompareNPMeansList[i],hPrefit,labels,outLabel+"_"+hCompareNPMeansList[i]->GetName());
-    for(int i=0; i<2; i++) delete hCompareNPMeansList[i];
+    for(int i=0; i<2; i++) compareMeanValues(hCompareNPMeansList[i],hPrefit,labels,outLabel+"_"+hCompareNPMeansList[i]->GetName(), hCompareNPMediansList[i]);
+    for(int i=0; i<2; i++){ 
+	delete hCompareNPMeansList[i];
+	delete hCompareNPMediansList[i];
+    }
     delete hPrefit;
     delete hNPs;
 
@@ -253,12 +262,16 @@ void plotResults(TString pathname, const double nominalMu=1.) {
   helper.Form("nominal S=%f",nominalMu);
   expSet.push_back( PseudoExperiments(helper,nominalMu) );
   expSet.back().addExperiments(pathname);
-  if(expSet.size() > 1)
-  {
-    std::cout << "analyzing "<< expSet.size() << " experiments...\n";
-    expSet.back().setColor(kBlue);
-    comparePOIs(expSet,pathname+"/"+pathname);
-    compareNuisanceParameters(expSet,pathname+"/"+pathname,true);
+  
+  std::cout << "obtained number of mus: " << expSet.back().mu()->GetEntries() << std::endl;
+  if((expSet.back().mu()->GetEntries() == 0) ){
+    std::cout << "Could not load any mus, deleting current experiment set...\n";
+    expSet.pop_back();
   }
-  else std::cout << "Could only load " << expSet.size() << " pseudo experiments\n";
+
+  expSet.back().setColor(kBlue);
+  TString foldername = pathname;
+  foldername.Remove(0, foldername.Last('/')+1);
+  comparePOIs(expSet,pathname+"/"+foldername);
+  compareNuisanceParameters(expSet,pathname+"/"+foldername,true);
 }

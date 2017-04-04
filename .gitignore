@@ -9,6 +9,7 @@
 *.pyc
 *.d
 *__init__.py
+*.pcm
 
 # Packages #
 ############
@@ -45,3 +46,7 @@ CVS
 *.out
 *.nav
 *.aux
+
+# Plots #
+#########
+*.pdf
