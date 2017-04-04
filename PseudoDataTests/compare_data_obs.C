@@ -1,6 +1,9 @@
+#include "TSystem.h"
+#include "TROOT.h"
 #include "TSystemFile.h"
 #include "TSystemDirectory.h"
 #include "TIterator.h"
+#include "TKey.h"
 #include "TList.h"
 #include "TString.h"
 #include "TH1.h"
@@ -33,6 +36,7 @@ int getHistos(TKey* key, std::map<TString, std::vector<TH1D*> >& histoCatergorie
   TClass *cl = gROOT->GetClass(key->GetClassName());
   if (!cl->InheritsFrom("TH1")) return 0;
   TH1 *h = (TH1*)key->ReadObj();
+  TString helper;
 
   if((h != NULL))
   {
@@ -42,7 +46,11 @@ int getHistos(TKey* key, std::map<TString, std::vector<TH1D*> >& histoCatergorie
     std::map<TString, std::vector<TH1*> >::iterator it = histoCatergories.find(hname);
     if(it == histoCatergories.end()) initNewCategory = true;
     for(int currentBin=1; currentBin<= nBins; currentBin++){
-      if(initNewCategory) histoCatergories[hname].push_back((TH1*)binHistoTemplate->Clone(TString(hname+"_bin"+currentBin).Data()));
+      if(initNewCategory)
+      {
+        helper.Form("%s_bin%u", hname.Data(), currentBin);
+        histoCatergories[hname].push_back((TH1*)binHistoTemplate->Clone(helper.Data()));
+      }
       histoCatergories[hname][currentBin-1]->Fill(h->GetBinContent(currentBin));
     }
     delete h;
@@ -53,8 +61,29 @@ int getHistos(TKey* key, std::map<TString, std::vector<TH1D*> >& histoCatergorie
   return 0;
 }
 
+void safeHistos(std::map<TString, std::vector<TH1D*> >& histoCategories)
+{
+  TCanvas can;
+  TString outDir;
+  for(std::map<TString, std::vector<TH1D*> >::iterator it = histoCategories.begin(); it != histoCategories.end(); it++)
+  {
+    outDir = sourceDir + "/" + it->first;
+    changeDirectory(outDir);
+
+    for(int histos=0; histos<it->second.size(); histos++)
+    {
+      it->second[histos]->Draw();
+      can.SaveAs(TString(it->second[histos]->GetName()+".pdf").Data());
+    }
+    gSystem->cd("../");
+  }
+}
+
 void extractBinInfo(TList* folders, const TString sourceDir, const TString targetRootFile){
   std::map<TString, std::vector<TH1D*> > histoCatergories;
+
+  TFile* file = NULL;
+  TString filename;
 
   TSystemFile *pseudoExperimentFolder;
   TString folderName;
@@ -72,35 +101,18 @@ void extractBinInfo(TList* folders, const TString sourceDir, const TString targe
       }
     }
   }
-  if(!histoCatergories.empty())
-  {
-    TCanvas can;
-    TString outDir;
-    for(std::map<TString, std::vector<TH1D*> >::iterator it = histoCategories.begin(); it != histoCategories.end(); it++)
-    {
-      outDir = sourceDir + "/" + it->first;
-      changeDirectory(outDir);
-
-      for(int histos=0; histos<it->second.size(); histos++)
-      {
-        it->second[histos]->Draw();
-        can.SaveAs(TString(it->second[histos]->GetName()+".pdf").Data());
-      }
-      gSystem->cd("../");
-    }
-  }
+  if(!histoCatergories.empty()) safeHistos(histoCatergories);
   else std::cout << "Could not get any info on bin content\n";
   delete pseudoExperimentFolder;
   delete folders;
+  delete file;
 }
 
 void compare_data_obs(TString sourceDir, TString targetRootFile = "Data_Obs.root"){
 
-  TFile* file = NULL;
   TSystemDirectory dir(sourceDir.Data(), sourceDir.Data());
   if(sourceDir.EndsWith("/")) sourceDir.Chop();
   TList *folders = dir.GetListOfFiles();
-  TString filename;
   //if folders are found, go through each one an look for the targetRootFile
   if (folders) {
     extractBinInfo(folders, sourceDir, targetRootFile);
