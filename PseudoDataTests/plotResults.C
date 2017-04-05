@@ -106,9 +106,12 @@ void compareMeanValues(TH1* hFittedValues,
   hInitValues->SetLineColor(kBlack);
   hInitValues->SetLineWidth(2);
   hInitValues->SetLineStyle(2);
-  //std::cout << "# of labels: " << labels.size() << std::endl;
-  //std::cout << "# of points in hInitValues: " << hInitValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
-  //std::cout << "# of points in hFittedValues: " << hFittedValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
+  std::cout << "# of labels: " << labels.size() << std::endl;
+  for(int i=0; i<int(labels.size());i++) std::cout << "\t" << labels[i].Data() << std::endl;
+  std::cout << "# of points in hInitValues: " << hInitValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
+  for(int i=0; i<hInitValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hInitValues->GetBinContent(i) << std::endl;
+  std::cout << "# of points in hFittedValues: " << hFittedValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
+  for(int i=0; i<hFittedValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hFittedValues->GetBinContent(i) << std::endl;
   hInitValues->GetYaxis()->SetRangeUser(hInitValues->GetBinContent(1)-1,hInitValues->GetBinContent(1)+1);
 
 
@@ -225,6 +228,7 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
     const PseudoExperiments& exp = exps.at(iE);
 
     hPOIs->SetBinContent(bin,exp.muMean());
+    std::cout << "filling mu = " << exp.muMean() << " into bin " << bin <<std::endl;
     hPOIs->SetBinError(bin, exp.mu()->GetMeanError());
     hPOImedians->SetBinContent(bin,getMedian(exp.mu()));
     hPOImedians->SetBinError(bin,exp.muRMS());
@@ -235,12 +239,13 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
     hists.back()->SetTitle("");
     hists.back()->SetLineColor( exp.color() );
     norm(hists.back());
-    setXRange(hists.back(),-3,5);
+    //setXRange(hists.back(),-3,5);
 
     labels.push_back(exp());
   }
-  hInit->GetYaxis()->SetRangeUser(-1.1,3.1);
+  //hInit->GetYaxis()->SetRangeUser(-1.1,3.1);
 
+  std::cout << "comparing mean values for POI\n";
   compareMeanValues(hPOIs,hInit,labels,outLabel+"_POImeans",hPOImedians);
   compareDistributions(hists,labels,outLabel+"_POI",false);
 
@@ -259,7 +264,7 @@ void plotResults(TString pathname, const double nominalMu=1.) {
   // set inputs
   std::vector<PseudoExperiments> expSet;
   TString helper;
-  helper.Form("nominal S=%f",nominalMu);
+  helper.Form("nominal S=%.2f",nominalMu);
   expSet.push_back( PseudoExperiments(helper,nominalMu) );
   expSet.back().addExperiments(pathname);
   
