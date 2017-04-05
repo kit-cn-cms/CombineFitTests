@@ -34,7 +34,7 @@ public:
   TString operator()() const { return label_; }
 
   void addExperiment(const TString& mlfit);
-  void addExperiments(TString& sourceDir, const TString& mlfitFile = "mlfit.root");
+  void addExperiments(const TString& mlfitTemplateName, const unsigned int nExps);
   void setColor(const int c) {
     color_ = c;
   }
@@ -120,6 +120,8 @@ private:
   void storeRooFitResults(std::map<TString,TH1*>& hists, TFile& file, const TString& name) const;
   TH1* getHist(const std::map<TString,TH1*>& hists, const TString& key) const;
   TH1* getClone(const TH1* h) const;
+  bool checkFitStatus(TFile file);
+  bool checkCovarianceMatrix(TFile file);
 };
 
 
@@ -157,21 +159,11 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
   }
   else {
     //check if the s+b and the b fit converged
+
     bool storeExperiment = true;
-    int fit_status=7;
-    TString fit_trees[2] = {"tree_fit_sb", "tree_fit_b"};
-    for(int nTrees=0; nTrees<2; nTrees++){
-      TTree* tree = (TTree*)file.Get(fit_trees[nTrees].Data());
-      tree->SetBranchAddress("fit_status",&fit_status);
-      tree->GetEntry(0);
-      if((fit_status != 0)) std::cout << "WARNING fit_status in " << fit_trees[nTrees].Data() << " did not converge!\n";
-      if(mustConverge_ && (fit_status!=0))
-      {
-        std::cout << "skipping experiment in '" << mlfit << "'\n";
-        storeExperiment = false;
-      }
-      delete tree;
-      fit_status=7;
+    if(mustConverge_){
+      storeExperiment = checkFitStatus(file);
+      if(storeExperiment) storeExperiment = checkCovarianceMatrix(file);
     }
     // store POI value
     if(storeExperiment)
@@ -205,12 +197,13 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
       storeRooFitResults(npValuesPostfitS_,file,"fit_s");
       if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
     }
+    else std::cout << "skipping experiment in '" << mlfit.Data() << "'\n";
   }
   file.Close();
 }
 
 
-void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitFile) {
+void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitFile = "mlfit.root"){
 /*//old version
   for(unsigned int iE = 1; iE <= nExps; ++iE) {
     char idx[10];
@@ -234,8 +227,8 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
     TIter next(folders);
     while ((pseudoExperimentFolder=(TSystemFile*)next())) {
      folderName = pseudoExperimentFolder->GetName();
-     if (pseudoExperimentFolder->IsDirectory() && !folderName.EndsWith(".")) {
-        if(sourceDir.EndsWith("/")) sourceDir.Chop();
+     if (pseudoExperimentFolder->IsDirectory()) {
+        if(sourceDir.EndsWith('/')) sourceDir.Chop();
         addExperiment(sourceDir+"/"+folderName+"/"+mlfitFile);
       }
     }
@@ -244,6 +237,55 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
   }
 }
 
+bool PseudoExperiments::checkFitStatus(TFile file){
+  bool storeExperiment = true;
+  int fit_status=7;
+  TString fit_trees[2] = {"tree_fit_sb", "tree_fit_b"}
+  for(int nTrees=0; nTrees<2; nTrees++)
+  {
+    TTree* tree = (TTree*)file.Get(fit_trees[nTrees].Data());
+    tree->SetBranchAddress("fit_status",&fit_status);
+    tree->GetEntry(0);
+    if((fit_status != 0)) std::cout << "WARNING fit_status in " << fit_trees[nTrees].Data() << " did not converge!\n";
+    if((fit_status!=0)) storeExperiment = false;
+    delete tree;
+    fit_status=7;
+  }
+  return storeExperiment;
+}
+
+bool PseudoExperiments::checkCovarianceMatrix(TFile file){
+  bool accurateCovariance = false;
+  TString rooFitObjects[2] = {"fit_b", "fit_s"};
+  int quality = -1;
+  int bothGood = 0;
+  for(int currentObject=0; currentObject < 2; currentObject++){
+    RooArgSet* fitObject = 0;
+    file.GetObject(rooFitObjects[currentObject].Data(),fitObject);
+    if( fitObject == 0 ) {
+      std::cerr << "ERROR getting '" << rooFitObjects[currentObject].Data() << "' from file '" << file.GetName() << "'" << std::endl;
+      //throw std::exception();
+    }
+    else{
+      quality=-1;
+      quality=fitObject->covQual();
+      if(debug_)
+      {
+        std::cout << "    DEBUG: quality of covariance matrix in " << rooFitObjects[currentObject].Data() << " is " << quality;
+        if(quality==-1) std::cout << rooFitObjects[currentObject].Data() << ": Unknown, matrix was externally provided\n";
+        if(quality==0) std::cout << rooFitObjects[currentObject].Data() << ": Not calculated at all\n";
+        if(quality==1) std::cout << rooFitObjects[currentObject].Data() << ": Approximation only, not accurate\n";
+        if(quality==2) std::cout << rooFitObjects[currentObject].Data() << ": Full matrix, but forced positive-definite\n";
+      }
+      if(quality==3) {
+        if(debug_) std::cout << rooFitObjects[currentObject].Data() << ": Full, accurate covariance matrix\n";
+        bothGood+=1;
+      }
+    }
+  }
+  if(bothGood == 2) accurateCovariance = true;
+  return accurateCovariance;
+}
 
 void PseudoExperiments::initContainers(TFile& file) {
   RooArgSet* nuisances_prefit = 0;
