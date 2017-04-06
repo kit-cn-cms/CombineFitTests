@@ -16,6 +16,23 @@
 #include "PseudoExperiments.h"
 #include "TheLooks.h"
 
+double findMaxValue(std::vector<TH1*> histos)
+{
+  double maxVal = -999;
+  for(int bin=0; bin<histos[0]->GetNbinsX(); bin++){
+    for(int histogram=0; histogram < int(histos.size()); histogram++) if(histos[histogram]->GetBinContent(bin+1) > maxVal) maxVal = histos[histogram]->GetBinContent(bin+1);
+  }
+  return maxVal;
+}
+
+double findMinValue(std::vector<TH1*> histos)
+{
+  double minVal = 999;
+  for(int bin=0; bin<histos[0]->GetNbinsX(); bin++){
+    for(int histogram=0; histogram < int(histos.size()); histogram++) if(histos[histogram]->GetBinContent(bin+1) < minVal) minVal = histos[histogram]->GetBinContent(bin+1);
+  }
+  return minVal;
+}
 
 void norm(TH1* h) {
   if( h->Integral() > 0 ) {
@@ -97,22 +114,34 @@ void compareMeanValues(TH1* hFittedValues,
   hFittedValues->SetMarkerColor(kBlack);
   hFittedValues->SetMarkerStyle(24);
 
+  std::vector<TH1*> histoList;
+  histoList.push_back(hFittedValues);
+  histoList.push_back(hInitValues);
+  double windowSize = 1.5;
+
   if(hFittedMedianValues != 0){
-  hFittedMedianValues->SetMarkerColor(kBlack);
-  hFittedMedianValues->SetMarkerStyle(25);
-  hFittedMedianValues->SetLineStyle(2);
+    hFittedMedianValues->SetMarkerColor(kBlack);
+    hFittedMedianValues->SetMarkerStyle(25);
+    hFittedMedianValues->SetLineStyle(2);
+    histoList.push_back(hFittedMedianValues);
+    //set y axis range of the plot depending on the highest RMS value
+    windowSize = hFittedMedianValues->GetBinError(1)+0.5;
+    for(int bin=2; bin< hFittedMedianValues->GetNbinsX(); bin ++) if(hFittedMedianValues->GetBinError(bin)+0.5 > windowSize) windowSize = hFittedMedianValues->GetBinError(bin)+0.5;
   }
 
   hInitValues->SetLineColor(kBlack);
   hInitValues->SetLineWidth(2);
   hInitValues->SetLineStyle(2);
-  std::cout << "# of labels: " << labels.size() << std::endl;
-  for(int i=0; i<int(labels.size());i++) std::cout << "\t" << labels[i].Data() << std::endl;
-  std::cout << "# of points in hInitValues: " << hInitValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
-  for(int i=0; i<hInitValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hInitValues->GetBinContent(i) << std::endl;
-  std::cout << "# of points in hFittedValues: " << hFittedValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
-  for(int i=0; i<hFittedValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hFittedValues->GetBinContent(i) << std::endl;
-  hInitValues->GetYaxis()->SetRangeUser(hInitValues->GetBinContent(1)-1,hInitValues->GetBinContent(1)+1);
+  //std::cout << "# of labels: " << labels.size() << std::endl;
+  //for(int i=0; i<int(labels.size());i++) std::cout << "\t" << labels[i].Data() << std::endl;
+  //std::cout << "# of points in hInitValues: " << hInitValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
+  //for(int i=0; i<hInitValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hInitValues->GetBinContent(i) << std::endl;
+  //std::cout << "# of points in hFittedValues: " << hFittedValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
+  //for(int i=0; i<hFittedValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hFittedValues->GetBinContent(i) << std::endl;
+  //find minimum and maximum value on y axis to make sure everything will be shown
+  double maxVal = findMaxValue(histoList);
+  double minVal = findMinValue(histoList);
+  hInitValues->GetYaxis()->SetRangeUser(minVal - windowSize, maxVal + windowSize);
 
 
 
@@ -197,7 +226,7 @@ void compareNuisanceParameters(const std::vector<PseudoExperiments>& exps,
 
     // plot np means
     for(int i=0; i<2; i++) compareMeanValues(hCompareNPMeansList[i],hPrefit,labels,outLabel+"_"+hCompareNPMeansList[i]->GetName(), hCompareNPMediansList[i]);
-    for(int i=0; i<2; i++){ 
+    for(int i=0; i<2; i++){
 	delete hCompareNPMeansList[i];
 	delete hCompareNPMediansList[i];
     }
@@ -267,7 +296,7 @@ void plotResults(TString pathname, const double nominalMu=1.) {
   helper.Form("nominal S=%.2f",nominalMu);
   expSet.push_back( PseudoExperiments(helper,nominalMu) );
   expSet.back().addExperiments(pathname);
-  
+
   std::cout << "obtained number of mus: " << expSet.back().mu()->GetEntries() << std::endl;
   if((expSet.back().mu()->GetEntries() == 0) ){
     std::cout << "Could not load any mus, deleting current experiment set...\n";

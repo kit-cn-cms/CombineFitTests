@@ -34,7 +34,7 @@ public:
   TString operator()() const { return label_; }
 
   void addExperiment(const TString& mlfit);
-  void addExperiments(const TString& mlfitTemplateName, const unsigned int nExps);
+  void addExperiments(TString& sourceDir, const TString& mlfitFile = "mlfit.root");
   void setColor(const int c) {
     color_ = c;
   }
@@ -120,8 +120,8 @@ private:
   void storeRooFitResults(std::map<TString,TH1*>& hists, TFile& file, const TString& name) const;
   TH1* getHist(const std::map<TString,TH1*>& hists, const TString& key) const;
   TH1* getClone(const TH1* h) const;
-  bool checkFitStatus(TFile file);
-  bool checkCovarianceMatrix(TFile file);
+  bool checkFitStatus(TFile& file);
+  bool checkCovarianceMatrix(TFile& file);
 };
 
 
@@ -203,7 +203,7 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
 }
 
 
-void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitFile = "mlfit.root"){
+void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitFile){
 /*//old version
   for(unsigned int iE = 1; iE <= nExps; ++iE) {
     char idx[10];
@@ -227,8 +227,8 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
     TIter next(folders);
     while ((pseudoExperimentFolder=(TSystemFile*)next())) {
      folderName = pseudoExperimentFolder->GetName();
-     if (pseudoExperimentFolder->IsDirectory()) {
-        if(sourceDir.EndsWith('/')) sourceDir.Chop();
+     if (pseudoExperimentFolder->IsDirectory() && !folderName.EndsWith(".")) {
+        if(sourceDir.EndsWith("/")) sourceDir.Chop();
         addExperiment(sourceDir+"/"+folderName+"/"+mlfitFile);
       }
     }
@@ -237,10 +237,10 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
   }
 }
 
-bool PseudoExperiments::checkFitStatus(TFile file){
+bool PseudoExperiments::checkFitStatus(TFile& file){
   bool storeExperiment = true;
   int fit_status=7;
-  TString fit_trees[2] = {"tree_fit_sb", "tree_fit_b"}
+  TString fit_trees[2] = {"tree_fit_sb", "tree_fit_b"};
   for(int nTrees=0; nTrees<2; nTrees++)
   {
     TTree* tree = (TTree*)file.Get(fit_trees[nTrees].Data());
@@ -254,13 +254,13 @@ bool PseudoExperiments::checkFitStatus(TFile file){
   return storeExperiment;
 }
 
-bool PseudoExperiments::checkCovarianceMatrix(TFile file){
+bool PseudoExperiments::checkCovarianceMatrix(TFile& file){
   bool accurateCovariance = false;
   TString rooFitObjects[2] = {"fit_b", "fit_s"};
   int quality = -1;
   int bothGood = 0;
   for(int currentObject=0; currentObject < 2; currentObject++){
-    RooArgSet* fitObject = 0;
+    RooFitResult* fitObject = 0;
     file.GetObject(rooFitObjects[currentObject].Data(),fitObject);
     if( fitObject == 0 ) {
       std::cerr << "ERROR getting '" << rooFitObjects[currentObject].Data() << "' from file '" << file.GetName() << "'" << std::endl;

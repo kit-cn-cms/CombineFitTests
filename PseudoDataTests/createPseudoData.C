@@ -10,7 +10,7 @@
 #include "StringOperations.h"
 
 const TString workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/";
-const TString datacard = workdir+"limits_Spring17v2p2_ttbarincl_datacard_ljets_jge6_tge4_hdecay.txt";
+const TString datacard = workdir+"limits_Spring17v2p2_ttbarincl_datacard_ljets_jge6_tge4_hdecay_ttHbb_ttlf.txt";
 const TString templatesNominal = workdir+"limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
 const TString templatesTTBB = workdir+"limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
 const TString CMSSW_BASE = "/nfs/dust/cms/user/pkeicher/CMSSW_7_4_7";
@@ -31,21 +31,21 @@ void createPseudoData(const TString& outdir,
 
   if( expectSignal > 0 ) {
     processes.push_back( Process(Process::ttHbb,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHcc,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHgg,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHgluglu,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHtt,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHww,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHzg,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHzz,templatesNominal,expectSignal) );
+    //processes.push_back( Process(Process::ttHcc,templatesNominal,expectSignal) );
+    //processes.push_back( Process(Process::ttHgg,templatesNominal,expectSignal) );
+    //processes.push_back( Process(Process::ttHgluglu,templatesNominal,expectSignal) );
+    //processes.push_back( Process(Process::ttHtt,templatesNominal,expectSignal) );
+    //processes.push_back( Process(Process::ttHww,templatesNominal,expectSignal) );
+    //processes.push_back( Process(Process::ttHzg,templatesNominal,expectSignal) );
+    //processes.push_back( Process(Process::ttHzz,templatesNominal,expectSignal) );
   }
     
   processes.push_back( Process(Process::ttlf,templatesNominal) );
-  processes.push_back( Process(Process::ttcc,templatesNominal) );
+  //processes.push_back( Process(Process::ttcc,templatesNominal) );
 
-  processes.push_back( Process(Process::ttbb,templatesTTBB) );
-  processes.push_back( Process(Process::ttb,templatesTTBB) );
-  processes.push_back( Process(Process::tt2b,templatesTTBB) );
+  //processes.push_back( Process(Process::ttbb,templatesTTBB) );
+  //processes.push_back( Process(Process::ttb,templatesTTBB) );
+  //processes.push_back( Process(Process::tt2b,templatesTTBB) );
 
   std::cout << "Reading processes" << std::endl;
   for(auto& category: categories) {

@@ -43,25 +43,25 @@ int getHistos(TKey* key, std::map<TString, std::vector<TH1D*> >& histoCategories
     bool initNewCategory = false;
     int nBins = h->GetNbinsX();
     TString hname = h->GetName();
-    //std::cout << "found histogram " << hname.Data() << " with " << nBins << " bins!\n";
-    //std::cout << "searching for matching key...\n";
+    std::cout << "found histogram " << hname.Data() << " with " << nBins << " bins!\n";
+    std::cout << "searching for matching key...\n";
     std::map<TString, std::vector<TH1D*> >::iterator it = histoCategories.find(hname);
     if(it == histoCategories.end())
     {
       initNewCategory = true;
       std::cout << "Category " << hname.Data() << " flagged for initialization\n";
     }
-    //std::cout << "saving bin contents\n";
+    std::cout << "saving bin contents\n";
     for(int currentBin=1; currentBin<= nBins; currentBin++){
       if(initNewCategory)
       {
         helper.Form("%s_bin%u", hname.Data(), currentBin);
         histoCategories[hname].push_back((TH1D*)binHistoTemplate->Clone(helper.Data()));
-	histoCategories[hname][currentBin-1]->SetDirectory(0);
+	      histoCategories[hname][currentBin-1]->SetDirectory(0);
       }
-      //std::cout << "filling histogram\n";
+      std::cout << "filling histogram\n";
       histoCategories[hname][currentBin-1]->Fill(h->GetBinContent(currentBin));
-      //std::cout << "content " << h->GetBinContent(currentBin) << " of bin " << currentBin << " safed in " << histoCategories[hname][currentBin-1]->GetName() << std::endl;
+      std::cout << "content " << h->GetBinContent(currentBin) << " of bin " << currentBin << " safed in " << histoCategories[hname][currentBin-1]->GetName() << std::endl;
     }
     //delete h;
   }
@@ -104,19 +104,20 @@ void extractBinInfo(TList* folders, const TString sourceDir, const TString targe
    folderName = pseudoExperimentFolder->GetName();
    if (pseudoExperimentFolder->IsDirectory() && !folderName.EndsWith(".")) {
       filename = sourceDir + "/" + folderName + "/" + targetRootFile;
-      //std::cout << "trying to open file in " << filename.Data() << std::endl;
+      std::cout << "trying to open file in " << filename.Data() << std::endl;
       TFile* file = TFile::Open(filename.Data(), "READ");
-      if(file){
-	TIter nextFileObject(file->GetListOfKeys());
-	TKey* key;
+      if(file)
+      {
+	      TIter nextFileObject(file->GetListOfKeys());
+	      TKey* key;
         while((key = (TKey*)nextFileObject()))
         {
           getHistos(key, histoCatergories);
         }
- 	//std::cout << "trying to delete key\n";
+ 	      //std::cout << "trying to delete key\n";
         delete key;
-	//std::cout << "deleted key\n";
-	//file->Close();
+	      //std::cout << "deleted key\n";
+	      //file->Close();
       }
       delete file;
       //std::cout << "deleted pointer file\n";
@@ -133,7 +134,7 @@ void compare_data_obs(TString sourceDir, TString targetRootFile = "Data_Obs.root
 
   TSystemDirectory dir(sourceDir.Data(), sourceDir.Data());
   if(sourceDir.EndsWith("/")) sourceDir.Chop();
-  //std::cout << "sourceDir: " << sourceDir.Data() << std::endl;
+  std::cout << "sourceDir: " << sourceDir.Data() << std::endl;
   TList *folders = dir.GetListOfFiles();
   //if folders are found, go through each one an look for the targetRootFile
   if (folders) {
