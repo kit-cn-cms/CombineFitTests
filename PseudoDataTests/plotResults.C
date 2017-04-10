@@ -138,6 +138,7 @@ void compareMeanValues(TH1* hFittedValues,
   //for(int i=0; i<hInitValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hInitValues->GetBinContent(i) << std::endl;
   //std::cout << "# of points in hFittedValues: " << hFittedValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
   //for(int i=0; i<hFittedValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hFittedValues->GetBinContent(i) << std::endl;
+
   //find minimum and maximum value on y axis to make sure everything will be shown
   double maxVal = findMaxValue(histoList);
   double minVal = findMinValue(histoList);
@@ -284,7 +285,6 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
     delete h;
   }
 }
-
 
 
 void plotResults(TString pathname, const double nominalMu=1.) {

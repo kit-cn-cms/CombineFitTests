@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "TSystem.h"
+#include "TROOT.h"
 
 #include "Category.h"
 #include "DataCardModifier.h"
@@ -10,21 +11,23 @@
 #include "StringOperations.h"
 
 const TString workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/";
-const TString datacard = workdir+"limits_Spring17v2p2_ttbarincl_datacard_ljets_jge6_tge4_hdecay_ttHbb_ttlf.txt";
-const TString templatesNominal = workdir+"limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
-const TString templatesTTBB = workdir+"limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
+const TString datacard = workdir+"datacards/limits_Spring17v2p2_ttbarincl_datacard_ljets_jge6_tge4_hdecay_ttHbb_ttbb.txt";
+const TString templatesNominal = workdir+"datacards/limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
+const TString templatesTTBB = workdir+"datacards/limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
 const TString CMSSW_BASE = "/nfs/dust/cms/user/pkeicher/CMSSW_7_4_7";
-const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin=-10 --rMax=10 --saveNormalizations --saveShapes";
+const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes";
 
 
-void createPseudoData(const TString& outdir,
+void generatePseudoData(const TString& outdir,
 		      const int nExperiments,
-		      const double expectSignal=1.) {
+		      const double expectSignal=1.,
+		      const double scanIntervallSize = 5.)
+{
 
   std::vector<Category::Type> categories = { //Category::SL_44,
 					     //Category::SL_54,
 					     //Category::SL_63//,
-					     Category::SL_64 
+					     Category::SL_64
 					    };
 
   std::vector<Process> processes;
@@ -39,11 +42,11 @@ void createPseudoData(const TString& outdir,
     //processes.push_back( Process(Process::ttHzg,templatesNominal,expectSignal) );
     //processes.push_back( Process(Process::ttHzz,templatesNominal,expectSignal) );
   }
-    
-  processes.push_back( Process(Process::ttlf,templatesNominal) );
+
+  //processes.push_back( Process(Process::ttlf,templatesNominal) );
   //processes.push_back( Process(Process::ttcc,templatesNominal) );
 
-  //processes.push_back( Process(Process::ttbb,templatesTTBB) );
+  processes.push_back( Process(Process::ttbb,templatesTTBB) );
   //processes.push_back( Process(Process::ttb,templatesTTBB) );
   //processes.push_back( Process(Process::tt2b,templatesTTBB) );
 
@@ -69,7 +72,7 @@ void createPseudoData(const TString& outdir,
 
   // prepare datacards
   std::cout << "Creating datacards" << std::endl;
-    
+
   // cp input root files to working dir
   if( gSystem->CopyFile(templatesNominal,outdir+"/"+str::fileName(templatesNominal)) != 0 ) {
     std::cerr << "ERROR copying inputs to working directory '" << outdir << "'" << std::endl;
@@ -84,16 +87,18 @@ void createPseudoData(const TString& outdir,
     card.setObservation(experimentDir+"/Data_Obs.root","Data_Obs.root");
     card.write(experimentDir+"/"+datacardName);
   }
+  TString finalCombineCmd;
+  finalCombineCmd.Form(" --rMin=%.2f --rMax=%.2f", expectSignal-scanIntervallSize, expectSignal+scanIntervallSize);
+  finalCombineCmd.Prepend(combineCmd);
 
-  
   // create batch scripts
   std::cout << "Creating submission scripts" << std::endl;
-  
+
   const TString nameRunScript = "run_fit.sh";
   for(auto& experimentDir: experimentDirs) {
     std::ofstream out(experimentDir+"/"+nameRunScript);
     if( out.is_open() ) {
-      
+
       out << "#!/bin/bash\n\n";
 
       out << "export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch\n";
@@ -101,12 +106,12 @@ void createPseudoData(const TString& outdir,
       out << "cd " << CMSSW_BASE << "/src\n";
       out << "eval `scram runtime -sh`\n";
       out << "cd -\n\n";
-      out << "echo '" << combineCmd << " " << datacardName << "'\n";
-      out << combineCmd << " " << datacardName << "\n";
+      out << "echo '" << finalCombineCmd << " " << datacardName << "'\n";
+      out << finalCombineCmd << " " << datacardName << "\n";
       out << "rm higgsCombineTest.MaxLikelihoodFit*.root\n";
-      
+
       out.close();
-      
+
     } else {
       std::cerr << "ERROR: unable to open '" << nameRunScript << "' for writing" << std::endl;
       throw std::exception();
@@ -117,7 +122,7 @@ void createPseudoData(const TString& outdir,
   const TString nameSubScript = outdir+"_sub.sh";
   std::ofstream out(nameSubScript);
   if( out.is_open() ) {
-      
+
     out << "#!/bin/bash\n\n";
     out << "for i in";
     for(auto& experimentDir: experimentDirs) {
@@ -130,15 +135,33 @@ void createPseudoData(const TString& outdir,
     out << "done\n";
 
     out.close();
-      
+
   } else {
     std::cerr << "ERROR: unable to open '" << nameRunScript << "' for writing" << std::endl;
     throw std::exception();
   }
   gSystem->Exec("chmod u+x "+nameSubScript);
 
-  
+
   std::cout << "Done" << std::endl;
   std::cout << "  project in " << outdir << std::endl;
   std::cout << "  submit fits with './" << nameSubScript << "'" << std::endl;
+}
+
+void createPseudoData(TString& outdir,
+		      const int nExperiments,
+		      const double scanIntervallSize = 5.)
+{
+	if(!gROOT->cd(outdir.Data())){
+		gROOT->mkdir(outdir.Data())
+		gROOT->cd(outdir.Data())
+	}
+	double signalStrengths[2] = {0.0, 1.0};
+	TString outputDir;
+	if(outdir.EndsWith("/")) outdir.Chop();
+	for(int i=0; i<2;i++){
+		outputDir.Form("/sig%0.2f", signalStrengths[i]);
+		outputDir.Prepend(outdir);
+		generatePseudoData(outputDir, nExperiments, signalStrengths[i], scanIntervallSize);
+	}
 }
