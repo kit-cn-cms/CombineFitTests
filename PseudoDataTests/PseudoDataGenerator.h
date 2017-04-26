@@ -19,7 +19,7 @@ public:
       outputDirPerExpSuffix_("PseudoData"),
       outputFileSuffix_("Data_Obs"),
       usePoissonStatistics_(true) {}
-  
+
   void setOutputDirectory(const TString& dir) {
     outputDir_ = dir;
   }
@@ -33,7 +33,7 @@ public:
   void usePoissonStatistics(const bool smear) {
     usePoissonStatistics_ = smear;
   }
-  
+
   std::vector<TString> run(const std::vector<Category::Type>& categories,
 			   const std::vector<Process>& processes,
 			   const unsigned int nExperiments) const;
@@ -76,7 +76,7 @@ std::vector<TString> PseudoDataGenerator::run(const std::vector<Category::Type>&
     std::vector<double> means(nBins,0.);
     for(auto& process: processes) {
       for(unsigned int iBin = 0; iBin < nBins; ++iBin) {
-	means.at(iBin) += process.binContent(category,iBin+1);
+        means.at(iBin) += process.binContent(category,iBin+1);
       }
     }
     meansPerCategory[category] = means;
@@ -92,11 +92,11 @@ std::vector<TString> PseudoDataGenerator::run(const std::vector<Category::Type>&
       const unsigned int nBins = meansPerCategory[category].size();
       TH1* pseudoDataHist = new TH1D(histName,"",nBins,0,nBins);
       for(unsigned int iBin = 0; iBin < nBins; ++iBin) {
-	const double mean = meansPerCategory[category].at(iBin);
-	// convert into int
-	const int meanInt = rand_.Uniform()>0.5 ? ceil(mean) : floor(mean); //trying for int casts
-	const double val = usePoissonStatistics_ ? rand_.Poisson(meanInt) : mean;
-	pseudoDataHist->SetBinContent(iBin+1,val);
+        const double mean = meansPerCategory[category].at(iBin);
+        // convert into int
+        const int meanInt = rand_.Uniform()>0.5 ? ceil(mean) : floor(mean); //trying for int casts
+        const double val = usePoissonStatistics_ ? rand_.Poisson(meanInt) : mean;
+        pseudoDataHist->SetBinContent(iBin+1,val);
       }
       pseudoDataHists.push_back(pseudoDataHist);
     }
