@@ -97,7 +97,9 @@ public:
 
 private:
   bool debug_;
-  bool mustConverge_;
+  bool fitBmustConverge_;
+  bool fitSBmustConverge_;
+  bool accurateCovariance_;
 
   TString label_;
   double injectedMu_;
@@ -126,11 +128,13 @@ private:
 
 
 PseudoExperiments::PseudoExperiments(const TString& label, const double injectedMu)
-  : debug_(false),
-    mustConverge_(true),
-    label_(label), injectedMu_(injectedMu), color_(kGray),
-    nBins_(400), min_(-20), max_(20),
-    muValues_(0) {
+: debug_(false),
+fitBmustConverge_(false),
+fitSBmustConverge_(true),
+accurateCovariance_(true),
+label_(label), injectedMu_(injectedMu), color_(kGray),
+nBins_(400), min_(-5), max_(5),
+muValues_(0) {
   if( debug_ ) std::cout << "DEBUG " << this << ": constructor" << std::endl;
 }
 
@@ -161,10 +165,8 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
     //check if the s+b and the b fit converged
 
     bool storeExperiment = true;
-    if(mustConverge_){
-      storeExperiment = checkFitStatus(file);
-      if(storeExperiment) storeExperiment = checkCovarianceMatrix(file);
-    }
+    if(fitSBmustConverge_ || fitBmustConverge_) storeExperiment = checkFitStatus(file);
+    if(storeExperiment && accurateCovariance_) storeExperiment = checkCovarianceMatrix(file);
     // store POI value
     if(storeExperiment)
     {
@@ -204,50 +206,53 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
 
 
 void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitFile){
-/*//old version
+  /*//old version
   for(unsigned int iE = 1; iE <= nExps; ++iE) {
-    char idx[10];
-    sprintf(idx,"%03d",iE);
-    TString name = mlfitTemplateName;
-    name.ReplaceAll("*",TString(idx));
-    addExperiment(name);
-  }*/
-  /*
-    Input:
-    sourceDir: directory which contains PseudoExperiment folders
-    mlfitFile: .root file which contains the fit results from the combine fit
-  */
-  //load PseudoExperiment folders
-  TSystemDirectory dir(sourceDir.Data(), sourceDir.Data());
-  TList *folders = dir.GetListOfFiles();
-  //if folders are found, go through each one an look for the mlfitFile
-  if (folders) {
-    TSystemFile *pseudoExperimentFolder;
-    TString folderName;
-    TIter next(folders);
-    while ((pseudoExperimentFolder=(TSystemFile*)next())) {
-     folderName = pseudoExperimentFolder->GetName();
-     if (pseudoExperimentFolder->IsDirectory() && !folderName.EndsWith(".")) {
-        if(sourceDir.EndsWith("/")) sourceDir.Chop();
-        addExperiment(sourceDir+"/"+folderName+"/"+mlfitFile);
-      }
+  char idx[10];
+  sprintf(idx,"%03d",iE);
+  TString name = mlfitTemplateName;
+  name.ReplaceAll("*",TString(idx));
+  addExperiment(name);
+}*/
+/*
+Input:
+sourceDir: directory which contains PseudoExperiment folders
+mlfitFile: .root file which contains the fit results from the combine fit
+*/
+//load PseudoExperiment folders
+TSystemDirectory dir(sourceDir.Data(), sourceDir.Data());
+TList *folders = dir.GetListOfFiles();
+//if folders are found, go through each one an look for the mlfitFile
+if (folders) {
+  TSystemFile *pseudoExperimentFolder;
+  TString folderName;
+  TIter next(folders);
+  while ((pseudoExperimentFolder=(TSystemFile*)next())) {
+    folderName = pseudoExperimentFolder->GetName();
+    if (pseudoExperimentFolder->IsDirectory() && !folderName.EndsWith(".")) {
+      if(sourceDir.EndsWith("/")) sourceDir.Chop();
+      addExperiment(sourceDir+"/"+folderName+"/"+mlfitFile);
     }
-    delete pseudoExperimentFolder;
-    delete folders;
   }
+  delete pseudoExperimentFolder;
+  delete folders;
+}
 }
 
 bool PseudoExperiments::checkFitStatus(TFile& file){
   bool storeExperiment = true;
   int fit_status=7;
   TString fit_trees[2] = {"tree_fit_sb", "tree_fit_b"};
+  bool fit_flags[2] = {fitSBmustConverge_, fitBmustConverge_};
   for(int nTrees=0; nTrees<2; nTrees++)
   {
     TTree* tree = (TTree*)file.Get(fit_trees[nTrees].Data());
     tree->SetBranchAddress("fit_status",&fit_status);
     tree->GetEntry(0);
-    if((fit_status != 0)) std::cout << "WARNING fit_status in " << fit_trees[nTrees].Data() << " did not converge!\n";
-    if((fit_status!=0)) storeExperiment = false;
+    if((fit_status != 0)){
+      std::cout << "WARNING fit_status in " << fit_trees[nTrees].Data() << " did not converge!\n";
+      if(fit_flags[nTrees]) storeExperiment = false;
+    }
     delete tree;
     fit_status=7;
   }
@@ -258,7 +263,7 @@ bool PseudoExperiments::checkCovarianceMatrix(TFile& file){
   bool accurateCovariance = false;
   TString rooFitObjects[2] = {"fit_b", "fit_s"};
   int quality = -1;
-  int bothGood = 0;
+  bool qualities[2] = {false, false};
   for(int currentObject=0; currentObject < 2; currentObject++){
     RooFitResult* fitObject = 0;
     file.GetObject(rooFitObjects[currentObject].Data(),fitObject);
@@ -279,11 +284,18 @@ bool PseudoExperiments::checkCovarianceMatrix(TFile& file){
       }
       if(quality==3) {
         if(debug_) std::cout << rooFitObjects[currentObject].Data() << ": Full, accurate covariance matrix\n";
-        bothGood+=1;
+        qualities[currentObject] = true;
       }
     }
   }
-  if(bothGood == 2) accurateCovariance = true;
+  if(!fitSBmustConverge_ && !fitBmustConverge_) return true;
+  if(fitBmustConverge_){
+    if(qualities[0]) accurateCovariance = true;
+  }
+  if(fitSBmustConverge_){
+    if(qualities[1]) accurateCovariance = true;
+    else accurateCovariance = false;
+  }
   return accurateCovariance;
 }
 
@@ -295,16 +307,16 @@ void PseudoExperiments::initContainers(TFile& file) {
     //throw std::exception();
   }
   else{
-  TIter it = nuisances_prefit->createIterator();
-  RooRealVar* var = static_cast<RooRealVar*>(it.Next());
-  while( var != 0 ) {
-    nps_.insert( var->GetName() );
-    var = static_cast<RooRealVar*>(it.Next());
-  }
+    TIter it = nuisances_prefit->createIterator();
+    RooRealVar* var = static_cast<RooRealVar*>(it.Next());
+    while( var != 0 ) {
+      nps_.insert( var->GetName() );
+      var = static_cast<RooRealVar*>(it.Next());
+    }
 
-  createHistograms(npValuesPrefit_,nps_,"prefit");
-  createHistograms(npValuesPostfitB_,nps_,"postfitB");
-  createHistograms(npValuesPostfitS_,nps_,"postfitS");
+    createHistograms(npValuesPrefit_,nps_,"prefit");
+    createHistograms(npValuesPostfitB_,nps_,"postfitB");
+    createHistograms(npValuesPostfitS_,nps_,"postfitS");
   }
 }
 
@@ -367,9 +379,13 @@ TH1* PseudoExperiments::getHist(const std::map<TString,TH1*>& hists, const TStri
 
 
 TH1* PseudoExperiments::getClone(const TH1* h)const {
-  const TUUID id;
-  const TString name = h->GetName();
-  return static_cast<TH1*>(h->Clone(name+":"+id.AsString()));
+  if(h!=NULL){
+    const TUUID id;
+    const TString name = h->GetName();
+    return static_cast<TH1*>(h->Clone(name+":"+id.AsString()));
+  }
+  else std::cerr << "ERROR cloning histogram!\n";
+  return NULL;
 }
 
 #endif

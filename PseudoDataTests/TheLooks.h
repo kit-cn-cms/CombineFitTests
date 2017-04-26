@@ -12,7 +12,7 @@
 class TheLooks {
 public:
   static void set();
-  
+
   static double margin() { return margin_; }
   static double lineHeight() { return lineHeight_; }
   static double textSize() { return textSize_; }
@@ -26,7 +26,7 @@ private:
   static double textSize_;
 };
 
-double TheLooks::lineHeight_ = 0.046;
+double TheLooks::lineHeight_ = 0.092;
 double TheLooks::margin_ = 0.05;
 double TheLooks::textSize_ = 0.04;
 
@@ -54,7 +54,7 @@ void TheLooks::set() {
   gStyle->SetCanvasDefW(800); //Width of canvas
   gStyle->SetCanvasDefX(0);   //Position on screen
   gStyle->SetCanvasDefY(0);
-  
+
   //  For the frame
   gStyle->SetFrameBorderMode(0);
   gStyle->SetFrameBorderSize(10);
@@ -64,7 +64,7 @@ void TheLooks::set() {
   gStyle->SetFrameLineStyle(0);
   gStyle->SetFrameLineWidth(2);
   gStyle->SetLineWidth(3);
-    
+
   //  For the Pad
   gStyle->SetPadBorderMode(0);
   gStyle->SetPadColor(kWhite);
@@ -73,7 +73,7 @@ void TheLooks::set() {
   gStyle->SetGridColor(0);
   gStyle->SetGridStyle(3);
   gStyle->SetGridWidth(1);
-  
+
   //  Margins
   gStyle->SetPadTopMargin(0.08);
   gStyle->SetPadBottomMargin(0.15);
@@ -90,7 +90,7 @@ void TheLooks::set() {
 
   //  For the statistics box:
   gStyle->SetOptStat(0);
-  
+
   //  For the axis
   gStyle->SetAxisColor(1,"XYZ");
   gStyle->SetTickLength(0.03,"XYZ");
@@ -98,7 +98,7 @@ void TheLooks::set() {
   gStyle->SetPadTickX(1);
   gStyle->SetPadTickY(1);
   gStyle->SetStripDecimals(kFALSE);
-  
+
   //  For the axis labels and titles
   gStyle->SetTitleColor(1,"XYZ");
   gStyle->SetLabelColor(1,"XYZ");

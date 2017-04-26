@@ -15,7 +15,7 @@ const TString datacard = workdir+"datacards/limits_Spring17v2p2_ttbarincl_dataca
 const TString templatesNominal = workdir+"datacards/limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
 const TString templatesTTBB = workdir+"datacards/limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
 const TString CMSSW_BASE = "/nfs/dust/cms/user/pkeicher/CMSSW_7_4_7";
-const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes";
+const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --freezeNuisances all";
 
 
 void generatePseudoData(const TString& outdir,
@@ -148,19 +148,19 @@ void generatePseudoData(const TString& outdir,
   std::cout << "  submit fits with './" << nameSubScript << "'" << std::endl;
 }
 
-void createPseudoData(TString& outdir,
+void createPseudoData(TString outdir,
 		      const int nExperiments,
 		      const double scanIntervallSize = 5.)
 {
-	if(!gROOT->cd(outdir.Data())){
-		gROOT->mkdir(outdir.Data())
-		gROOT->cd(outdir.Data())
+	if(!gSystem->cd(outdir.Data())){
+		gSystem->mkdir(outdir.Data());
+		gSystem->cd(outdir.Data());
 	}
 	double signalStrengths[2] = {0.0, 1.0};
 	TString outputDir;
 	if(outdir.EndsWith("/")) outdir.Chop();
 	for(int i=0; i<2;i++){
-		outputDir.Form("/sig%0.2f", signalStrengths[i]);
+		outputDir.Form("/sig%0.1f", signalStrengths[i]);
 		outputDir.Prepend(outdir);
 		generatePseudoData(outputDir, nExperiments, signalStrengths[i], scanIntervallSize);
 	}
