@@ -10,10 +10,16 @@ cd -
 targetDatacard=$1
 numberOfToysPerExperiment=$2
 signalStrength=$3
-randomSeed=$4
+lowerBound=$4
+upperBound=$5
 
 #pwd
-combineCmd="combine -v 99 -M MaxLikelihoodFit -m 125 --freezeNuisances all --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-5.00 --rMax=5.00 -t $2 --minos all -s $randomSeed --expectSignal $signalStrength $targetDatacard"
-echo "$combineCmd"
-eval $combineCmd
-rm *.root.dot
+for (( i = $lowerBound; i <= $upperBound; i++ )); do
+  mkdir -p PseudoExperiment$i
+  cd PseudoExperiment$i
+  combineCmd="combine -v 99 -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-5.00 --rMax=5.00 -t $2 --minos all -s $i --expectSignal $signalStrength $targetDatacard"
+  echo "$combineCmd"
+  eval $combineCmd
+  rm *.root.dot
+  cd ../
+done
