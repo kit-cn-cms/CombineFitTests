@@ -9,63 +9,79 @@ ROOT.gROOT.SetBatch(True)
 def checkCopy(original, copy):
     if original.GetNbinsX() is not copy.GetNbinsX():
         print "bins do not match!"
-    for currentBin in range(original.GetNbinsX()):
+    print "Integrals:\n\toriginal:", original.Integral(), "\tcopy:", copy.Integral()
+    for currentBin in range(1, original.GetNbinsX()+1):
         print "values in bin", currentBin, ": original =", original.GetBinContent(currentBin), "\tcopy =", copy.GetBinContent(currentBin)
 
-def scaleHistogram(key, inputRootFile, funcFormula):
+def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir):
     histo = inputRootFile.Get(key.GetName())
+    histo.SetDirectory(currentOutputDir)
     #for usage depending on x values:
     #lowerBound = histo.GetXaxis().GetBinLowerEdge(1)
     #upperBound = histo.GetXaxis().GetBinLowerEdge(histo.GetNbinsX()) + histo.GetXaxis().GetBinWidth(histo.GetNbinsX())
     print "\tScaling", key.GetName(),"with function", funcFormula
 
     scaleFunc = ROOT.TF1("scaleFunc",funcFormula,0, histo.GetNbinsX() )
-    for currentBin in range(histo.GetNbinsX()):
-        print "\t\tBefore scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
-        scaleFactor = scaleFunc.Eval(currentBin)
-        histo.SetBinContent(currentBin, histo.GetBinContent(currentBin)*scaleFactor)
-        print "\t\tAfter scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
-
+    if scaleFunc is not None:
+        for currentBin in range(1, histo.GetNbinsX()+1):
+            print "\t\tBefore scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
+            scaleFactor = scaleFunc.Eval(currentBin)
+            histo.SetBinContent(currentBin, histo.GetBinContent(currentBin)*scaleFactor)
+            print "\t\tAfter scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
     return histo
 
-def loopOverElements(inputRootFile, processScalingDic, listOfKeys):
+def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys):
     tempObject = None
     for key in listOfKeys:
+        path=ROOT.gDirectory.GetPathStatic()
         if key.IsFolder():
-            path=ROOT.gDirectory.GetPathStatic()
             if not path.endswith("/"):
                 path = path + "/"
             pathIntoKeyDir = path + key.GetName()
+            outputFile.mkdir(pathIntoKeyDir)
+            outputFile.cd(pathIntoKeyDir)
             inputRootFile.cd(pathIntoKeyDir)
-            loopOverElements(inputRootFile, processScalingDic, ROOT.gDirectory.GetListOfKeys())
+            copyOrScaleElements(inputRootFile, outputFile, processScalingDic, ROOT.gDirectory.GetListOfKeys())
+            outputFile.cd(path)
+            inputRootFile.cd(path)
         else:
-            index = next((entryNum for entryNum, sublist in enumerate(processScalingDic) if key.GetName() in sublist),-1)
+            #index = next((entryNum for entryNum, sublist in enumerate(processScalingDic) if (key.GetName().startswith(sublist[entryNum]) and not (key.GetName().endswith("Up") or key.GetName().endswith("Down")) )),-1)
+            index = next((entryNum for entryNum, sublist in enumerate(processScalingDic) if (key.GetName().startswith(sublist[entryNum]))),-1)
             if index is not -1:
-                tempObject = scaleHistogram(key,inputRootFile, processScalingDic[index][1])
+                tempObject = scaleHistogram(key,inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path))
             else:
-                print "\tCopied", key.GetName(),"to new root file"
                 tempObject = inputRootFile.Get(key.GetName())
+                tempObject.SetDirectory(outputFile.GetDirectory(path))
+                #print "\tCopied", key.GetName(),"to new root file"
             if tempObject is not None:
-                checkCopy(inputRootFile.Get(key.GetName()), tempObject)
+                #checkCopy(inputRootFile.Get(key.GetName()), tempObject)
                 tempObject.Write()
+                del tempObject
 
-#createScaledInput(inputRootFile, )
-
-def createToys(inputRootFile, processScalingDic):
+def createToys(inputRootFile, processScalingDic, pathToScaledDatacard):
     if not os.path.exists("temp"):
         os.makedirs("temp")
     os.chdir("temp")
-    newRootFileName = "temp_" + os.path.basename(inputRootFile.GetName())
-    outputFile = ROOT.TFile(newRootFileName,"RECREATE")
+    if len(processScalingDic) is not 0:
+        newRootFileName = "temp_" + os.path.basename(inputRootFile.GetName())
+        outputFile = ROOT.TFile(newRootFileName,"RECREATE")
 
-    loopOverElements(inputRootFile, processScalingDic, inputRootFile.GetListOfKeys())
-    outputFile.Close()
-    #datacardToUse = writeDatacard(pathToDatacard, newRootFileName, listOfProcesses)
-    datacardToUse = pathToDatacard
-    if os.path.exists(datacardToUse):
-        subprocess.check_call(["../generateToys.sh", datacardToUse, str(numberOfToys), str(signalStrength)])
+
+        copyOrScaleElements(inputRootFile, outputFile, processScalingDic, inputRootFile.GetListOfKeys())
+        outputFile.Close()
+        datacardToUse = writeDatacard(pathToDatacard, newRootFileName, listOfProcesses)
+    elif pathToScaledDatacard is not None and os.path.exists(pathToScaledDatacard):
+        datacardToUse = pathToScaledDatacard
+    elif pathToScaledDatacard is not None:
+        raise sys.exit("Could not find scaled datacard")
     else:
-        print "Couldn't find datacard!"
+        raise sys.exit("Neither process list nor scaled datacard were found! Please check input variables")
+
+    if os.path.exists(datacardToUse):
+        print "creating toy data from datacard", datacardToUse
+        subprocess.check_call([workdir+"/generateToys.sh", datacardToUse, str(numberOfToys), str(signalStrength)])
+    else:
+        print "Couldn't find datacard", datacardToUse
     os.chdir("../")
     return "temp/higgsCombine_{0}toys_sig{1}.GenerateOnly.mH125.123456.root".format(numberOfToys, signalStrength)
 
@@ -78,48 +94,65 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     for line in datacard:
         entries = line.split()
         for i, entry in enumerate(entries):
-            if entries[0] is "process":
+            #print "\t", i, "\t", entry
+
+            if entries[0]=="process":
+                #print "first entry of line is process!"
                 if entry in listOfProcesses:
-                    print "found match! Saving index of process", entry
+                    #print "found match! Saving index of process", entry
                     listOfEntriesToChange.append(i)
-            if entries[0] is "rate":
+            if entries[0]=="rate":
+                #print "first entry of line is rate!"
+
                 if i in listOfEntriesToChange:
-                    print "found match!"
+                    #print "found match!"
                     entry = "-1"
             if entry.endswith(".root"):
+                #print "\tfound entry for root file! Replacing", entry, "with", newRootFileName
                 entry = newRootFileName
             newDatacard.write(entry+" ")
         newDatacard.write("\n")
 
-            #print "\t", i, "\t", entry
     newDatacard.close()
     datacard.close()
     return newDatacardName
 
-pathToDatacard = sys.argv[1]
-pathToInputRootfile = sys.argv[2]
-processesToAlter = sys.argv[3]
-scalingFormulae = sys.argv[4]
+pathToDatacard = sys.argv[1] #path to unscaled datacard with data to be fitted to scaled toys
+pathToInputRootfile = sys.argv[2] #path to corresponding root file
 
-listOfProcesses = processesToAlter.split(",")
-listOfFormulae = scalingFormulae.split(",")
+datacardOrProcessList = sys.argv[3] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
+if len(sys.argv)>4:
+    scaleFuncList = sys.argv[4] #if argument 3 is a list of processes this parameter is a comma-separated list of functions to use (TF1)
 
-numberOfToys = 1
-signalStrength = 0
+pathToScaledDatacard = None
 
-scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
+scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 
+#check if
+if datacardOrProcessList.endswith(".txt"):
+    pathToScaledDatacard = os.path.abspath(datacardOrProcessList)
+    print "using already scaled data from", pathToScaledDatacard
+else:
+    listOfProcesses = datacardOrProcessList.split(",")
+    listOfFormulae = scaleFuncList.split(",")
+    scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
 
-if os.path.exists(pathToInputRootfile) and os.path.exists(pathToDatacard):
+numberOfToys = 1000
+signalStrength = 1
+
+workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests"
+
+if os.path.exists(pathToDatacard) and os.path.exists(pathToInputRootfile):
     pathToDatacard=os.path.abspath(pathToDatacard)
     pathToInputRootfile = os.path.abspath(pathToInputRootfile)
     inputRootFile = ROOT.TFile(pathToInputRootfile, "READ")
 
-    toyfile = createToys(inputRootFile, scalingDic)
+    toyfile = createToys(inputRootFile, scalingDic, pathToScaledDatacard)
+
     if os.path.exists(toyfile):
-        print "starting combine fit"
-        #subprocess.check_call(["./fitToyData.sh", pathToDatacard, toyfile, str(signalStrength)])
+        print "submitting combine fit"
+        subprocess.check_call([workdir+"/fitToyData.sh", pathToDatacard, toyfile, str(signalStrength), str(numberOfToys)])
     else:
         print "Cannot find toy file!"
 else:
-    print "Incorrect paths to input data. Please make sure paths to .root file and datacard are correct!"
+    print "Incorrect paths to input data. Please make sure path to datacard is correct!"

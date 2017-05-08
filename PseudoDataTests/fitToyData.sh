@@ -10,8 +10,9 @@ cd -
 targetDatacard=$1
 toyFile=$2
 signalStrength=$3
+numberOfToys=$4
 
-combineCmd="combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-5.00 --rMax=5.00 --toysFile=$toyFile --minos all --expectSignal $signalStrength $targetDatacard"
+combineCmd="combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-5.00 --rMax=5.00 -t $numberOfToys --toysFile $toyFile --minos all -n _sig$((signalStrength))_$((numberOfToys))toys $targetDatacard"
 echo "$combineCmd"
 eval $combineCmd
 #rm *.root.dot
