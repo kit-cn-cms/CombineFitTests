@@ -133,7 +133,7 @@ fitBmustConverge_(false),
 fitSBmustConverge_(true),
 accurateCovariance_(true),
 label_(label), injectedMu_(injectedMu), color_(kGray),
-nBins_(400), min_(-5), max_(5),
+nBins_(400), min_(-10), max_(10),
 muValues_(0) {
   if( debug_ ) std::cout << "DEBUG " << this << ": constructor" << std::endl;
 }

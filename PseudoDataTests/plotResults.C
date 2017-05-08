@@ -301,19 +301,19 @@ double convertTStringToDouble(const TString& tStringToConvert, double stepSize=0
     //std::cout << "current value: " << value << "\tdoubleVal = " << doubleVal.Data() << "\tintegerVal = " << integerVal.Data() << std::endl;
     if(tStringToConvert.EqualTo(doubleVal))
     {
-      std::cout << "Found nominal signal strenth to be " << value << std::endl;
+      std::cout << "Found nominal signal strength to be " << value << std::endl;
       return value;
     }
     if(tStringToConvert.EqualTo(integerVal))
     {
       if(value != 0)
       {
-        std::cout << "Found nominal signal strenth to be " << value - .1 << std::endl;
+        std::cout << "Found nominal signal strength to be " << value - .1 << std::endl;
         return value - .1;
       }
       else
       {
-        std::cout << "Found nominal signal strenth to be " << value << std::endl;
+        std::cout << "Found nominal signal strength to be " << value << std::endl;
         return value;
       }
     }
