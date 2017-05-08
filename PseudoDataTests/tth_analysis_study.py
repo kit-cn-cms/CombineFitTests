@@ -69,7 +69,9 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
 
         copyOrScaleElements(inputRootFile, outputFile, processScalingDic, inputRootFile.GetListOfKeys())
         outputFile.Close()
-        datacardToUse = writeDatacard(pathToDatacard, newRootFileName, listOfProcesses)
+        datacardToUse = os.path.abspath(writeDatacard(pathToDatacard, newRootFileName, listOfProcesses))
+        os.chdir("../")
+
     elif pathToScaledDatacard is not None and os.path.exists(pathToScaledDatacard):
         datacardToUse = pathToScaledDatacard
     elif pathToScaledDatacard is not None:
@@ -79,11 +81,9 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
 
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
-        subprocess.check_call([workdir+"/generateToys.sh", datacardToUse, str(numberOfToys), str(signalStrength)])
+        subprocess.check_call([workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, "./", str(numberOfToys), str(numberOfToysPerJob)])
     else:
         print "Couldn't find datacard", datacardToUse
-    os.chdir("../")
-    return "temp/higgsCombine_{0}toys_sig{1}.GenerateOnly.mH125.123456.root".format(numberOfToys, signalStrength)
 
 def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     datacard = open(pathToDatacard)
@@ -128,7 +128,7 @@ pathToScaledDatacard = None
 
 scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 
-#check if
+#check if third argument is a list of process or a datacard and act accordingly
 if datacardOrProcessList.endswith(".txt"):
     pathToScaledDatacard = os.path.abspath(datacardOrProcessList)
     print "using already scaled data from", pathToScaledDatacard
@@ -137,8 +137,10 @@ else:
     listOfFormulae = scaleFuncList.split(",")
     scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
 
+#set up parameters for toy generation here
 numberOfToys = 1000
-signalStrength = 1
+numberOfToysPerJob = 30
+#signalStrength = 1
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests"
 
@@ -147,12 +149,7 @@ if os.path.exists(pathToDatacard) and os.path.exists(pathToInputRootfile):
     pathToInputRootfile = os.path.abspath(pathToInputRootfile)
     inputRootFile = ROOT.TFile(pathToInputRootfile, "READ")
 
-    toyfile = generateToysAndFit(inputRootFile, scalingDic, pathToScaledDatacard)
+    generateToysAndFit(inputRootFile, scalingDic, pathToScaledDatacard)
 
-    if os.path.exists(toyfile):
-        print "submitting combine fit"
-        subprocess.check_call([workdir+"/fitToyData.sh", pathToDatacard, toyfile, str(signalStrength), str(numberOfToys)])
-    else:
-        print "Cannot find toy file!"
 else:
     print "Incorrect paths to input data. Please make sure path to datacard is correct!"
