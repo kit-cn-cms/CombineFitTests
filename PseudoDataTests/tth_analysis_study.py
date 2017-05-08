@@ -58,7 +58,7 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
                 tempObject.Write()
                 del tempObject
 
-def createToys(inputRootFile, processScalingDic, pathToScaledDatacard):
+def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
     if not os.path.exists("temp"):
         os.makedirs("temp")
     os.chdir("temp")
@@ -147,7 +147,7 @@ if os.path.exists(pathToDatacard) and os.path.exists(pathToInputRootfile):
     pathToInputRootfile = os.path.abspath(pathToInputRootfile)
     inputRootFile = ROOT.TFile(pathToInputRootfile, "READ")
 
-    toyfile = createToys(inputRootFile, scalingDic, pathToScaledDatacard)
+    toyfile = generateToysAndFit(inputRootFile, scalingDic, pathToScaledDatacard)
 
     if os.path.exists(toyfile):
         print "submitting combine fit"
