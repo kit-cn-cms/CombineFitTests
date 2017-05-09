@@ -1,0 +1,77 @@
+\section{\ttbarH Analysis Study}
+\subsection{Input for Analysis}
+\begin{frame}{Parameters}
+\begin{block}{Categories and Processes used}
+\begin{itemize}
+\item For $\text{j}\geq 6,\quad \text{t}\geq 4$: all Processes\footnote{Full list with all considered processes can be found in the backup\\}; \ttbarH \bbbar + \ttbar\bbbar\\
+\item For $\text{j}\geq 6,\quad \text{t} = 3$: all Processes
+\end{itemize}
+\end{block}
+
+\begin{itemize}
+\item In every case the datacards were checked by fitting an asimov toy set to make sure they were intact
+\item The following slides show the analysis of processes \ttbarH \bbbar + \ttbar\bbbar in category $\text{j}\geq 6,\quad \text{t}\geq 4$ where only the nuisance parameter for luminosity\footnote{Full list with all considered nuisance parameters can be found in the backup} was considered as an example
+\end{itemize}
+
+%\parnotes
+\end{frame}
+\subsection{Example: $\text{j}\geq 6,\quad \text{t}\geq 4$, \ttbarH \bbbar + \ttbar\bbbar}
+
+\begin{frame}{Generate Pseudo Data}
+\begin{figure}
+\centering
+\subfloat[\ttbarH \bbbar]{\includegraphics[scale=0.27]{plots/tthbb_finaldiscr_jge6_tge4.pdf}}$\qquad$
+\subfloat[\ttbar\bbbar]{\includegraphics[scale=0.27]{plots/ttbb_finaldiscr_jge6_tge4.pdf}}
+
+\end{figure}
+\vskip -0.3cm
+\begin{block}{How to Generate Pseudo Data}
+\begin{itemize}
+\item add histograms bin-wise
+\item use each sum respectively as the expected value of a Poisson distribution
+\item get a random number from the corresponding distribution and fill the Pseudo Data histogram bin with it
+\item create new datacard for each Pseudo Experiment
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{Example Pseudo Data Distribution}
+\begin{figure}
+\centering
+\includegraphics[scale=0.4]{plots/data_obs_finaldiscr_ljets_jge6_tge4_bin4.pdf}
+\caption[Example: $\text{j}\geq 6,\quad \text{t}\geq 4$, \ttbarH \bbbar + \ttbar\bbbar Pseudo Data Histogram Bin 4]{Example: $\text{j}\geq 6,\quad \text{t}\geq 4$, \ttbarH \bbbar + \ttbar\bbbar Pseudo Data Histogram Bin 4}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Fit Parameters for Pseudo Data}
+\begin{block}{Requirements for Fits}
+\begin{itemize}
+\item \texttt{fit$\_$status} flags in RooFit Objects have to be 0\\
+\item covariance matrix has to be accurate (\texttt{fit$\_$b/s::covQual() == 3})
+\end{itemize}
+
+\end{block}
+
+\begin{block}{\texttt{combine} commands}
+\begin{itemize}
+\item \texttt{combine -M MaxLikelihoodFit -m 125 \-\-minimizerStrategy 0 --minimizerTolerance 0.1 --saveNormalizations --saveShapes --rMin=-10 --rMax=10}
+\item also tried option \texttt{--minimizerTolerance 0.001}, no visible effects
+\item also tried reduced fit range \texttt{--rMin = -5 --rMax = 5}, no visible effects
+%\item generated asimov toy set for MC datacard with option \texttt{-t -1 --expectSignal 0OR1} to make sure datacard is not damaged
+
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{Fit Results for $\text{j}\geq 6,\text{t}\geq 4$, \ttbarH \bbbar + \ttbar\bbbar}
+\vskip-0.5cm
+\begin{figure}
+\subfloat[Fitted Signal Strength Distribution\label{fig::fittedMuDistr}]{\includegraphics[scale=0.23]{plots/jge6_tge4_ttHbb_ttbb_N100_sig0_lumiOnly_POI.pdf}}$\quad$
+\subfloat[Mean Fitted Signal Strength Distribution\label{fig::meanMuDistr}]{\includegraphics[scale=0.23]{plots/jge6_tge4_ttHbb_ttbb_N100_sig0_lumiOnly_POImeans.pdf}}
+\caption[Distributions for Fit Results for $\text{j}\geq 6,\text{t}\geq 4$, \ttbarH \bbbar + \ttbar\bbbar of 100 Pseudo Data with nominal signal strength $\mu=0$]{Distributions for Fit Results for $\text{j}\geq 6,\text{t}\geq 4$, \ttbarH \bbbar + \ttbar\bbbar of 100 Pseudo Data with nominal signal strength $\mu=0$.
+\ref{fig::fittedMuDistr} shows the $\mu$ distribution obtained for each Pseudo Experiment.
+\ref{fig::meanMuDistr} depicts the mean value and error (circle with full line) and the median with the RMS (square with vertical dotted line) of \ref{fig::fittedMuDistr}.
+The nominal signal strength is shown as a horizontal dotted line. }
+\end{figure}
+\end{frame}
+
