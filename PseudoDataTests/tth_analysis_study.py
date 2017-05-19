@@ -24,10 +24,10 @@ def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir):
     scaleFunc = ROOT.TF1("scaleFunc",funcFormula,0, histo.GetNbinsX() )
     if scaleFunc is not None:
         for currentBin in range(1, histo.GetNbinsX()+1):
-            print "\t\tBefore scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
+            #print "\t\tBefore scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
             scaleFactor = scaleFunc.Eval(currentBin)
             histo.SetBinContent(currentBin, histo.GetBinContent(currentBin)*scaleFactor)
-            print "\t\tAfter scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
+            #print "\t\tAfter scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
     return histo
 
 def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys):
@@ -46,8 +46,15 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
             inputRootFile.cd(path)
         else:
             #index = next((entryNum for entryNum, sublist in enumerate(processScalingDic) if (key.GetName().startswith(sublist[entryNum]) and not (key.GetName().endswith("Up") or key.GetName().endswith("Down")) )),-1)
-            index = next((entryNum for entryNum, sublist in enumerate(processScalingDic) if (key.GetName().startswith(sublist[entryNum]))),-1)
+            #print "current key name:", key.GetName()
+            index = -1
+            for entry in range(len(processScalingDic)):
+                if key.GetName().startswith(processScalingDic[entry][0]+"_"):
+                    #print "Found match for process #{0}: {1}".format(entry, processScalingDic[entry][0])
+                    index = entry
             if index is not -1:
+                #print "found match at index", index
+
                 tempObject = scaleHistogram(key,inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path))
             else:
                 tempObject = inputRootFile.Get(key.GetName())
@@ -81,7 +88,7 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
 
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
-        subprocess.check_call([workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, "./", str(numberOfToys), str(numberOfToysPerJob)])
+        subprocess.check_call([workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, "./", str(numberOfToys), str(numberOfToysPerJob), str(toyMode)])
     else:
         print "Couldn't find datacard", datacardToUse
 
@@ -117,12 +124,14 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     datacard.close()
     return newDatacardName
 
-pathToDatacard = sys.argv[1] #path to unscaled datacard with data to be fitted to scaled toys
-pathToInputRootfile = sys.argv[2] #path to corresponding root file
+outputDirectory = sys.argv[1] #path to store PseudoExperiments in
 
-datacardOrProcessList = sys.argv[3] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
-if len(sys.argv)>4:
-    scaleFuncList = sys.argv[4] #if argument 3 is a list of processes this parameter is a comma-separated list of functions to use (TF1)
+pathToDatacard = sys.argv[2] #path to unscaled datacard with data to be fitted to scaled toys
+pathToInputRootfile = sys.argv[3] #path to corresponding root file
+
+datacardOrProcessList = sys.argv[4] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
+if len(sys.argv)>5:
+    scaleFuncList = sys.argv[5] #if argument 3 is a list of processes this parameter is a comma-separated list of functions to use (TF1)
 
 pathToScaledDatacard = None
 
@@ -136,10 +145,12 @@ else:
     listOfProcesses = datacardOrProcessList.split(",")
     listOfFormulae = scaleFuncList.split(",")
     scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
+    print "using scaling dictionary: ", scalingDic
 
 #set up parameters for toy generation here
 numberOfToys = 1000
-numberOfToysPerJob = 30
+numberOfToysPerJob = 20
+toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
 #signalStrength = 1
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests"
@@ -148,6 +159,9 @@ if os.path.exists(pathToDatacard) and os.path.exists(pathToInputRootfile):
     pathToDatacard=os.path.abspath(pathToDatacard)
     pathToInputRootfile = os.path.abspath(pathToInputRootfile)
     inputRootFile = ROOT.TFile(pathToInputRootfile, "READ")
+    if not os.path.exists(outputDirectory):
+        os.makedirs(outputDirectory)
+    os.chdir(outputDirectory)
 
     generateToysAndFit(inputRootFile, scalingDic, pathToScaledDatacard)
 

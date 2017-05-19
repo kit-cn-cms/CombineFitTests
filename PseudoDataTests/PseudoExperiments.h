@@ -24,6 +24,7 @@
 #include "RooFitResult.h"
 #include "RooRealVar.h"
 
+#include "ShapeContainer.h"
 
 
 class PseudoExperiments {
@@ -93,7 +94,15 @@ public:
     std::cout << npPostfitSMean("CMS_ttH_QCDscale_ttbarPlusBBbar") << std::endl;
     std::cout << muMean() << std::endl;
   }
-
+  std::vector<ShapeContainer*> getPrefitShapes() const{
+    return prefitShapes_;
+  }
+  std::vector<ShapeContainer*> getPostfitBshapes()const{
+    return postfitBshapes_;
+  }
+  std::vector<ShapeContainer*> getPostfitSshapes()const{
+    return postfitSshapes_;
+  }
 
 private:
   bool debug_;
@@ -114,6 +123,10 @@ private:
   std::map<TString,TH1*> npValuesPrefit_;
   std::map<TString,TH1*> npValuesPostfitB_;
   std::map<TString,TH1*> npValuesPostfitS_;
+  std::vector<ShapeContainer*> prefitShapes_;
+  std::vector<ShapeContainer*> postfitBshapes_;
+  std::vector<ShapeContainer*> postfitSshapes_;
+
 
   void initContainers(TFile& file);
   void createHistograms(std::map<TString,TH1*>& hists, const std::set<TString>& nps, const TString& name) const;
@@ -124,12 +137,13 @@ private:
   TH1* getClone(const TH1* h) const;
   bool checkFitStatus(TFile& file);
   bool checkCovarianceMatrix(TFile& file);
+  void storeShapes(std::vector<ShapeContainer*>& shapes, TFile& file, const TString& name) const;
 };
 
 
 PseudoExperiments::PseudoExperiments(const TString& label, const double injectedMu)
 : debug_(false),
-fitBmustConverge_(false),
+fitBmustConverge_(true),
 fitSBmustConverge_(true),
 accurateCovariance_(true),
 label_(label), injectedMu_(injectedMu), color_(kGray),
@@ -198,6 +212,14 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
       if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
       storeRooFitResults(npValuesPostfitS_,file,"fit_s");
       if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
+      if(debug_) std::cout << "  DEBUG: store shapes\n";
+      if(debug_) std::cout << "\tDEBUG: prefit shapes\n";
+      storeShapes(prefitShapes_, file, "shapes_prefit");
+      if(debug_) std::cout << "\tDEBUG: postfit B shapes\n";
+      storeShapes(postfitBshapes_, file, "shapes_fit_b");
+      if(debug_) std::cout << "\tDEBUG: postfit S shapes\n";
+      storeShapes(postfitSshapes_, file, "shapes_fit_s");
+      if( debug_ ) std::cout << "  DEBUG: done storing shapes" << std::endl;
     }
     else std::cout << "skipping experiment in '" << mlfit.Data() << "'\n";
   }
@@ -206,37 +228,33 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
 
 
 void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitFile){
-  /*//old version
-  for(unsigned int iE = 1; iE <= nExps; ++iE) {
-  char idx[10];
-  sprintf(idx,"%03d",iE);
-  TString name = mlfitTemplateName;
-  name.ReplaceAll("*",TString(idx));
-  addExperiment(name);
-}*/
-/*
-Input:
-sourceDir: directory which contains PseudoExperiment folders
-mlfitFile: .root file which contains the fit results from the combine fit
-*/
-//load PseudoExperiment folders
-TSystemDirectory dir(sourceDir.Data(), sourceDir.Data());
-TList *folders = dir.GetListOfFiles();
-//if folders are found, go through each one an look for the mlfitFile
-if (folders) {
-  TSystemFile *pseudoExperimentFolder;
-  TString folderName;
-  TIter next(folders);
-  while ((pseudoExperimentFolder=(TSystemFile*)next())) {
-    folderName = pseudoExperimentFolder->GetName();
-    if (pseudoExperimentFolder->IsDirectory() && !folderName.EndsWith(".")) {
-      if(sourceDir.EndsWith("/")) sourceDir.Chop();
-      addExperiment(sourceDir+"/"+folderName+"/"+mlfitFile);
+  /*
+  Input:
+  sourceDir: directory which contains PseudoExperiment folders
+  mlfitFile: .root file which contains the fit results from the combine fit
+  */
+  //load PseudoExperiment folders
+  TSystemDirectory dir(sourceDir.Data(), sourceDir.Data());
+  TList *folders = dir.GetListOfFiles();
+  int counter = 1;
+  //if folders are found, go through each one an look for the mlfitFile
+  if (folders) {
+    TSystemFile *pseudoExperimentFolder;
+    TString folderName;
+    TIter next(folders);
+    while ((pseudoExperimentFolder=(TSystemFile*)next())) {
+      folderName = pseudoExperimentFolder->GetName();
+      if (pseudoExperimentFolder->IsFolder() && !folderName.EndsWith(".")) {
+        if(sourceDir.EndsWith("/")) sourceDir.Chop();
+        if(debug_) std::cout << "DEBUG    ";
+        if(debug_ || counter%10==0) std::cout << "Adding PseudoExperiment #" << counter << std::endl;
+        addExperiment(sourceDir+"/"+folderName+"/"+mlfitFile);
+        counter++;
+      }
     }
+    delete pseudoExperimentFolder;
+    delete folders;
   }
-  delete pseudoExperimentFolder;
-  delete folders;
-}
 }
 
 bool PseudoExperiments::checkFitStatus(TFile& file){
@@ -386,6 +404,42 @@ TH1* PseudoExperiments::getClone(const TH1* h)const {
   }
   else std::cerr << "ERROR cloning histogram!\n";
   return NULL;
+}
+
+void PseudoExperiments::storeShapes(std::vector<ShapeContainer*>& shapes, TFile& file, const TString& name) const
+{
+  if(file.cd(name))
+  {
+    TDirectory* shapeFolder = gDirectory;
+    TIter nextFileObject(shapeFolder->GetListOfKeys());
+    TKey* dirKey;
+    bool createNewContainer = true;
+    TString categoryName;
+    TString signalStrength = label_;
+    signalStrength.ReplaceAll(" ", "_");
+    signalStrength.ReplaceAll("=", "");
+
+    while ((dirKey = (TKey*)nextFileObject()) && dirKey->IsFolder()) {
+      categoryName = dirKey->GetName();
+      createNewContainer = true;
+      for(int nShapeContainer = 0; nShapeContainer<int(shapes.size()); nShapeContainer++)
+      {
+        if(shapes[nShapeContainer]->getName() == categoryName)
+        {
+          if(debug_) std::cout << "DEBUG    found container with matching category name!\n";
+          shapes[nShapeContainer]->loadShapes(file, name, signalStrength);
+          createNewContainer = false;
+        }
+      }
+      if(createNewContainer)
+      {
+        ShapeContainer* tempShapeContainer = new ShapeContainer(categoryName);
+        tempShapeContainer->loadShapes(file, name, signalStrength);
+        shapes.push_back(tempShapeContainer);
+      }
+    }
+  }
+  else std::cerr << "ERROR    Could not change into directory " << name.Data() << " in file " << file.GetName() <<std::endl;
 }
 
 #endif

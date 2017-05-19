@@ -5,7 +5,7 @@ toyDatacard=$2
 outputDir=$3
 numberOfExperiments=$4
 experimentsPerJob=$5
-numberOfToysPerExperiment=1
+numberOfToysPerExperiment=$6
 
 #datacardDir=/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards
 
