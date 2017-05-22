@@ -74,7 +74,7 @@ void ShapeContainer::loadShape(const TH1D* histo, const TString& signalStrength)
     else
     {
       lowerBound = 0.05*integral;
-      upperBound = 1.5*integral;
+      upperBound = 2.5*integral;
     }
     TH1D* hTemp = new TH1D(tempHistoName, "; Integral; Frequency", 400, lowerBound, upperBound);
     hTemp->SetDirectory(0);
@@ -106,7 +106,7 @@ void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TS
   TKey* key;
   while ((key = (TKey*)nextHistoObject()) && (!key->IsFolder()) ) {
     TClass *cl = gROOT->GetClass(key->GetClassName());
-    if(cl->InheritsFrom("TH1")) loadShape((TH1D*)key->ReadObj(), signalStrength);
+    if(cl->InheritsFrom("TH1") && !cl->InheritsFrom("TH2")) loadShape((TH1D*)key->ReadObj(), signalStrength);
     else{
       if(debug_) std::cout << "DEBUG    object " << key->GetName() << " does not inherit from TH1, skipping\n";
     }

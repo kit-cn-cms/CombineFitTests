@@ -2,8 +2,8 @@ import ROOT
 import sys
 import os
 import subprocess
+from array import array
 #import glob
-#from array import array
 ROOT.gROOT.SetBatch(True)
 
 def checkCopy(original, copy):
@@ -13,12 +13,94 @@ def checkCopy(original, copy):
     for currentBin in range(1, original.GetNbinsX()+1):
         print "values in bin", currentBin, ": original =", original.GetBinContent(currentBin), "\tcopy =", copy.GetBinContent(currentBin)
 
-def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir):
+def collectNorms(listOfNorms, histo):
+    histoName = histo.GetName()
+    processName, trunk = histoName.split("_finaldiscr_")
+    groups = trunk.split("_")
+    if not (groups[len(groups)-1].endswith("Up") or groups[len(groups)-1].endswith("Down")):
+        print "saving norm for histogram", histo.GetName()
+
+        categoryName = "_".join(groups[:3])
+        indexCategory = -1
+        integral = histo.Integral()
+        for entry in range(len(listOfNorms)):
+            if listOfNorms[entry][0] == categoryName:
+                indexCategory = entry
+        indexProcess = -1
+        if not indexCategory == -1:
+            for entry in range(len(listOfNorms[indexCategory][1])):
+                if listOfNorms[indexCategory][1][entry][0] == processName:
+                    indexProcess = entry
+            if not indexProcess == -1:
+                raise sys.exit("Trying to fill one process twice for one category! Aborting...")
+            else:
+                listOfNorms[indexCategory][1].append([processName, integral])
+        else:
+            listOfNorms.append([categoryName,[[processName, integral]]])
+    else:
+        print "skipping normalisation for histo", histo.GetName()
+
+def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
+    outfile = ROOT.TFile(outputFileName, "RECREATE")
+    print "number of collected categories:", len(listOfNormsPrescale), "\tpostscale:", len(listOfNormsPostscale)
+    for category in range(len(listOfNormsPrescale)):
+        print "Creating TTree for category", listOfNormsPrescale[category][0]
+
+        tree = ROOT.TTree(listOfNormsPrescale[category][0], listOfNormsPrescale[category][0])
+        print "\tsuccess"
+        prescaleVals = []
+        postscaleVals = []
+        total_background_prescale = array("d", [0.])
+        total_background_postscale = array("d", [0.])
+        total_signal_prescale = array("d",[0.])
+        total_signal_postscale = array("d",[0.])
+
+        for process in range(len(listOfNormsPrescale[category][1])):
+            prescaleVals.append(array("d", [0.]))
+            postscaleVals.append(array("d", [0.]))
+            prescaleProcesses = listOfNormsPrescale[category][1][process]
+            postscaleProcesses = listOfNormsPostscale[category][1][process]
+
+            processName = prescaleProcesses[0]
+            #print "\tcreating branch for process", processName
+            tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[{1}]/D".format(processName, process))
+            tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[{1}]/D".format(processName, process))
+
+            #print "\t\tsuccess"
+            prescaleVals[process][0] = prescaleProcesses[1]
+            postscaleVals[process][0] = postscaleProcesses[1]
+            #print "\tfill branch", processName, "with value", ratios[process][0]
+
+            if processName.startswith("ttH_"):
+                total_signal_prescale[0] = total_signal_prescale[0]+prescaleProcesses[1]
+                total_signal_postscale[0] = total_signal_postscale[0]+postscaleProcesses[1]
+            elif not processName.startswith("ttH"):
+                total_background_prescale[0] = total_background_prescale[0]+prescaleProcesses[1]
+                total_background_postscale[0] = total_background_postscale[0]+postscaleProcesses[1]
+
+        tree.Branch("total_signal_prescale", total_signal_prescale, "total_signal/D")
+        tree.Branch("total_signal_postscale", total_signal_postscale, "total_signal/D")
+
+        tree.Branch("total_background_prescale", total_background_prescale, "total_background/D")
+        tree.Branch("total_background_postscale", total_background_postscale, "total_background/D")
+
+        #print "\tfill branch total_signal with value", total_signal[0]
+        #print "\tfill branch total_background with value", total_background[0]
+
+        tree.Fill()
+        tree.Write()
+        del tree
+    outfile.Close()
+
+
+
+def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir, listOfNormsPrescale, listOfNormsPostscale):
     histo = inputRootFile.Get(key.GetName())
     histo.SetDirectory(currentOutputDir)
     #for usage depending on x values:
     #lowerBound = histo.GetXaxis().GetBinLowerEdge(1)
-    #upperBound = histo.GetXaxis().GetBinLowerEdge(histo.GetNbinsX()) + histo.GetXaxis().GetBinWidth(histo.GetNbinsX())
+    #upperBound = histo.GetXaxis().GetBinLowerEdge(histo.GetNbinsX()) + histo.GetXaxis().GetBinWidth(histo.GetNbinsX())/2
+    collectNorms(listOfNormsPrescale, histo)
     print "\tScaling", key.GetName(),"with function", funcFormula
 
     scaleFunc = ROOT.TF1("scaleFunc",funcFormula,0, histo.GetNbinsX() )
@@ -28,9 +110,10 @@ def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir):
             scaleFactor = scaleFunc.Eval(currentBin)
             histo.SetBinContent(currentBin, histo.GetBinContent(currentBin)*scaleFactor)
             #print "\t\tAfter scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
+    collectNorms(listOfNormsPostscale, histo)
     return histo
 
-def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys):
+def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys, listOfNormsPrescale, listOfNormsPostscale):
     tempObject = None
     for key in listOfKeys:
         path=ROOT.gDirectory.GetPathStatic()
@@ -41,7 +124,7 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
             outputFile.mkdir(pathIntoKeyDir)
             outputFile.cd(pathIntoKeyDir)
             inputRootFile.cd(pathIntoKeyDir)
-            copyOrScaleElements(inputRootFile, outputFile, processScalingDic, ROOT.gDirectory.GetListOfKeys())
+            copyOrScaleElements(inputRootFile, outputFile, processScalingDic, ROOT.gDirectory.GetListOfKeys(), listOfNormRatios)
             outputFile.cd(path)
             inputRootFile.cd(path)
         else:
@@ -55,9 +138,12 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
             if index is not -1:
                 #print "found match at index", index
 
-                tempObject = scaleHistogram(key,inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path))
+                tempObject = scaleHistogram(key,inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path), listOfNormsPrescale, listOfNormsPostscale)
             else:
                 tempObject = inputRootFile.Get(key.GetName())
+                collectNorms(listOfNormsPrescale, tempObject)
+                collectNorms(listOfNormsPostscale, tempObject)
+
                 tempObject.SetDirectory(outputFile.GetDirectory(path))
                 #print "\tCopied", key.GetName(),"to new root file"
             if tempObject is not None:
@@ -69,14 +155,22 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
     if not os.path.exists("temp"):
         os.makedirs("temp")
     os.chdir("temp")
+    listOfNormsPrescale = []
+    listOfNormsPostscale = []
     if len(processScalingDic) is not 0:
-        newRootFileName = "temp_" + os.path.basename(inputRootFile.GetName())
+        suffix = ""
+        for processPair in processScalingDic:
+            suffix = suffix+processPair[0].replace("*","")+"_"+processPair[1].replace("*","")+"_"
+        newRootFileName = "temp_" + suffix + os.path.basename(inputRootFile.GetName())
         outputFile = ROOT.TFile(newRootFileName,"RECREATE")
 
 
-        copyOrScaleElements(inputRootFile, outputFile, processScalingDic, inputRootFile.GetListOfKeys())
+        copyOrScaleElements(inputRootFile, outputFile, processScalingDic, inputRootFile.GetListOfKeys(), listOfNormsPrescale, listOfNormsPostscale)
         outputFile.Close()
+
         datacardToUse = os.path.abspath(writeDatacard(pathToDatacard, newRootFileName, listOfProcesses))
+        newRootFileName = "temp_shape_expectation_" + suffix + os.path.basename(inputRootFile.GetName())
+        saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, newRootFileName)
         os.chdir("../")
 
     elif pathToScaledDatacard is not None and os.path.exists(pathToScaledDatacard):
@@ -162,7 +256,7 @@ if os.path.exists(pathToDatacard) and os.path.exists(pathToInputRootfile):
     if not os.path.exists(outputDirectory):
         os.makedirs(outputDirectory)
     os.chdir(outputDirectory)
-
+    outputDirectory = os.path.abspath(outputDirectory)
     generateToysAndFit(inputRootFile, scalingDic, pathToScaledDatacard)
 
 else:

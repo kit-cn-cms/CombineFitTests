@@ -70,6 +70,38 @@ double getMedian(const TH1* histo1) {
   return TMath::Median(numBins, x, y);
 }
 
+double convertTStringToDouble(const TString& tStringToConvert, double stepSize=0.1){
+  TString doubleVal;
+  TString integerVal;
+  for(double value=0.; value<=10.;){
+    doubleVal.Form("%0.1f", value);
+    integerVal.Form("%i", int(value));
+    //std::cout << "current value: " << value << "\tdoubleVal = " << doubleVal.Data() << "\tintegerVal = " << integerVal.Data() << std::endl;
+    if(tStringToConvert.EqualTo(doubleVal))
+    {
+      std::cout << "Found nominal signal strength to be " << value << std::endl;
+      return value;
+    }
+    if(tStringToConvert.EqualTo(integerVal))
+    {
+      if(value != 0)
+      {
+        std::cout << "Found nominal signal strength to be " << value - .1 << std::endl;
+        return value - .1;
+      }
+      else
+      {
+        std::cout << "Found nominal signal strength to be " << value << std::endl;
+        return value;
+      }
+    }
+    value += stepSize;
+  }
+  std::cerr << "was unable to convert nominal mu value! Aborting...\n";
+  throw std::exception();
+  return -1;
+}
+
 void compareDistributions(const std::vector<TH1*>& hists,
   const std::vector<TString>& labels,
   const TString& outLabel,
@@ -210,9 +242,11 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
    const std::vector<std::vector<Double_t> >* PrefitValsAndErrors,
    const TString outLabel,
    const double lowerBound=-3,
-   const double upperBound=3)
+   const double upperBound=3,
+   const TString& pathToShapeExpectationRootfile="",
+   const TString& categoryName="")
 {
-  TString canvasName;
+  TString* canvasName = new TString();
   TCanvas canvas;
 
   int nParameters = int(listOfNPs.size());
@@ -234,14 +268,80 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
   TH1D* hPrefitMeans = new TH1D("hPrefitMeans", ";;Value", nParameters, 0, nParameters);
   //std::cout << hPrefitMeans->GetName() <<std::endl;
   TH1D* hPrefitMedians = new TH1D("hPrefitMedians", ";;Value", nParameters, 0, nParameters);
+  TH1D* hExpectation = NULL;
+
+
 
   TLegend* legend = LabelMaker::legend("top left",labels.size(),0.4);
+  TFile* expectationFile = new TFile(pathToShapeExpectationRootfile, "READ");
+  TTree* tree = NULL;
+  if(expectationFile->IsOpen())
+  {
+    std::cout << "Init hExpectation with " << nParameters << "bins\n";
+    hExpectation = new TH1D("hExpectation", ";;Value", nParameters, 0, nParameters);
+    hExpectation->SetDirectory(0);
+    tree = (TTree*)expectationFile->Get(categoryName);
+  }
+  double prescaleVal = 0;
+  double postscaleVal = 0;
+  double signal_prescale = 0;
+  double signal_postscale = 0;
+  double background_prescale = 0;
+  double background_postscale = 0;
+  double ratio = 0;
+  double signalStrength = 0;
+  TString helperString;
 
   for(size_t nExperiment=0; nExperiment<labels.size(); nExperiment++)
   {
     std::cout << "filling np histograms for " << labels[nExperiment] << std::endl;
+    helperString = labels[nExperiment];
+    helperString.Remove(0,helperString.Index("=")+1);
+    signalStrength = convertTStringToDouble(helperString);
     for(int np=0; np<nParameters; np++)
     {
+      if(hExpectation != NULL)
+      {
+        if(tree != NULL)
+        {
+          std::cout << "Set Branch address\n";
+
+          if(!listOfNPs[np].EqualTo("total"))
+          {
+            if(tree->SetBranchAddress(TString(listOfNPs[np]+"_prescale").Data(), &prescaleVal) >= 0 && tree->SetBranchAddress(TString(listOfNPs[np]+"_postscale").Data(), &postscaleVal) >= 0) tree->GetEntry(0);
+          }
+          else{
+            if(tree->SetBranchAddress("total_signal_prescale", &signal_prescale) >= 0 &&
+               tree->SetBranchAddress("total_signal_postscale", &signal_postscale) >= 0 &&
+               tree->SetBranchAddress("total_background_prescale", &background_prescale) >= 0 &&
+               tree->SetBranchAddress("total_background_postscale", &background_postscale) >= 0
+              )
+              {
+                tree->GetEntry(0);
+              }
+            prescaleVal = signalStrength*signal_prescale + background_prescale;
+            postscaleVal = signalStrength*signal_postscale + background_postscale;
+          }
+          if(listOfNPs[np].BeginsWith("ttH") || listOfNPs[np].Contains("signal"))
+          {
+            if(prescaleVal != 0) ratio = signalStrength*postscaleVal/prescaleVal;
+            else ratio = 0;
+          }
+          else{
+            if(prescaleVal != 0) ratio = postscaleVal/prescaleVal;
+            else ratio = 0;
+          }
+          std::cout << "fill histogram with value " << ratio << std::endl;
+          //hExpectation->SetBinContent(np+1, ratio);
+          setupHistogramBin(hExpectation, np+1, listOfNPs[np], ratio, 0);
+          std::cout << "reset branch address\n";
+          tree->ResetBranchAddresses();
+          prescaleVal = 0;
+          postscaleVal = 0;
+          ratio = 0;
+        }
+      else std::cerr << "TTree " << categoryName << " could not be loaded from file " << expectationFile->GetName() << " !\n";
+      }
       setupHistogramBin(hPostfitBmeans, np+1, listOfNPs[np], PostfitBvalsAndErrors[nExperiment][np][0], PostfitBvalsAndErrors[nExperiment][np][1]);
       setupHistogramBin(hPostfitBmedians, np+1, listOfNPs[np], PostfitBvalsAndErrors[nExperiment][np][2], PostfitBvalsAndErrors[nExperiment][np][3]);
 
@@ -253,6 +353,11 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
 
     }
     std::cout << "done!\n";
+    if(hExpectation != NULL)
+    {
+      setLineStyle(hExpectation, kRed, 2);
+      legend->AddEntry(hExpectation, "Expected Norm Ratio", "l");
+    }
     setLineStyle(hPrefitMeans, kBlack, 2);
     setLineStyle(hPrefitMedians, kBlack, 2);
     setLineStyle(hPostfitBmeans, kBlue, 1, 20);
@@ -266,6 +371,7 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
     hPrefitMeans->GetYaxis()->SetRangeUser(lowerBound,upperBound);
     hPrefitMeans->GetXaxis()->SetLabelSize(0.02);
     hPrefitMeans->Draw("HIST");
+    if(hExpectation != NULL) hExpectation->Draw("HISTsame");
     hPrefitMedians->Draw("PE1same");
     std::cout << "drew prefit histo\n";
     hPostfitBmeans->Draw("PE1same");
@@ -284,13 +390,17 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
     legend->Draw("Same");
     std::cout << "drew legend\n";
 
-    canvasName = labels[nExperiment];
-    if(canvasName.Contains(" ")) canvasName.ReplaceAll(" ", "_");
-    if(canvasName.Contains("=")) canvasName.ReplaceAll("=", "_");
-    canvasName.Prepend(outLabel+"pullplot_");
-    canvasName.Append(".pdf");
-    std::cout << "canvas name: " << canvasName << std::endl;
-    canvas.SaveAs(canvasName);
+    std::cout << "setting canvas name to " << labels[nExperiment] << std::endl;
+    *canvasName = labels[nExperiment];
+    std::cout << "\tsuccess!\n";
+    std::cout << "canvasName = " << canvasName->Data() << std::endl;
+    if(canvasName->Contains(" ")) canvasName->ReplaceAll(" ", "_");
+    if(canvasName->Contains("=")) canvasName->ReplaceAll("=", "_");
+    std::cout << "prepending path: " << outLabel << "pullplot_" << std::endl;
+    canvasName->Prepend(outLabel+"pullplot_");
+    canvasName->Append(".pdf");
+    std::cout << "canvas name: " << *canvasName << std::endl;
+    canvas.SaveAs(*canvasName);
     std::cout << "saved canvas successfully\n";
 
     hPostfitBmeans->Reset();
@@ -302,10 +412,12 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
     hPrefitMeans->Reset();
     hPrefitMedians->Reset();
 
+    if(hExpectation != NULL) hExpectation->Reset();
     legend->Clear();
     canvas.Clear();
     std::cout << "cleared everything\n";
   }
+  if(expectationFile->IsOpen()) expectationFile->Close();
   delete hPostfitSBmeans;
   delete hPostfitSBmedians;
 
@@ -314,8 +426,10 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
 
   delete hPrefitMeans;
   delete hPrefitMedians;
-  delete legend;
 
+  if(hExpectation != 0) delete hExpectation;
+  delete legend;
+  delete canvasName;
 }
 
 void compareNuisanceParameters(const std::vector<PseudoExperiments>& exps,
@@ -550,7 +664,7 @@ void normVals(std::vector<std::vector<Double_t> >* toNorm, std::vector<std::vect
   }
 }
 
-void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& outLabel)
+void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& outLabel, const TString& pathToShapeExpectationRootfile="")
 {
   std::vector<TString> listOfProcesses;
   std::vector<std::vector<Double_t> >* PostfitBvalsAndErrors =NULL;
@@ -692,7 +806,7 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
     normVals(PrefitValsAndErrors, PrefitValsAndErrors, int(labels.size()));
 
     std::cout << "drawing pullplots\n";
-    if(listOfProcesses.size() != 0) drawPullPlots(listOfProcesses, labels, PostfitBvalsAndErrors, PostfitSBvalsAndErrors, PrefitValsAndErrors, outLabel+categoryName +"_normalisation_", -4, 6);
+    if(listOfProcesses.size() != 0) drawPullPlots(listOfProcesses, labels, PostfitBvalsAndErrors, PostfitSBvalsAndErrors, PrefitValsAndErrors, outLabel+categoryName +"_normalisation_", -4, 6, pathToShapeExpectationRootfile, categoryName);
     delete[] PostfitBvalsAndErrors;
     delete[] PostfitSBvalsAndErrors;
     delete[] PrefitValsAndErrors;
@@ -700,37 +814,7 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
   }
 }
 
-double convertTStringToDouble(const TString& tStringToConvert, double stepSize=0.1){
-  TString doubleVal;
-  TString integerVal;
-  for(double value=0.; value<=10.;){
-    doubleVal.Form("%0.1f", value);
-    integerVal.Form("%i", int(value));
-    //std::cout << "current value: " << value << "\tdoubleVal = " << doubleVal.Data() << "\tintegerVal = " << integerVal.Data() << std::endl;
-    if(tStringToConvert.EqualTo(doubleVal))
-    {
-      std::cout << "Found nominal signal strength to be " << value << std::endl;
-      return value;
-    }
-    if(tStringToConvert.EqualTo(integerVal))
-    {
-      if(value != 0)
-      {
-        std::cout << "Found nominal signal strength to be " << value - .1 << std::endl;
-        return value - .1;
-      }
-      else
-      {
-        std::cout << "Found nominal signal strength to be " << value << std::endl;
-        return value;
-      }
-    }
-    value += stepSize;
-  }
-  std::cerr << "was unable to convert nominal mu value! Aborting...\n";
-  throw std::exception();
-  return -1;
-}
+
 
 void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSignalStrength, std::vector<PseudoExperiments>& expSet, Color_t color = kBlue){
   double nominalMu=0;
@@ -757,7 +841,7 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
 
 }
 
-void plotResults(TString pathname) {
+void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "") {
   TheLooks::set();
   std::vector<PseudoExperiments> expSet;
   if(pathname.EndsWith("/")) pathname.Chop();
@@ -794,7 +878,7 @@ void plotResults(TString pathname) {
     pathname += "/";
     comparePOIs(expSet,pathname);
     compareNuisanceParameters(expSet,pathname,true);
-    compareShapes(expSet, pathname);
+    compareShapes(expSet, pathname, pathToShapeExpectationRootfile);
   }
   else std::cerr << "was unable to load any Pseudo Experiments!\n";
 }
