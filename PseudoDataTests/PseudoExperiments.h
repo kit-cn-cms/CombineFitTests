@@ -178,57 +178,62 @@ PseudoExperiments::~PseudoExperiments() {
 void PseudoExperiments::addExperiment(const TString& mlfit) {
   if( debug_ ) std::cout << "DEBUG: addExperiment: " << mlfit << std::endl;
   TFile file(mlfit,"READ");
-  if( !file.IsOpen() ) {
+  if( !file.IsOpen() || file.IsZombie()) {
     std::cerr << "ERROR opening file '" << mlfit << "'" << std::endl;
     //throw std::exception();
   }
   else {
     //check if the s+b and the b fit converged
-
-    bool storeExperiment = true;
-    if(fitSBmustConverge_ || fitBmustConverge_) storeExperiment = checkFitStatus(file);
-    if(storeExperiment && accurateCovariance_) storeExperiment = checkCovarianceMatrix(file);
-    // store POI value
-    if(storeExperiment)
+    if(!file.TestBit(TFile::kRecovered))
     {
-      if( muValues_ == 0 ) {
-        muValues_ = createHistogram("mu","postfitS");
-      }
-      if( debug_ ) std::cout << "  DEBUG: getting mu" << std::endl;
-      RooFitResult* result = 0;
-      file.GetObject("fit_s",result);
-      if( result == 0 ) {
-        std::cerr << "ERROR getting 'fit_s' from file '" << file.GetName() << "'" << std::endl;
-        //throw std::exception();
-      }
-      const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find("r") );
-      if( debug_ ) std::cout << "    DEBUG: found mu = " << var->getVal() << std::endl;
-      muValues_->Fill( var->getVal() );
+      bool storeExperiment = true;
 
-      // if called the first time, get list of NPs
-      if( nps_.empty() ) {
-        if( debug_ ) std::cout << "  DEBUG: initialize NPs" << std::endl;
-        initContainers(file);
+      if(fitSBmustConverge_ || fitBmustConverge_) storeExperiment = checkFitStatus(file);
+      if(storeExperiment && accurateCovariance_) storeExperiment = checkCovarianceMatrix(file);
+      // store POI value
+      if(storeExperiment)
+      {
+        if( muValues_ == 0 ) {
+          muValues_ = createHistogram("mu","postfitS");
+        }
+        if( debug_ ) std::cout << "  DEBUG: getting mu" << std::endl;
+        RooFitResult* result = 0;
+        file.GetObject("fit_s",result);
+        if( result == 0 ) {
+          std::cerr << "ERROR getting 'fit_s' from file '" << file.GetName() << "'" << std::endl;
+          //throw std::exception();
+        }
+        const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find("r") );
+        if( debug_ ) std::cout << "    DEBUG: found mu = " << var->getVal() << std::endl;
+        muValues_->Fill( var->getVal() );
+
+        // if called the first time, get list of NPs
+        if( nps_.empty() ) {
+          if( debug_ ) std::cout << "  DEBUG: initialize NPs" << std::endl;
+          initContainers(file);
+        }
+        // store nuisance parameter values
+        if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
+        if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
+        storeRooArgSetResults(npValuesPrefit_,file,"nuisances_prefit");
+        if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
+        storeRooFitResults(npValuesPostfitB_,file,"fit_b");
+        if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
+        storeRooFitResults(npValuesPostfitS_,file,"fit_s");
+        if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
+        if(debug_) std::cout << "  DEBUG: store shapes\n";
+        if(debug_) std::cout << "\tDEBUG: prefit shapes\n";
+        storeShapes(prefitShapes_, file, "shapes_prefit");
+        if(debug_) std::cout << "\tDEBUG: postfit B shapes\n";
+        storeShapes(postfitBshapes_, file, "shapes_fit_b");
+        if(debug_) std::cout << "\tDEBUG: postfit S shapes\n";
+        storeShapes(postfitSshapes_, file, "shapes_fit_s");
+        if( debug_ ) std::cout << "  DEBUG: done storing shapes" << std::endl;
       }
-      // store nuisance parameter values
-      if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
-      if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
-      storeRooArgSetResults(npValuesPrefit_,file,"nuisances_prefit");
-      if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
-      storeRooFitResults(npValuesPostfitB_,file,"fit_b");
-      if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
-      storeRooFitResults(npValuesPostfitS_,file,"fit_s");
-      if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
-      if(debug_) std::cout << "  DEBUG: store shapes\n";
-      if(debug_) std::cout << "\tDEBUG: prefit shapes\n";
-      storeShapes(prefitShapes_, file, "shapes_prefit");
-      if(debug_) std::cout << "\tDEBUG: postfit B shapes\n";
-      storeShapes(postfitBshapes_, file, "shapes_fit_b");
-      if(debug_) std::cout << "\tDEBUG: postfit S shapes\n";
-      storeShapes(postfitSshapes_, file, "shapes_fit_s");
-      if( debug_ ) std::cout << "  DEBUG: done storing shapes" << std::endl;
+
+      else std::cout << "skipping experiment in '" << mlfit.Data() << "'\n";
     }
-    else std::cout << "skipping experiment in '" << mlfit.Data() << "'\n";
+    else std::cerr << "  ERROR while opening file " << mlfit.Data() << ", skipping...\n";
   }
   file.Close();
 }
