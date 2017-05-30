@@ -66,7 +66,7 @@ void ShapeContainer::loadShape(const TH1D* histo, const TString& signalStrength)
     tempHistoName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), histo->GetName());
     double lowerBound = 0;
     double upperBound = 10;
-    if(integral <= 0)
+    if(integral == 0)
     {
       lowerBound = -100.;
       upperBound = 100.;
@@ -76,7 +76,10 @@ void ShapeContainer::loadShape(const TH1D* histo, const TString& signalStrength)
       lowerBound = 0.05*integral;
       upperBound = 2.5*integral;
     }
-    TH1D* hTemp = new TH1D(tempHistoName, "; Integral; Frequency", 400, lowerBound, upperBound);
+    int nBins = int((upperBound - lowerBound)/2);
+    //if(lowerBound>-2) lowerBound = -2;
+    if(nBins <= 0) nBins = 10;
+    TH1D* hTemp = new TH1D(tempHistoName, "; Integral; Frequency", nBins, lowerBound, upperBound);
     hTemp->SetDirectory(0);
     if(debug_)
     {
@@ -110,8 +113,10 @@ void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TS
     else{
       if(debug_) std::cout << "DEBUG    object " << key->GetName() << " does not inherit from TH1, skipping\n";
     }
-
   }
+  delete key;
+  delete categoryDir;
+  
   if(debug_) std::cout << "DEBUG    done saving normalisations for category " << categoryName_.Data() << std::endl;
   if(debug_) checkShapeContainer();
 }

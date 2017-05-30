@@ -154,16 +154,24 @@ muValues_(0) {
 
 PseudoExperiments::~PseudoExperiments() {
   if( debug_ ) std::cout << "DEBUG " << this << ": destructor" << std::endl;
-  // for(auto& it: npValuesPrefit_) {
-  //   delete it.second;
-  // }
-  // for(auto& it: npValuesPostfitB_) {
-  //   delete it.second;
-  // }
-  // for(auto& it: npValuesPostfitS_) {
-  //   delete it.second;
-  // }
+  // for(std::map<TString,TH1*>::const_iterator it = npValuesPrefit_.begin(); it!= npValuesPrefit_.end(); it++) delete it->second;
+  // for(std::map<TString,TH1*>::const_iterator it = npValuesPostfitB_.begin(); it!= npValuesPostfitB_.end(); it++) delete it->second;
+  // for(std::map<TString,TH1*>::const_iterator it = npValuesPostfitS_.begin(); it!= npValuesPostfitS_.end(); it++) delete it->second;
+  //
+  // // for(auto& it: npValuesPrefit_) {
+  // //   delete it.second;
+  // // }
+  // // for(auto& it: npValuesPostfitB_) {
+  // //   delete it.second;
+  // // }
+  // // for(auto& it: npValuesPostfitS_) {
+  // //   delete it.second;
+  // // }
   // if( muValues_ != 0 ) delete muValues_;
+  // for(int i=0; i<int(prefitShapes_.size());i++) delete prefitShapes_[i];
+  // for(int i=0; i<int(postfitBshapes_.size());i++) delete postfitBshapes_[i];
+  // for(int i=0; i<int(postfitSshapes_.size());i++) delete postfitSshapes_[i];
+
 }
 
 
@@ -172,7 +180,6 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
   TFile file(mlfit,"READ");
   if( !file.IsOpen() ) {
     std::cerr << "ERROR opening file '" << mlfit << "'" << std::endl;
-    ;
     //throw std::exception();
   }
   else {

@@ -71,10 +71,14 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
             postscaleVals[process][0] = postscaleProcesses[1]
             #print "\tfill branch", processName, "with value", ratios[process][0]
 
+            print "adding process", processName, "\n\tprescale:", prescaleProcesses[1], "\tpostscale", postscaleProcesses[1]
             if processName.startswith("ttH_"):
+                #print "current status:\n\ttotal_signal_prescale:", total_signal_prescale[0], "\ttotal_signal_postscale:", total_signal_postscale[0]
+
                 total_signal_prescale[0] = total_signal_prescale[0]+prescaleProcesses[1]
                 total_signal_postscale[0] = total_signal_postscale[0]+postscaleProcesses[1]
-            elif not processName.startswith("ttH"):
+            elif not processName.startswith("ttH") and processName.startswith("t"):
+                #print "current status:\n\ttotal_background_prescale:", total_background_prescale[0], "\ttotal_background_postscale:", total_background_postscale[0]
                 total_background_prescale[0] = total_background_prescale[0]+prescaleProcesses[1]
                 total_background_postscale[0] = total_background_postscale[0]+postscaleProcesses[1]
 
@@ -169,7 +173,7 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
         outputFile.Close()
 
         datacardToUse = os.path.abspath(writeDatacard(pathToDatacard, newRootFileName, listOfProcesses))
-        newRootFileName = "temp_shape_expectation_" + suffix + os.path.basename(inputRootFile.GetName())
+        newRootFileName = "temp_shape_expectation.root"#_" + suffix + os.path.basename(inputRootFile.GetName())
         saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, newRootFileName)
         os.chdir("../")
 
@@ -182,7 +186,7 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
 
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
-        subprocess.check_call([workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, "./", str(numberOfToys), str(numberOfToysPerJob), str(toyMode)])
+        #subprocess.check_call([workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, "./", str(numberOfToys), str(numberOfToysPerJob), str(toyMode)])
     else:
         print "Couldn't find datacard", datacardToUse
 
