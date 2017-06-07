@@ -2,9 +2,48 @@ import ROOT
 import sys
 import os
 import subprocess
+import time
 from array import array
 #import glob
 ROOT.gROOT.SetBatch(True)
+
+def submitToNAF(datacardToUse):
+    jobids=[]
+    command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, "./", str(numberOfToys), str(numberOfToysPerJob), str(toyMode)]
+    a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+    output = a.communicate()[0]
+    #print output
+    jobidstring = output.split()
+    for jid in jobidstring:
+        if jid.isdigit():
+            jobid=int(jid)
+            print "this job's ID is", jobid
+            jobids.append(jobid)
+            continue
+
+    return jobids
+
+def do_qstat(jobids):
+    allfinished=False
+    while not allfinished:
+        time.sleep(120)
+        a = subprocess.Popen(['qstat'], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+        qstat=a.communicate()[0]
+        lines=qstat.split('\n')
+        nrunning=0
+        for line in lines:
+            words=line.split()
+            for jid in words:
+                if jid.isdigit():
+                    jobid=int(jid)
+                    if jobid in jobids:
+                        nrunning+=1
+                        break
+
+        if nrunning>0:
+            print nrunning,'jobs running'
+        else:
+            allfinished=True
 
 def checkCopy(original, copy):
     if original.GetNbinsX() is not copy.GetNbinsX():
@@ -37,8 +76,8 @@ def collectNorms(listOfNorms, histo):
                 listOfNorms[indexCategory][1].append([processName, integral])
         else:
             listOfNorms.append([categoryName,[[processName, integral]]])
-    else:
-        print "skipping normalisation for histo", histo.GetName()
+    #else:
+        #print "skipping normalisation for histo", histo.GetName()
 
 def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
     outfile = ROOT.TFile(outputFileName, "RECREATE")
@@ -95,8 +134,6 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
         tree.Write()
         del tree
     outfile.Close()
-
-
 
 def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir, listOfNormsPrescale, listOfNormsPostscale):
     histo = inputRootFile.Get(key.GetName())
@@ -155,12 +192,14 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
                 tempObject.Write()
                 del tempObject
 
-def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
+def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath):
+    print "outputPath in generateToysAndFit:", outputPath
     if not os.path.exists("temp"):
         os.makedirs("temp")
     os.chdir("temp")
     listOfNormsPrescale = []
     listOfNormsPostscale = []
+    shapeExpectation = ""
     if len(processScalingDic) is not 0:
         suffix = ""
         for processPair in processScalingDic:
@@ -175,8 +214,10 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
         datacardToUse = os.path.abspath(writeDatacard(pathToDatacard, newRootFileName, listOfProcesses))
         newRootFileName = "temp_shape_expectation.root"#_" + suffix + os.path.basename(inputRootFile.GetName())
         saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, newRootFileName)
+        shapeExpectation = "{0}/temp/{1}".format(outputPath, newRootFileName)
         os.chdir("../")
-
+    elif pathToScaledDatacard is None:
+        datacardToUse = pathToDatacard
     elif pathToScaledDatacard is not None and os.path.exists(pathToScaledDatacard):
         datacardToUse = pathToScaledDatacard
     elif pathToScaledDatacard is not None:
@@ -186,7 +227,15 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard):
 
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
-        #subprocess.check_call([workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, "./", str(numberOfToys), str(numberOfToysPerJob), str(toyMode)])
+        jobids = submitToNAF(datacardToUse)
+        print "waiting for toy generation to finish"
+        do_qstat(jobids)
+        os.chdir(workdir)
+        print "calling plotResults with arguments:"
+        print "\toutputPath =", outputPath
+        print "\tshapeExpectation =", shapeExpectation
+        subprocess.check_call([workdir+"/submitScript.sh", outputPath, shapeExpectation])
+
     else:
         print "Couldn't find datacard", datacardToUse
 
@@ -223,11 +272,12 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     return newDatacardName
 
 outputDirectory = sys.argv[1] #path to store PseudoExperiments in
-
+print "input for outputDirectory:", outputDirectory
 pathToDatacard = sys.argv[2] #path to unscaled datacard with data to be fitted to scaled toys
 pathToInputRootfile = sys.argv[3] #path to corresponding root file
 
-datacardOrProcessList = sys.argv[4] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
+if len(sys.argv)>4:
+    datacardOrProcessList = sys.argv[4] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
 if len(sys.argv)>5:
     scaleFuncList = sys.argv[5] #if argument 3 is a list of processes this parameter is a comma-separated list of functions to use (TF1)
 
@@ -243,7 +293,7 @@ else:
     listOfProcesses = datacardOrProcessList.split(",")
     listOfFormulae = scaleFuncList.split(",")
     scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
-    print "using scaling dictionary: ", scalingDic
+    print "using scaling dictionary:", scalingDic
 
 #set up parameters for toy generation here
 numberOfToys = 1000
@@ -259,9 +309,11 @@ if os.path.exists(pathToDatacard) and os.path.exists(pathToInputRootfile):
     inputRootFile = ROOT.TFile(pathToInputRootfile, "READ")
     if not os.path.exists(outputDirectory):
         os.makedirs(outputDirectory)
-    os.chdir(outputDirectory)
+    #print "outputDirectory after directory was created:", outputDirectory
     outputDirectory = os.path.abspath(outputDirectory)
-    generateToysAndFit(inputRootFile, scalingDic, pathToScaledDatacard)
-
+    #print "outputDir after calling abspath:", outputDirectory
+    os.chdir(outputDirectory)
+    #print "outputDirectory after changing dirs:", outputDirectory
+    generateToysAndFit(inputRootFile, scalingDic, pathToScaledDatacard, outputDirectory)
 else:
     print "Incorrect paths to input data. Please make sure path to datacard is correct!"
