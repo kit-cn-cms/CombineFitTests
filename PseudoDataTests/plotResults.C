@@ -19,6 +19,11 @@
 #include "PseudoExperiments.h"
 #include "TheLooks.h"
 
+double isNaN(double x){
+  if(std::isnan(x)) return 0;
+  else return x;
+}
+
 double findMaxValue(std::vector<TH1*> histos)
 {
   double maxVal = -999;
@@ -106,9 +111,10 @@ void writePOILatexTable(const TH1* hMeans, const TH1* hMedians, const TH1* hMean
     output << processName.Data();
     for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
     {
-      output << " & \\num{" << hMeans->GetBinContent(bin) << "} $\\pm$ \\num{"<< hMeans->GetBinError(bin) << "}";
-      output << " $\\pm$ \\num{"<< hMedians->GetBinError(bin) << "} $\\pm$ \\num{" << hMeansWithFittedError->GetBinError(bin) << "}\\\\\n";
+      output << " & \\num{" << isNaN(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< isNaN(hMeans->GetBinError(bin)) << "}";
+      output << " $\\pm$ \\num{"<< isNaN(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << isNaN(hMeansWithFittedError->GetBinError(bin)) << "}";
     }
+    output << "\\\\\n";
     output << "\\bottomrule\n";
     output << "\\end{tabular}\n\\end{table}";
     output.close();
@@ -142,12 +148,12 @@ void writeLatexTable(TH1* hMeansB, TH1* hMediansB, TH1* hMeansSB, TH1* hMediansS
     {
       processName = hMeansB->GetXaxis()->GetBinLabel(bin);
       if(processName.Contains("_")) processName.ReplaceAll("_", "\\_");
-      output << processName << " & \\num{" << hMeansB->GetBinContent(bin) << "} $\\pm$ \\num{"<< hMeansB->GetBinError(bin) << "} $\\pm$ \\num{" << hMediansB->GetBinError(bin) << "}";
-      if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL) output << " $\\pm$ \\num{"<< hMeansBwithFittedError->GetBinError(bin) << "}";
-      output << " & \\num{" << hMeansSB->GetBinContent(bin) << "} $\\pm$ \\num{"<< hMeansSB->GetBinError(bin) << "} $\\pm$ \\num{" << hMediansSB->GetBinError(bin) << "}";
-      if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL)output << " $\\pm$ \\num{"<< hMeansSBwithFittedError->GetBinError(bin) << "}";
+      output << processName << " & \\num{" << isNaN(hMeansB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< isNaN(hMeansB->GetBinError(bin)) << "} $\\pm$ \\num{" << isNaN(hMediansB->GetBinError(bin)) << "}";
+      if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL) output << " $\\pm$ \\num{"<< isNaN(hMeansBwithFittedError->GetBinError(bin)) << "}";
+      output << " & \\num{" << isNaN(hMeansSB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< isNaN(hMeansSB->GetBinError(bin)) << "} $\\pm$ \\num{" << isNaN(hMediansSB->GetBinError(bin)) << "}";
+      if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL)output << " $\\pm$ \\num{"<< isNaN(hMeansSBwithFittedError->GetBinError(bin)) << "}";
 
-      if(hExpectation != NULL) output << " & \\num{" << hExpectation->GetBinContent(bin) << "}";
+      if(hExpectation != NULL) output << " & \\num{" << isNaN(hExpectation->GetBinContent(bin)) << "}";
       output << "\\\\\n";
     }
     output << "\\bottomrule\n";
