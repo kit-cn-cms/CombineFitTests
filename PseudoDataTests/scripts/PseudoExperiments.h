@@ -263,19 +263,20 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
         }
         if( debug_ ) std::cout << "  DEBUG: getting mu" << std::endl;
         RooFitResult* result = NULL;//(RooFitResult*)file->Get("fit_s");
-
+        TTree* result_tree = (TTree*)file->Get("tree_fit_sb");
         watch.Start();
-        file->GetObject("fit_s",result);
+        //file->GetObject("fit_s",result);
         watch.Stop();
         if(debug_) printTime(watch, "Time to load RooFitResult Object");
-        if( result == 0 ) {
-          std::cerr << "ERROR getting 'fit_s' from file '" << file->GetName() << "'" << std::endl;
+        double muVal = 0;
+
+        if( result == 0) {
+          //std::cerr << "ERROR getting 'fit_s' from file '" << file->GetName() << "'" << std::endl;
           //throw std::exception();
         }
         else{
           watch.Start();
           const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find("r") );
-
           if(var != 0)
           {
 
@@ -288,28 +289,61 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
             // if called the first time, get list of NPs
             if( nps_.empty() ) {
               if( debug_ ) std::cout << "  DEBUG: initialize NPs" << std::endl;
-              initContainers(file);
+              //initContainers(file);
             }
             // store nuisance parameter values
-            if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
-            if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
-            storeRooArgSetResults(npValuesPrefit_,file,"nuisances_prefit");
-            if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
-            storeRooFitResults(npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file,"fit_b");
-            if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
-            storeRooFitResults(npValuesPostfitS_,npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_, file,"fit_s");
-            if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
-            if(debug_) std::cout << "  DEBUG: store shapes\n";
-            if(debug_) std::cout << "\tDEBUG: prefit shapes\n";
-            storeShapes(prefitShapes_, file, "shapes_prefit");
-            if(debug_) std::cout << "\tDEBUG: postfit B shapes\n";
-            storeShapes(postfitBshapes_, file, "shapes_fit_b");
-            if(debug_) std::cout << "\tDEBUG: postfit S shapes\n";
-            storeShapes(postfitSshapes_, file, "shapes_fit_s");
-            if( debug_ ) std::cout << "  DEBUG: done storing shapes" << std::endl;
+            // if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
+            // if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
+            // storeRooArgSetResults(npValuesPrefit_,file,"nuisances_prefit");
+            // if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
+            // storeRooFitResults(npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file,"fit_b");
+            // if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
+            // storeRooFitResults(npValuesPostfitS_,npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_, file,"fit_s");
+            // if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
+            // if(debug_) std::cout << "  DEBUG: store shapes\n";
+            // if(debug_) std::cout << "\tDEBUG: prefit shapes\n";
+            // storeShapes(prefitShapes_, file, "shapes_prefit");
+            // if(debug_) std::cout << "\tDEBUG: postfit B shapes\n";
+            // storeShapes(postfitBshapes_, file, "shapes_fit_b");
+            // if(debug_) std::cout << "\tDEBUG: postfit S shapes\n";
+            // storeShapes(postfitSshapes_, file, "shapes_fit_s");
+            // if( debug_ ) std::cout << "  DEBUG: done storing shapes" << std::endl;
             delete var;
           }
+
           //result->Delete();
+        }
+        if(result_tree != 0){
+          if(result_tree->SetBranchAddress("mu", &muVal)>=0){
+            for(int i=0; i<result_tree->GetEntries(); i++){
+              result_tree->GetEntry(i);
+              muValues_->Fill(muVal);
+            }
+          }
+          if( nps_.empty() ) {
+            if( debug_ ) std::cout << "  DEBUG: initialize NPs" << std::endl;
+            initContainers(file);
+          }
+
+          // store nuisance parameter values
+          if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
+          if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
+          storeRooArgSetResults(npValuesPrefit_,file,"tree_fit_b");
+          if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
+          storeRooFitResults(npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file,"fit_b");
+          if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
+          storeRooFitResults(npValuesPostfitS_,npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_, file,"fit_s");
+          if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
+
+          if(debug_) std::cout << "  DEBUG: store shapes\n";
+          if(debug_) std::cout << "\tDEBUG: prefit shapes\n";
+          storeShapes(prefitShapes_, file, "shapes_prefit");
+          if(debug_) std::cout << "\tDEBUG: postfit B shapes\n";
+          storeShapes(postfitBshapes_, file, "shapes_fit_b");
+          if(debug_) std::cout << "\tDEBUG: postfit S shapes\n";
+          storeShapes(postfitSshapes_, file, "shapes_fit_s");
+          if( debug_ ) std::cout << "  DEBUG: done storing shapes" << std::endl;
+          delete result_tree;
         }
       }
       else std::cout << "skipping experiment in '" << mlfit.Data() << "'\n";
@@ -342,7 +376,7 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
     while ((pseudoExperimentFolder=(TSystemFile*)next())) {
       watch.Start();
       folderName = pseudoExperimentFolder->GetName();
-      if (pseudoExperimentFolder->IsFolder() && !folderName.EndsWith(".")) {
+      if (pseudoExperimentFolder->IsFolder() && !folderName.EndsWith(".") && !folderName.Contains("asimov")) {
         if(sourceDir.EndsWith("/")) sourceDir.Chop();
         if(debug_) std::cout << "DEBUG    ";
         if(debug_ || counter%10==0) std::cout << "Adding PseudoExperiment #" << counter << std::endl;
@@ -473,18 +507,39 @@ TH1* PseudoExperiments::createHistogram(const TString& par, const TString& name)
 
 
 void PseudoExperiments::storeRooArgSetResults(std::map<TString,TH1*>& hists, TFile* file, const TString& name) const {
-  RooArgSet* result = (RooArgSet*)file->Get(name.Data());
-
-  //file->GetObject(name,result);
-  if( result == 0 ) {
-    std::cerr << "ERROR getting '" << name << "' from file '" << file->GetName() << "'" << std::endl;
-    //throw std::exception();
-  }
-  else{
-    for(auto& it: hists) {
-      //std::cout << "filling " << it.first << " with value " << result->getRealValue(it.first) << std::endl;
-      it.second->Fill( result->getRealValue(it.first) );
+  // RooArgSet* result = (RooArgSet*)file->Get(name.Data());
+  //
+  // //file->GetObject(name,result);
+  // if( result == 0 ) {
+  //   std::cerr << "ERROR getting '" << name << "' from file '" << file->GetName() << "'" << std::endl;
+  //   //throw std::exception();
+  // }
+  // else{
+  //   for(auto& it: hists) {
+  //     //std::cout << "filling " << it.first << " with value " << result->getRealValue(it.first) << std::endl;
+  //     it.second->Fill( result->getRealValue(it.first) );
+  //   }
+  // }
+  TTree* results_tree = (TTree*)file->Get(name.Data());
+  if(results_tree != NULL){
+    double vals = 0;
+    TString currentValue;
+    for(auto& it: hists){
+      currentValue = it.first;
+      currentValue.Append("_In");
+      if(results_tree->SetBranchAddress(currentValue.Data(), &vals)>=0){
+        for(int i=0; i<results_tree->GetEntries(); i++){
+          results_tree->GetEntry(i);
+          it.second->Fill(vals);
+        }
+        results_tree->ResetBranchAddresses();
+      }
+      else{
+        if(debug_) std::cerr << "\tError      could not find branch " << currentValue.Data() << " in TTree " << name.Data() << std::endl;
+      }
     }
+
+    delete results_tree;
   }
 }
 
@@ -521,6 +576,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
       //if(debug_) printTime(watch, "time to find "+it.first+"in errorLo");
       //watch.Start();
       iter_errorLo->second->Fill(var->getErrorLo());
+
       //watch.Stop();
       //if(debug_) printTime(watch, "Time to fill histo in errorLo");
       //watch.Start();
@@ -534,6 +590,26 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
       //delete var;
     }
   }
+  // TTree* result_tree = (TTree*)file->Get(name.Data());
+  // if(result_tree != NULL){
+  //   double vals = 0;
+  //   TString currentValue;
+  //   for(auto& it: hists){
+  //     currentValue = it.first;
+  //     if(results_tree->SetBranchAddress(currentValue.Data(), &vals)>=0){
+  //       for(int i=0; i<results_tree->GetEntries(); i++){
+  //         results_tree->GetEntry(i);
+  //         it.second->Fill(vals);
+  //       }
+  //       results_tree->ResetBranchAddresses();
+  //     }
+  //     else{
+  //       if(debug_) std::cerr << "\tError      could not find branch " << currentValue.Data() << " in TTree " << name.Data() << std::endl;
+  //     }
+  //   }
+  //
+  //   delete results_tree;
+  // }
 }
 
 

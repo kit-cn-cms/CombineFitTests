@@ -7,11 +7,26 @@ from array import array
 #import glob
 ROOT.gROOT.SetBatch(True)
 
+#set up parameters for toy generation here
+numberOfToys = 1000
+numberOfToysPerJob = 10
+toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
+if toyMode == -1:
+    numberOfToys = 1
+workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
+
+POIsuffix = "bgnorm_"
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#global parameters
+
 outputDirectory = sys.argv[1] #path to store PseudoExperiments in
 print "input for outputDirectory:", outputDirectory
 pathToDatacard = sys.argv[2] #path to unscaled datacard with data to be fitted to scaled toys
 pathToInputRootfile = sys.argv[3] #path to corresponding root file
 
+datacardOrProcessList = None
+scaleFuncList = None
 if len(sys.argv)>4:
     datacardOrProcessList = sys.argv[4] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
 if len(sys.argv)>5:
@@ -23,26 +38,23 @@ scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 
 
 #check if third argument is a list of process or a datacard and act accordingly
-if datacardOrProcessList.endswith(".txt"):
-    pathToScaledDatacard = os.path.abspath(datacardOrProcessList)
-    print "using already scaled data from", pathToScaledDatacard
-else:
-    listOfProcesses = datacardOrProcessList.split(",")
-    listOfFormulae = scaleFuncList.split(",")
-    scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
-    print "using scaling dictionary:", scalingDic
+if datacardOrProcessList is not None:
+    if datacardOrProcessList.endswith(".txt"):
+        pathToScaledDatacard = os.path.abspath(datacardOrProcessList)
+        print "using already scaled data from", pathToScaledDatacard
+    else:
+        listOfProcesses = datacardOrProcessList.split(",")
+        listOfFormulae = scaleFuncList.split(",")
+        scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
+        print "using scaling dictionary:", scalingDic
 
-#set up parameters for toy generation here
-numberOfToys = 1000
-numberOfToysPerJob = 20
-toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
-workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
+#----------------------------------------------------------------------------------------------------------------------------------------------
 
-POIsuffix = "bgnorm_"
 
-#--------------------------------------------------------------------------------------------------------------------------------------------
 
-def submitToNAF(datacardToUse, listOfPOIs):
+
+
+def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, listOfPOIs):
     jobids=[]
     command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), listOfPOIs]
     a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
@@ -226,6 +238,7 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
                 #checkCopy(inputRootFile.Get(key.GetName()), tempObject)
                 tempObject.Write()
                 del tempObject
+    print "\tdone with copying/scaling"
 
 def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath):
     print "outputPath in generateToysAndFit:", outputPath
@@ -247,6 +260,7 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
         outputFile.Close()
 
         datacardToUse = os.path.abspath(writeDatacard(pathToDatacard, newRootFileName, listOfProcesses))
+
         newRootFileName = "temp_shape_expectation.root"#_" + suffix + os.path.basename(inputRootFile.GetName())
         saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, newRootFileName)
         shapeExpectation = "{0}/temp/{1}".format(outputPath, newRootFileName)
@@ -262,10 +276,11 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
 
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
+
         listOfPOIs = "r"
         for processPair in processScalingDic:
             listOfPOIs = listOfPOIs+","+POIsuffix+processPair[0]
-        jobids = submitToNAF(datacardToUse, listOfPOIs)
+        jobids = submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, listOfPOIs)
         print "waiting for toy generation to finish"
         do_qstat(jobids)
         os.chdir(workdir)
@@ -278,6 +293,7 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
         print "Couldn't find datacard", datacardToUse
 
 def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
+    print "creating new datacard from input", pathToDatacard
     datacard = open(pathToDatacard)
     newDatacardName = "temp_datacard.txt"
     newDatacard = open(newDatacardName, "w")
@@ -307,6 +323,7 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
 
     newDatacard.close()
     datacard.close()
+    print "\tdone"
     return newDatacardName
 
 

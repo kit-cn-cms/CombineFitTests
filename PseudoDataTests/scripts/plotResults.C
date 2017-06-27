@@ -13,7 +13,7 @@
 #include "TString.h"
 #include "TUUID.h"
 #include "TMath.h"
-#include "TColor.h"
+#include "TLine.h"
 
 #include "LabelMaker.h"
 #include "PseudoExperiments.h"
@@ -24,20 +24,41 @@ double isNaN(double x){
   else return x;
 }
 
-double findMaxValue(std::vector<TH1*> histos)
+double findMaxValue(const std::vector<TH1*> histos, const TString mode = "y")
 {
   double maxVal = -999;
-  for(int bin=0; bin<histos[0]->GetNbinsX(); bin++){
-    for(int histogram=0; histogram < int(histos.size()); histogram++) if(histos[histogram]->GetBinContent(bin+1) > maxVal) maxVal = histos[histogram]->GetBinContent(bin+1);
+  if(mode.EqualTo("y"))
+  {
+    for(int bin=0; bin<histos[0]->GetNbinsX(); bin++){
+      for(int histogram=0; histogram < int(histos.size()); histogram++) if(histos[histogram]->GetBinContent(bin+1) > maxVal) maxVal = histos[histogram]->GetBinContent(bin+1);
+    }
+  }
+  if(mode.EqualTo("x"))
+  {
+    int maxBin = 0;
+    for(int histogram=0; histogram < int(histos.size()); histogram++)
+    {
+      maxBin = histos[histogram]->GetNbinsX();
+      if(histos[histogram]->GetXaxis()->GetBinUpEdge(maxBin) > maxVal) maxVal = histos[histogram]->GetXaxis()->GetBinUpEdge(maxBin);
+    }
   }
   return maxVal;
 }
 
-double findMinValue(std::vector<TH1*> histos)
+double findMinValue(const std::vector<TH1*> histos, const TString mode = "y")
 {
   double minVal = 999;
-  for(int bin=0; bin<histos[0]->GetNbinsX(); bin++){
-    for(int histogram=0; histogram < int(histos.size()); histogram++) if(histos[histogram]->GetBinContent(bin+1) < minVal) minVal = histos[histogram]->GetBinContent(bin+1);
+  if(mode.EqualTo("y"))
+  {
+    for(int bin=0; bin<histos[0]->GetNbinsX(); bin++){
+      for(int histogram=0; histogram < int(histos.size()); histogram++) if(histos[histogram]->GetBinContent(bin+1) < minVal) minVal = histos[histogram]->GetBinContent(bin+1);
+    }
+  }
+  if(mode.EqualTo("x"))
+  {
+    for(int histogram=0; histogram < int(histos.size()); histogram++){
+      if(histos[histogram]->GetXaxis()->GetBinLowEdge(1) < minVal) minVal = histos[histogram]->GetXaxis()->GetBinLowEdge(1);
+    }
   }
   return minVal;
 }
@@ -80,7 +101,11 @@ void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const
 {
   //std::cout << "current histogram: " << histo->GetName() << std::endl;
   //std::cout << "\tsetting label of bin " << bin << " to " << binLabel << std::endl;
-  histo->GetXaxis()->SetBinLabel(bin, binLabel);
+  TString finalLabel = binLabel;
+  if(finalLabel.BeginsWith("CMS_ttH_")) finalLabel.ReplaceAll("CMS_ttH_","");
+  histo->GetXaxis()->SetBinLabel(bin, finalLabel);
+  histo->GetXaxis()->LabelsOption("v");
+  histo->GetXaxis()->SetLabelSize(0.04);
   //std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
 
   histo->SetBinContent(bin, binContent);
@@ -89,6 +114,24 @@ void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const
   histo->SetBinError(bin, binError);
 }
 
+TLine* createLine(const TString sourceFile, const TString whichfit, const TString parameterToDraw){
+  TFile* inputRootFile = new TFile(sourceFile, "READ");
+  TLine* returnLine = NULL;
+  if(inputRootFile->IsOpen() && !inputRootFile->IsZombie() && !inputRootFile->TestBit(TFile::kRecovered)){
+    RooFitResult* result = NULL;
+    inputRootFile->GetObject(whichfit.Data(), result);
+    if(result != NULL){
+      const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find(parameterToDraw.Data()) );
+      if(var != NULL){
+        returnLine = new TLine(var->getVal(), 0, var->getVal(), 10);
+        delete var;
+      }
+    }
+    inputRootFile->Close();
+  }
+  if(inputRootFile != NULL) delete inputRootFile;
+  return returnLine;
+}
 
 void writePOILatexTable(const TH1* hMeans, const TH1* hMedians, const TH1* hMeansWithFittedError, const TString outputPath, const TString tableCaption, const TString& testName){
   std::ofstream output(outputPath.Data(), std::ofstream::out);
@@ -201,7 +244,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
   const bool superimposeNorm = false) {
     TCanvas* can = new TCanvas("can","",500,500);
     can->cd();
-
+    std::vector<TLine*> lines;
     TH1* hNorm = 0;
     if( superimposeNorm ) {
       hNorm = static_cast<TH1*>(hists.front()->Clone("norm"));
@@ -211,12 +254,42 @@ void compareDistributions(const std::vector<TH1*>& hists,
       hNorm->SetLineColor(kGray);
       hNorm->SetFillColor(kGray);
     }
-
-    hists.front()->Draw("HIST");
+    double xmin = findMinValue(hists,"x")*0.5;
+    double xmax = findMaxValue(hists, "x")*1.5;
+    int nBins = int((xmax-xmin)/2);
+    if(nBins ==0) nBins = 100;
+    TH1F dummy("dummy","",nBins, xmin, xmax);
+    dummy.GetXaxis()->SetTitle(hists.front()->GetXaxis()->GetTitle());
+    dummy.GetYaxis()->SetRangeUser(findMinValue(hists), findMaxValue(hists));
+    dummy.Draw();
+    hists.front()->Draw("HISTsame");
     if( superimposeNorm ) hNorm->Draw("HISTsame");
-    for(auto& h: hists) {
-      h->Draw("HISTsame");
+    for(int histogram = 1; histogram < int(hists.size()); histogram++) {
+      hists[histogram]->Draw("HISTsame");
     }
+    TString whichfit = outLabel;
+    whichfit.Remove(0, whichfit.Last('_')+1);
+    if(whichfit.EqualTo("PostfitB")) whichfit = "fit_b";
+    if(whichfit.EqualTo("PostfitS")) whichfit = "fit_s";
+    TString helper;
+    TString linePath;
+    double signalStrength = 0;
+    for(int nLabel = 0; nLabel<int(labels.size()); nLabel++){
+      helper = labels[nLabel];
+      helper.Remove(0, helper.Last('=')+1);
+      signalStrength = convertTStringToDouble(helper);
+      helper = outLabel;
+      helper.Remove(helper.Last('/'), helper.Length());
+      linePath.Form("%s/sig%.1f/asimov/mlfit_asimov_sig%.0f.root", helper.Data(), signalStrength, signalStrength);
+      if(whichfit.EqualTo("POI")) lines.push_back(createLine(linePath, "fit_s", "r"));
+      else lines.push_back(createLine(linePath, whichfit, hists.front()->GetXaxis()->GetTitle()));
+      if(lines.back() != NULL){
+        lines.back()->SetLineColor(hists[nLabel]->GetLineColor());
+        lines.back()->Draw("Same");
+      }
+    }
+    std::cout << "number of saved lines: " << lines.size() << std::endl;
+
 
     TLegend* leg = LabelMaker::legend("top left",labels.size(),0.6);
     TString legendEntry;
@@ -228,17 +301,26 @@ void compareDistributions(const std::vector<TH1*>& hists,
     for(size_t iH = 0; iH < hists.size(); ++iH) {
       legendEntry.Form("#splitline{%s}{#%s_{mean}=%.2f #pm %.2f_{(mean error)} #pm %.2f_{(RMS)}}", labels.at(iH).Data(), greekLetter.Data(), hists.at(iH)->GetMean(), hists.at(iH)->GetMeanError(), hists.at(iH)->GetRMS() );
       leg->AddEntry(hists.at(iH),legendEntry,"L");
+      if(lines.at(iH)!= NULL){
+        legendEntry.Form("Asimov Val for %s", labels.at(iH).Data());
+        leg->AddEntry(lines.at(iH), legendEntry, "l");
+      }
     }
+
     leg->Draw("same");
 
     gPad->RedrawAxis();
     std::cout << "printing distribution as " << outLabel << ".pdf\n";
     can->SaveAs(outLabel+".pdf");
+    can->SaveAs(outLabel+".root");
 
     if( hNorm ) delete hNorm;
     if(leg != NULL) delete leg;
     if(can != NULL) delete can;
-}
+    for(int nLine=0; nLine<int(lines.size()); nLine++){
+      if(lines[nLine] != NULL) delete lines[nLine];
+    }
+  }
 
 
 void compareMeanValues(TH1* hFittedValues,
@@ -310,6 +392,7 @@ void compareMeanValues(TH1* hFittedValues,
   legend->Draw("Same");
   std::cout << "Printing Mean Value plot as " << outLabel << ".pdf\n";
   can->SaveAs(outLabel+".pdf");
+  can->SaveAs(outLabel+".root");
 
   if(can != NULL) delete can;
 }
@@ -323,8 +406,7 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
    const double lowerBound=-3,
    const double upperBound=3,
    const TString& pathToShapeExpectationRootfile="",
-   const TString& categoryName="")
-{
+   const TString& categoryName=""){
   if(PostfitBvalsAndErrors != NULL && PostfitSBvalsAndErrors != NULL && PrefitValsAndErrors != NULL)
   {
     TString* canvasName = NULL;
@@ -508,9 +590,10 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
     writeLatexTable(hPostfitBmeans, hPostfitBmedians, hPostfitSBmeans, hPostfitSBmedians, outLabel+"values_"+*canvasName+".tex", "Values for "+labels[nExperiment], hExpectation, hPostfitBmeansWithFitErrors, hPostfitSBmeansWithFitErrors);
 
     canvasName->Prepend(outLabel+"pullplot_");
-    canvasName->Append(".pdf");
+    //canvasName->Append(".pdf");
     //std::cout << "canvas name: " << *canvasName << std::endl;
-    canvas.SaveAs(*canvasName);
+    canvas.SaveAs(*canvasName+".pdf");
+    canvas.SaveAs(*canvasName+".root");
     std::cout << "saved canvas successfully\n";
 
     //writeLatexTable(hPostfitBmeans, hPostfitBmedians, outLabel+"values_PostfitB_"+labels[nExperiment]+".tex", "Values for "+labels[nExperiment], hExpectation);
@@ -559,8 +642,7 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
 
 void compareNuisanceParameters(const std::vector<PseudoExperiments>& exps,
                                const TString& outLabel,
-                               const bool ignoreBinByBinNPs)
-{
+                               const bool ignoreBinByBinNPs){
   std::vector<TString> listOfNPs;
   std::vector<std::vector<Double_t> >* PostfitBvalsAndErrors = new std::vector<std::vector<Double_t> >[exps.size()];
   std::vector<std::vector<Double_t> >* PostfitSBvalsAndErrors = new std::vector<std::vector<Double_t> >[exps.size()];
@@ -740,8 +822,7 @@ const TString& outLabel, const TString& testName) {
   }
 }
 
-void saveFitValues(const int bin, TH1D* hMeans, double mean, double meanError, std::vector<std::vector<Double_t> >& fitResultsContainer, TH1D* hMedians=NULL, double median=0., double rms=0.)
-{
+void saveFitValues(const int bin, TH1D* hMeans, double mean, double meanError, std::vector<std::vector<Double_t> >& fitResultsContainer, TH1D* hMedians=NULL, double median=0., double rms=0.){
   //std::cout << "\tFilling histogram " << hMeans->GetName() << std::endl;
   std::vector<Double_t> vectorToSafe;
   //std::cout << "\t\tMean value in bin " << bin << ": " << mean << " +- " << meanError << std::endl;
@@ -764,8 +845,7 @@ void saveFitValues(const int bin, TH1D* hMeans, double mean, double meanError, s
 }
 
 void normVals(std::vector<std::vector<Double_t> >* toNorm, std::vector<std::vector<Double_t> >* norm, int nAllExps){
-  for(int nExp=0; nExp<nAllExps; nExp++)
-  {
+  for(int nExp=0; nExp<nAllExps; nExp++){
     //std::cout << "\tnorming experiment #" << nExp << std::endl;
     for(int i=0; i<int(norm[nExp].size()); i++)
     {
@@ -799,8 +879,28 @@ void normVals(std::vector<std::vector<Double_t> >* toNorm, std::vector<std::vect
   }
 }
 
-void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& outLabel, const TString& pathToShapeExpectationRootfile="")
+void resizeHisto(TH1* hist)
 {
+  if(hist != NULL){
+    double xmin = 999;
+    double xmax = -999;
+    int counter = 0;
+    int boundary = int(hist->GetNbinsX()*0.3);
+    if(boundary == 0) boundary = 5;
+    for(int i=1; i<=hist->GetNbinsX(); i++)
+    {
+      if(hist->GetBinContent(i) != 0 && xmin == 999) xmin = hist->GetBinLowEdge(i);
+      if(hist->GetBinContent(i) == 0) counter++;
+      else counter = 0;
+    }
+    xmax = hist->GetBinLowEdge(hist->GetNbinsX()-counter) + hist->GetBinWidth(hist->GetNbinsX()-counter);
+    int nBins = int((xmax - xmin)/2);
+    if(nBins <= 0) nBins = 100;
+    hist->SetBins(nBins, xmin, xmax);
+  }
+}
+
+void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& outLabel, const TString& pathToShapeExpectationRootfile=""){
   std::vector<TString> listOfProcesses;
   std::vector<std::vector<Double_t> >* PostfitBvalsAndErrors =NULL;
   std::vector<std::vector<Double_t> >* PostfitSBvalsAndErrors = NULL;
@@ -855,9 +955,11 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
         const PseudoExperiments& exp = exps.at(iE);
 
         prefitShapes = exp.getPrefitShapes()[nCategory];
+        resizeHisto(prefitShapes->getDist(np));
         postfitSshapes = exp.getPostfitSshapes()[nCategory];
+        resizeHisto(postfitSshapes->getDist(np));
         postfitBshapes = exp.getPostfitBshapes()[nCategory];
-
+        resizeHisto(postfitBshapes->getDist(np));
         //std::cout << "DEBUG\t current process: " << np.Data() << std::endl;
         //std::cout << "DEBUG\t prefitShapes:\n";
         //std::cout << "\t number of saved processes: " << prefitShapes->getNumberOfProcesses() << std::endl;
@@ -941,7 +1043,7 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
     normVals(PrefitValsAndErrors, PrefitValsAndErrors, int(labels.size()));
 
     std::cout << "drawing norm pullplots\n";
-    if(listOfProcesses.size() != 0) drawPullPlots(listOfProcesses, labels, PostfitBvalsAndErrors, PostfitSBvalsAndErrors, PrefitValsAndErrors, outLabel+categoryName +"_normalisation_", -4, 6, pathToShapeExpectationRootfile, categoryName);
+    if(listOfProcesses.size() != 0) drawPullPlots(listOfProcesses, labels, PostfitBvalsAndErrors, PostfitSBvalsAndErrors, PrefitValsAndErrors, outLabel+categoryName +"_normalisation_", -1, 3, pathToShapeExpectationRootfile, categoryName);
     delete[] PostfitBvalsAndErrors;
     delete[] PostfitSBvalsAndErrors;
     delete[] PrefitValsAndErrors;
@@ -951,16 +1053,23 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
 
 
 
-void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSignalStrength, std::vector<PseudoExperiments>& expSet, Color_t color = kBlue, const TString suffix = "MLF", const TString sourceFile = "mlfit.root"){
+void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSignalStrength, std::vector<PseudoExperiments>& expSet, Color_t color = kBlue, const TString suffix = "", const TString sourceFile = "mlfit.root", double injectedMu = -999){
   double nominalMu=0;
   TString helper;
 
+  if(injectedMu != -999) nominalMu = injectedMu;
+  else
+  {
 
-  helper = containsSignalStrength;
-  helper.Remove(0,helper.Index("sig")+3);
-  if(helper.Length() > 3) helper.Remove(3, helper.Length());
-  nominalMu=convertTStringToDouble(helper);
-  helper.Form("%s nominal S=%.1f",suffix.Data(), nominalMu);
+
+    helper = containsSignalStrength;
+    helper.Remove(0,helper.Index("sig")+3);
+    if(helper.Length() > 3) helper.Remove(3, helper.Length());
+    nominalMu=convertTStringToDouble(helper);
+  }
+  TString finalSuffix = suffix;
+  if(!finalSuffix.EqualTo("")) finalSuffix.Append(" ");
+  helper.Form("%snominal S=%.1f",suffix.Data(), nominalMu);
   expSet.push_back( PseudoExperiments(helper,nominalMu) );
   expSet.back().addExperiments(pathToPseudoExperiments, sourceFile);
 
@@ -976,7 +1085,7 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
 
 }
 
-void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "") {
+void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", double injectedMu = -999) {
   TheLooks::set();
   std::vector<PseudoExperiments> expSet;
   if(pathname.EndsWith("/")) pathname.Chop();
@@ -1003,15 +1112,15 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "") 
       if (folder->IsDirectory() && folderName.Contains("sig")) {
         loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
         ncolor++;
-        loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
-        ncolor++;
+        //loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
+        //ncolor++;
       }
       if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
-        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor]);
+        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
         ncolor++;
-        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
-        ncolor++;
-        break;
+        //loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
+        //ncolor++;
+        //break;
       }
     }
     if(folder != NULL) delete folder;
@@ -1026,6 +1135,7 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "") 
     comparePOIs(expSet,outputPath, testName);
     compareNuisanceParameters(expSet,outputPath,true);
     compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+
   }
   else std::cerr << "was unable to load any Pseudo Experiments!\n";
 }

@@ -17,11 +17,29 @@ listOfPOIs=$7
 
 pathToConvertMDFtoMLF="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/convertMDFtoMLF.py"
 #pwd
-for (( i = $lowerBound; i <= $upperBound; i++ )); do
+
+echo "creating asimov data set"
+mkdir -p asimov
+cd asimov
+
+combineCmd="combine -M GenerateOnly -m 125 --saveToys -t -1 -n _asimov_sig$signalStrength --toysFrequentist --expectSignal $signalStrength $toyDatacard"
+echo "$combineCmd"
+eval $combineCmd
+
+toyFile="higgsCombine_asimov_sig$((signalStrength)).GenerateOnly.mH125.123456.root"
+
+if [[ -f $toyFile ]]; then
+  combineCmd="combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 --floatAllNuisances 1 -t -1 --toysFile $toyFile -n _asimov_sig$signalStrength --minos all $targetDatacard"
+  echo "$combineCmd"
+  eval $combineCmd
+fi
+cd ../
+
+for (( i = $lowerBound; i < $upperBound; i++ )); do
   mkdir -p PseudoExperiment$i
   cd PseudoExperiment$i
   if [[ -f $toyDatacard ]]; then
-    combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $i $toyDatacard"
+    combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength --toysFrequentist -s $i $toyDatacard"
     echo "$combineCmd"
     eval $combineCmd
     if [[ -f *.root.dot ]]; then
@@ -34,10 +52,10 @@ for (( i = $lowerBound; i <= $upperBound; i++ )); do
       combineCmd="combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 --floatAllNuisances 1 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
       echo "$combineCmd"
       eval $combineCmd
-      combineCmd='combine -M MultiDimFit '$targetDatacard' --algo=none --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _full_fit --saveWorkspace -m 125 --redefineSignalPOIs '$listOfPOIs' -t 1 --toysFile '$toyFile' --saveFitResult'
-      echo "$combineCmd"
-      eval $combineCmd
-      python $pathToConvertMDFtoMLF
+      # combineCmd='combine -M MultiDimFit '$targetDatacard' --algo=none --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _full_fit --saveWorkspace -m 125 --redefineSignalPOIs '$listOfPOIs' -t 1 --toysFile '$toyFile' --saveFitResult'
+      # echo "$combineCmd"
+      # eval $combineCmd
+      # python $pathToConvertMDFtoMLF
     else
       echo "Could not find toyFile, skipping the fit"
     fi

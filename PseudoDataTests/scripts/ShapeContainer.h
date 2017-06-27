@@ -59,26 +59,29 @@ void ShapeContainer::loadShape(const TH1D* histo, const TString& signalStrength)
   double integral = histo->Integral();
   if(debug_) std::cout << "\t integral value: " << integral << std::endl;
   if(debug_) checkShapeContainer();
+  double lowerBound = 0;
+  double upperBound = 10;
+  int nBins = 0;
   if(it == shapeHistos_.end())
   {
     if(debug_) std::cout << "DEBUG    creating new histogram\n";
     TString tempHistoName;
     tempHistoName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), histo->GetName());
-    double lowerBound = 0;
-    double upperBound = 10;
+
     if(integral == 0)
     {
-      lowerBound = -100.;
-      upperBound = 100.;
+      lowerBound = -500.;
+      upperBound = 500.;
     }
     else
     {
-      lowerBound = 0.05*integral;
-      upperBound = 2.5*integral;
+      lowerBound = -10*integral;
+      upperBound = 10*integral;
     }
-    int nBins = int((upperBound - lowerBound)/2);
+    nBins = int((upperBound - lowerBound)/0.5);
+
     //if(lowerBound>-2) lowerBound = -2;
-    if(nBins <= 0) nBins = 10;
+    if(nBins <= 0) nBins = 1000;
     TH1D* hTemp = new TH1D(tempHistoName, "; Integral; Frequency", nBins, lowerBound, upperBound);
     hTemp->SetDirectory(0);
     if(debug_)
@@ -95,6 +98,7 @@ void ShapeContainer::loadShape(const TH1D* histo, const TString& signalStrength)
   }
   else{
     if(debug_) std::cout << "DEBUG    found matching histogram! Filling...\n";
+
     it->second->Fill(integral);
   }
 }
@@ -116,7 +120,7 @@ void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TS
   }
   delete key;
   delete categoryDir;
-  
+
   if(debug_) std::cout << "DEBUG    done saving normalisations for category " << categoryName_.Data() << std::endl;
   if(debug_) checkShapeContainer();
 }

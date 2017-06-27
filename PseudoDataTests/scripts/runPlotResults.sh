@@ -7,6 +7,13 @@ cd $CMSSW_BASE
 eval `scram runtime -sh`
 cd -
 
-echo "plotResults.C(\""$1"\",\""$2"\")"
+if test "$#" -eq 3; then
+  echo "plotResults.C(\""$1"\",\""$2"\", "$3")"
 
-root -l -b -q "plotResults.C+(\""$1"\",\""$2"\")"
+  root -l -b -q "plotResults.C+(\""$1"\",\""$2"\", "$3")"
+else
+
+  echo "plotResults.C(\""$1"\",\""$2"\")"
+
+  root -l -b -q "plotResults.C+(\""$1"\",\""$2"\")"
+fi

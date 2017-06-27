@@ -20,6 +20,7 @@ def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
     for i in range(len(listOfHistos)):
         color = colors[i%len(colors)]
         listOfHistos[i].SetLineColor(color)
+        listOfHistos[i].SetLineWidth(4)
         listOfHistos[i].SetFillColor(color)
         listOfHistos[i].SetMarkerColor(color)
         histoName = listOfHistos[i].GetName()
@@ -36,7 +37,7 @@ def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
     hStack.Write()
     hStack_normed.Write()
     legend.Write()
-    hStack.Draw()
+    hStack.Draw("HIST")
     legend.Draw("Same")
     c.Write("canvas_hStack")
     c.SaveAs(outputSuffix+"_stackplot.pdf")
