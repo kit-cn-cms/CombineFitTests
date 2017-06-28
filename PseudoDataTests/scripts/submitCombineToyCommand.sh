@@ -23,13 +23,22 @@ for (( signalStrength = 0; signalStrength < 2; signalStrength++ )); do
   mkdir -p sig$signalStrength
   cd sig$signalStrength
 
+  echo "creating asimov data set"
+  mkdir -p asimov
+  cd asimov
+
+  combineCmd="qsub -q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V -o log_asimov.out -e log_asimov.err $pathToCombineToyScript/generateToysAndFits.sh $targetDatacard $toyDatacard -1 $signalStrength 123456 $listOfPOIs"
+  echo $combineCmd
+  eval $combineCmd
+  cd ../
+
   for (( i = 0; i <$numberOfLoops; i++)); do
     upperBound=$(((i+1)*experimentsPerJob))
     lowerBound=$((i*experimentsPerJob))
-    qsub -q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V -o log_$((lowerBound))To$((upperBound)).out -e log_$((lowerBound))To$((upperBound)).err "$pathToCombineToyScript"/generateToysAndFit.sh $targetDatacard $toyDatacard $numberOfToysPerExperiment $signalStrength $lowerBound $upperBound $listOfPOIs
+    qsub -q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V -o log_$((lowerBound))To$((upperBound)).out -e log_$((lowerBound))To$((upperBound)).err "$pathToCombineToyScript"/'createFoldersAndDoToyFits.sh' $targetDatacard $toyDatacard $numberOfToysPerExperiment $signalStrength $lowerBound $upperBound $listOfPOIs
   done
   upperBound=$numberOfExperiments
   lowerBound=$((numberOfExperiments-rest))
-  qsub -q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V -o log_$((lowerBound))To$((upperBound)).out -e log_$((lowerBound))To$((upperBound)).err "$pathToCombineToyScript"/generateToysAndFit.sh $targetDatacard $toyDatacard $numberOfToysPerExperiment $signalStrength $lowerBound $upperBound $listOfPOIs
+  qsub -q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V -o log_$((lowerBound))To$((upperBound)).out -e log_$((lowerBound))To$((upperBound)).err "$pathToCombineToyScript"/'createFoldersAndDoToyFits.sh' $targetDatacard $toyDatacard $numberOfToysPerExperiment $signalStrength $lowerBound $upperBound $listOfPOIs
   cd ../
 done

@@ -18,22 +18,6 @@ listOfPOIs=$7
 pathToConvertMDFtoMLF="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/convertMDFtoMLF.py"
 #pwd
 
-echo "creating asimov data set"
-mkdir -p asimov
-cd asimov
-
-combineCmd="combine -M GenerateOnly -m 125 --saveToys -t -1 -n _asimov_sig$signalStrength --toysFrequentist --expectSignal $signalStrength $toyDatacard"
-echo "$combineCmd"
-eval $combineCmd
-
-toyFile="higgsCombine_asimov_sig$((signalStrength)).GenerateOnly.mH125.123456.root"
-
-if [[ -f $toyFile ]]; then
-  combineCmd="combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 --floatAllNuisances 1 -t -1 --toysFile $toyFile -n _asimov_sig$signalStrength --minos all $targetDatacard"
-  echo "$combineCmd"
-  eval $combineCmd
-fi
-cd ../
 
 for (( i = $lowerBound; i < $upperBound; i++ )); do
   mkdir -p PseudoExperiment$i
