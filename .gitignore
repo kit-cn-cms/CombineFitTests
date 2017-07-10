@@ -55,3 +55,7 @@ CVS
 # Root Files#
 #############
 *.root
+
+# Test Files#
+#############
+test*

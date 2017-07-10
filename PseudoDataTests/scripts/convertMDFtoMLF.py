@@ -12,7 +12,7 @@ if os.path.exists("multidimfit_full_fit.root") and os.path.exists("higgsCombine_
     signalStrength = fit_mdf.floatParsFinal().find("r")
     r = signalStrength.getVal()
     print "starting MaxLikelihoodFit with r =", r
-    combineCmd = 'combine higgsCombine_full_fit.MultiDimFit.mH125.123456.root -w w --snapshotName MultiDimFit -M MaxLikelihoodFit --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin -10 --rMax 10 --minos all --bypassFrequentistFit --toysFrequentist -t -1 --expectSignal ' + str(r) + ' -n _MDF --saveShapes --saveNormalizations'
+    combineCmd = 'combine higgsCombine_full_fit.MultiDimFit.mH125.123456.root -w w --snapshotName MultiDimFit -M MaxLikelihoodFit --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin -10 --rMax 10 --minos all --bypassFrequentistFit --toysFrequentist -t -1 --expectSignal ' + str(r) + ' --redefineSignalPOIs r -n _MDF --saveShapes --saveNormalizations'
 
     subprocess.check_call(combineCmd.split())
     multiFile.Close()

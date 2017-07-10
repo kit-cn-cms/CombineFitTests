@@ -27,19 +27,28 @@ double isNaN(double x){
 double findMaxValue(const std::vector<TH1*> histos, const TString mode = "y")
 {
   double maxVal = -999;
+  int maxBin = 0;
   if(mode.EqualTo("y"))
   {
-    for(int bin=0; bin<histos[0]->GetNbinsX(); bin++){
-      for(int histogram=0; histogram < int(histos.size()); histogram++) if(histos[histogram]->GetBinContent(bin+1) > maxVal) maxVal = histos[histogram]->GetBinContent(bin+1);
+    for(int histogram=0; histogram < int(histos.size()); histogram++)
+    {
+      if(histos[histogram] != NULL){
+        maxBin = histos[histogram]->GetNbinsX();
+        for(int bin=1; bin<=maxBin; bin++){
+          if(histos[histogram]->GetBinContent(bin) > maxVal) maxVal = histos[histogram]->GetBinContent(bin);
+
+        }
+      }
     }
   }
   if(mode.EqualTo("x"))
   {
-    int maxBin = 0;
     for(int histogram=0; histogram < int(histos.size()); histogram++)
     {
-      maxBin = histos[histogram]->GetNbinsX();
-      if(histos[histogram]->GetXaxis()->GetBinUpEdge(maxBin) > maxVal) maxVal = histos[histogram]->GetXaxis()->GetBinUpEdge(maxBin);
+      if(histos[histogram] != NULL){
+        maxBin = histos[histogram]->GetNbinsX();
+        if(histos[histogram]->GetXaxis()->GetBinUpEdge(maxBin) > maxVal) maxVal = histos[histogram]->GetXaxis()->GetBinUpEdge(maxBin);
+      }
     }
   }
   return maxVal;
@@ -51,67 +60,85 @@ double findMinValue(const std::vector<TH1*> histos, const TString mode = "y")
   if(mode.EqualTo("y"))
   {
     for(int bin=0; bin<histos[0]->GetNbinsX(); bin++){
-      for(int histogram=0; histogram < int(histos.size()); histogram++) if(histos[histogram]->GetBinContent(bin+1) < minVal) minVal = histos[histogram]->GetBinContent(bin+1);
+      for(int histogram=0; histogram < int(histos.size()); histogram++) {
+        if(histos[histogram] != NULL){
+          if(histos[histogram]->GetBinContent(bin+1) < minVal) minVal = histos[histogram]->GetBinContent(bin+1);
+        }
+      }
     }
   }
   if(mode.EqualTo("x"))
   {
     for(int histogram=0; histogram < int(histos.size()); histogram++){
-      if(histos[histogram]->GetXaxis()->GetBinLowEdge(1) < minVal) minVal = histos[histogram]->GetXaxis()->GetBinLowEdge(1);
+      if(histos[histogram] != NULL)
+      {
+        if(histos[histogram]->GetXaxis()->GetBinLowEdge(1) < minVal) minVal = histos[histogram]->GetXaxis()->GetBinLowEdge(1);
+      }
     }
   }
   return minVal;
 }
 
 void norm(TH1* h) {
-  if( h->Integral() > 0 ) {
-    h->Scale( 1./h->Integral() );
+  if(h != NULL){
+    if( h->Integral() > 0 ) {
+      h->Scale( 1./h->Integral() );
+    }
   }
 }
 
 void setXRange(TH1* h, const double min, const double max) {
-  h->GetXaxis()->SetRangeUser(min,max);
+  if(h!= NULL) h->GetXaxis()->SetRangeUser(min,max);
 }
 
 void setLineStyle(TH1* h, const int color, const int style) {
-  h->SetLineColor(color);
-  h->SetLineStyle(style);
-  h->SetLineWidth(2);
+  if(h != NULL){
+    h->SetLineColor(color);
+    h->SetLineStyle(style);
+    h->SetLineWidth(2);
+  }
 }
 void setLineStyle(TH1* h, const Color_t color, const int style, const int markerstyle=1) {
-  h->SetLineColor(color);
-  h->SetLineStyle(style);
-  h->SetMarkerStyle(markerstyle);
-  h->SetMarkerColor(color);
-  h->SetLineWidth(2);
+  if(h!= NULL){
+    h->SetLineColor(color);
+    h->SetLineStyle(style);
+    h->SetMarkerStyle(markerstyle);
+    h->SetMarkerColor(color);
+    h->SetLineWidth(2);
+  }
 }
 
 double getMedian(const TH1* histo1) {
-  int numBins = histo1->GetXaxis()->GetNbins();
-  Double_t *x = new Double_t[numBins];
-  Double_t* y = new Double_t[numBins];
-  for (int i = 0; i < numBins; i++) {
-    x[i] = histo1->GetBinCenter(i);
-    y[i] = histo1->GetBinContent(i);
+  if(histo1 != NULL){
+    int numBins = histo1->GetXaxis()->GetNbins();
+    Double_t *x = new Double_t[numBins];
+    Double_t* y = new Double_t[numBins];
+    for (int i = 0; i < numBins; i++) {
+      x[i] = histo1->GetBinCenter(i);
+      y[i] = histo1->GetBinContent(i);
+    }
+    return TMath::Median(numBins, x, y);
   }
-  return TMath::Median(numBins, x, y);
+  else return -999;
 }
 
 void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const Double_t binContent, const Double_t binError = 0 )
 {
-  //std::cout << "current histogram: " << histo->GetName() << std::endl;
-  //std::cout << "\tsetting label of bin " << bin << " to " << binLabel << std::endl;
-  TString finalLabel = binLabel;
-  if(finalLabel.BeginsWith("CMS_ttH_")) finalLabel.ReplaceAll("CMS_ttH_","");
-  histo->GetXaxis()->SetBinLabel(bin, finalLabel);
-  histo->GetXaxis()->LabelsOption("v");
-  histo->GetXaxis()->SetLabelSize(0.04);
-  //std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
+  if(histo != NULL){
+    //std::cout << "current histogram: " << histo->GetName() << std::endl;
+    //std::cout << "\tsetting label of bin " << bin << " to " << binLabel << std::endl;
+    TString finalLabel = binLabel;
+    if(finalLabel.BeginsWith("CMS_ttH_")) finalLabel.ReplaceAll("CMS_ttH_","");
+    histo->GetXaxis()->SetBinLabel(bin, finalLabel);
+    histo->GetXaxis()->LabelsOption("v");
+    histo->GetXaxis()->SetLabelSize(0.04);
+    //std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
 
-  histo->SetBinContent(bin, binContent);
-  //std::cout << "\tsetting error of bin " << bin << " to " << binError << std::endl;
+    histo->SetBinContent(bin, binContent);
+    //std::cout << "\tsetting error of bin " << bin << " to " << binError << std::endl;
 
-  histo->SetBinError(bin, binError);
+    histo->SetBinError(bin, binError);
+  }
 }
 
 TLine* createLine(const TString sourceFile, const TString whichfit, const TString parameterToDraw){
@@ -168,7 +195,7 @@ void writePOILatexTable(const TH1* hMeans, const TH1* hMedians, const TH1* hMean
 void writeLatexTable(TH1* hMeansB, TH1* hMediansB, TH1* hMeansSB, TH1* hMediansSB, TString outputPath, TString tableCaption, TH1* hExpectation=NULL, TH1* hMeansBwithFittedError= NULL, TH1* hMeansSBwithFittedError = NULL){
   std::ofstream output(outputPath.Data(), std::ofstream::out);
   //output.open();
-  if(output.is_open()){
+  if(output.is_open() && hMeansB != NULL && hMediansB != NULL && hMeansSB != NULL && hMediansSB != NULL){
     output << "\\begin{table}\n";
     output << "\\centering\n";
     output << "\\caption{" << tableCaption.Data() << "}\n";
@@ -247,25 +274,28 @@ void compareDistributions(const std::vector<TH1*>& hists,
     std::vector<TLine*> lines;
     TH1* hNorm = 0;
     if( superimposeNorm ) {
-      hNorm = static_cast<TH1*>(hists.front()->Clone("norm"));
-      hNorm->Reset();
-      hNorm->FillRandom("gaus",1E5);
-      norm(hNorm);
-      hNorm->SetLineColor(kGray);
-      hNorm->SetFillColor(kGray);
+      if(hists.front() != NULL){
+        hNorm = static_cast<TH1*>(hists.front()->Clone("norm"));
+        hNorm->Reset();
+        hNorm->FillRandom("gaus",1E5);
+        norm(hNorm);
+        hNorm->SetLineColor(kGray);
+        hNorm->SetFillColor(kGray);
+      }
     }
     double xmin = findMinValue(hists,"x")*0.5;
     double xmax = findMaxValue(hists, "x")*1.5;
     int nBins = int((xmax-xmin)/2);
     if(nBins ==0) nBins = 100;
+    std::cout << "creating dummy histo with nBins = " << nBins << "\txmin = " << xmin << "\txmax = " << xmax << std::endl;
     TH1F dummy("dummy","",nBins, xmin, xmax);
     dummy.GetXaxis()->SetTitle(hists.front()->GetXaxis()->GetTitle());
     dummy.GetYaxis()->SetRangeUser(findMinValue(hists), findMaxValue(hists));
     dummy.Draw();
-    hists.front()->Draw("HISTsame");
-    if( superimposeNorm ) hNorm->Draw("HISTsame");
+    if(hists.front() != NULL) hists.front()->Draw("HISTsame");
+    if( hNorm != NULL ) hNorm->Draw("HISTsame");
     for(int histogram = 1; histogram < int(hists.size()); histogram++) {
-      hists[histogram]->Draw("HISTsame");
+      if(hists[histogram]!= NULL) hists[histogram]->Draw("HISTsame");
     }
     TString whichfit = outLabel;
     whichfit.Remove(0, whichfit.Last('_')+1);
@@ -280,7 +310,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
       signalStrength = convertTStringToDouble(helper);
       helper = outLabel;
       helper.Remove(helper.Last('/'), helper.Length());
-      linePath.Form("%s/sig%.1f/asimov/mlfit_asimov_sig%.0f.root", helper.Data(), signalStrength, signalStrength);
+      linePath.Form("%s/sig%.0f/asimov/mlfit.root", helper.Data(), signalStrength);
       if(whichfit.EqualTo("POI")) lines.push_back(createLine(linePath, "fit_s", "r"));
       else lines.push_back(createLine(linePath, whichfit, hists.front()->GetXaxis()->GetTitle()));
       if(lines.back() != NULL){
@@ -300,10 +330,12 @@ void compareDistributions(const std::vector<TH1*>& hists,
 
     for(size_t iH = 0; iH < hists.size(); ++iH) {
       legendEntry.Form("#splitline{%s}{#%s_{mean}=%.2f #pm %.2f_{(mean error)} #pm %.2f_{(RMS)}}", labels.at(iH).Data(), greekLetter.Data(), hists.at(iH)->GetMean(), hists.at(iH)->GetMeanError(), hists.at(iH)->GetRMS() );
-      leg->AddEntry(hists.at(iH),legendEntry,"L");
-      if(lines.at(iH)!= NULL){
-        legendEntry.Form("Asimov Val for %s", labels.at(iH).Data());
-        leg->AddEntry(lines.at(iH), legendEntry, "l");
+      if(hists.at(iH) != NULL){
+        leg->AddEntry(hists.at(iH),legendEntry,"L");
+        if(lines.at(iH)!= NULL){
+          legendEntry.Form("Asimov Val for %s", labels.at(iH).Data());
+          leg->AddEntry(lines.at(iH), legendEntry, "l");
+        }
       }
     }
 
@@ -327,75 +359,77 @@ void compareMeanValues(TH1* hFittedValues,
                       TH1* hInitValues,
                       const std::vector<TString>& labels,
                       const TString& outLabel,
-                      TH1* hFittedMedianValues=0) {
-  TCanvas* can = new TCanvas("can","",500,500);
-  can->SetBottomMargin(0.25);
-  can->cd();
+                      TH1* hFittedMedianValues=0){
+                        if(hFittedValues != NULL && hInitValues != NULL){
+                          TCanvas* can = new TCanvas("can","",500,500);
+                          can->SetBottomMargin(0.25);
+                          can->cd();
 
-  TLegend* legend = LabelMaker::legend("top right",labels.size(),0.3);
-  legend->SetTextSize(0.02);
+                          TLegend* legend = LabelMaker::legend("top right",labels.size(),0.3);
+                          legend->SetTextSize(0.02);
 
-  hFittedValues->SetMarkerColor(kBlack);
-  hFittedValues->SetMarkerStyle(24);
+                          hFittedValues->SetMarkerColor(kBlack);
+                          hFittedValues->SetMarkerStyle(24);
 
-  std::vector<TH1*> histoList;
-  histoList.push_back(hFittedValues);
-  histoList.push_back(hInitValues);
-  double windowSize = 1.5;
+                          std::vector<TH1*> histoList;
+                          histoList.push_back(hFittedValues);
+                          histoList.push_back(hInitValues);
+                          double windowSize = 1.5;
 
-  if(hFittedMedianValues != 0){
-    hFittedMedianValues->SetMarkerColor(kBlack);
-    hFittedMedianValues->SetMarkerStyle(25);
-    hFittedMedianValues->SetLineStyle(2);
-    histoList.push_back(hFittedMedianValues);
-    //set y axis range of the plot depending on the highest RMS value
-    windowSize = hFittedMedianValues->GetBinError(1)+0.5;
-    for(int bin=2; bin< hFittedMedianValues->GetNbinsX(); bin ++) if(hFittedMedianValues->GetBinError(bin)+0.5 > windowSize) windowSize = hFittedMedianValues->GetBinError(bin)+0.5;
-  }
+                          if(hFittedMedianValues != 0){
+                            hFittedMedianValues->SetMarkerColor(kBlack);
+                            hFittedMedianValues->SetMarkerStyle(25);
+                            hFittedMedianValues->SetLineStyle(2);
+                            histoList.push_back(hFittedMedianValues);
+                            //set y axis range of the plot depending on the highest RMS value
+                            windowSize = hFittedMedianValues->GetBinError(1)+0.5;
+                            for(int bin=2; bin< hFittedMedianValues->GetNbinsX(); bin ++) if(hFittedMedianValues->GetBinError(bin)+0.5 > windowSize) windowSize = hFittedMedianValues->GetBinError(bin)+0.5;
+                          }
 
-  hInitValues->SetLineColor(kBlack);
-  hInitValues->SetLineWidth(2);
-  hInitValues->SetLineStyle(2);
-  //std::cout << "# of labels: " << labels.size() << std::endl;
-  //for(int i=0; i<int(labels.size());i++) std::cout << "\t" << labels[i].Data() << std::endl;
-  //std::cout << "# of points in hInitValues: " << hInitValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
-  //for(int i=0; i<hInitValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hInitValues->GetBinContent(i) << std::endl;
-  //std::cout << "# of points in hFittedValues: " << hFittedValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
-  //for(int i=0; i<hFittedValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hFittedValues->GetBinContent(i) << std::endl;
+                          hInitValues->SetLineColor(kBlack);
+                          hInitValues->SetLineWidth(2);
+                          hInitValues->SetLineStyle(2);
+                          //std::cout << "# of labels: " << labels.size() << std::endl;
+                          //for(int i=0; i<int(labels.size());i++) std::cout << "\t" << labels[i].Data() << std::endl;
+                          //std::cout << "# of points in hInitValues: " << hInitValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
+                          //for(int i=0; i<hInitValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hInitValues->GetBinContent(i) << std::endl;
+                          //std::cout << "# of points in hFittedValues: " << hFittedValues->GetEntries() << "\t# of bins: " << hInitValues->GetNbinsX() << std::endl;
+                          //for(int i=0; i<hFittedValues->GetNbinsX(); i++) std::cout << "\t bin: " << i << "\t entry: " << hFittedValues->GetBinContent(i) << std::endl;
 
-  //find minimum and maximum value on y axis to make sure everything will be shown
-  double maxVal = findMaxValue(histoList);
-  double minVal = findMinValue(histoList);
-  hInitValues->GetYaxis()->SetRangeUser(minVal - windowSize, maxVal + windowSize);
+                          //find minimum and maximum value on y axis to make sure everything will be shown
+                          double maxVal = findMaxValue(histoList);
+                          double minVal = findMinValue(histoList);
+                          hInitValues->GetYaxis()->SetRangeUser(minVal - windowSize, maxVal + windowSize);
 
 
 
-  for(size_t iB = 0; iB < labels.size(); ++iB) {
-    hInitValues->GetXaxis()->SetBinLabel(1+iB,labels.at(iB));
-    //std::cout << "set bin label " << 1+iB << " to " << labels.at(iB) << std::endl;
-    //std::cout << "\tcorresponding entry in " << hFittedValues->GetName() << " = " << hFittedValues->GetBinContent(iB+1) << std::endl;
-  }
-  hInitValues->GetXaxis()->LabelsOption("v");
-  hInitValues->GetXaxis()->SetLabelSize(0.04);
+                          for(size_t iB = 0; iB < labels.size(); ++iB) {
+                            hInitValues->GetXaxis()->SetBinLabel(1+iB,labels.at(iB));
+                            //std::cout << "set bin label " << 1+iB << " to " << labels.at(iB) << std::endl;
+                            //std::cout << "\tcorresponding entry in " << hFittedValues->GetName() << " = " << hFittedValues->GetBinContent(iB+1) << std::endl;
+                          }
+                          hInitValues->GetXaxis()->LabelsOption("v");
+                          hInitValues->GetXaxis()->SetLabelSize(0.04);
 
-  legend->AddEntry(hFittedValues, "mean values+mean error", "lp");
-  hInitValues->Draw("HIST");
-  std::cout << "drawing " << hFittedValues->GetName() << std::endl;
-  //for (int i=1; i<=hFittedValues->GetEntries(); i++) std::cout << "\tValue in bin " << i << " = " << hFittedValues->GetBinContent(i) << std::endl;
-  hFittedValues->Draw("PE1same");
-  if(hFittedMedianValues != 0) {
-    legend->AddEntry(hFittedMedianValues, "median values+RMS", "lp");
-    std::cout << "drawing " << hFittedMedianValues->GetName() << std::endl;
-    //for (int i=1; i<=hFittedMedianValues->GetEntries(); i++) std::cout << "\tValue in bin " << i << " = " << hFittedMedianValues->GetBinContent(i) << std::endl;
-    hFittedMedianValues->Draw("PE1same");
-  }
-  legend->Draw("Same");
-  std::cout << "Printing Mean Value plot as " << outLabel << ".pdf\n";
-  can->SaveAs(outLabel+".pdf");
-  can->SaveAs(outLabel+".root");
+                          legend->AddEntry(hFittedValues, "mean values+mean error", "lp");
+                          hInitValues->Draw("HIST");
+                          std::cout << "drawing " << hFittedValues->GetName() << std::endl;
+                          //for (int i=1; i<=hFittedValues->GetEntries(); i++) std::cout << "\tValue in bin " << i << " = " << hFittedValues->GetBinContent(i) << std::endl;
+                          hFittedValues->Draw("PE1same");
+                          if(hFittedMedianValues != 0) {
+                            legend->AddEntry(hFittedMedianValues, "median values+RMS", "lp");
+                            std::cout << "drawing " << hFittedMedianValues->GetName() << std::endl;
+                            //for (int i=1; i<=hFittedMedianValues->GetEntries(); i++) std::cout << "\tValue in bin " << i << " = " << hFittedMedianValues->GetBinContent(i) << std::endl;
+                            hFittedMedianValues->Draw("PE1same");
+                          }
+                          legend->Draw("Same");
+                          std::cout << "Printing Mean Value plot as " << outLabel << ".pdf\n";
+                          can->SaveAs(outLabel+".pdf");
+                          can->SaveAs(outLabel+".root");
 
-  if(can != NULL) delete can;
-}
+                          if(can != NULL) delete can;
+                        }
+                      }
 
 void drawPullPlots(const std::vector<TString>& listOfNPs,
    const std::vector<TString>& labels,
@@ -826,12 +860,13 @@ void saveFitValues(const int bin, TH1D* hMeans, double mean, double meanError, s
   //std::cout << "\tFilling histogram " << hMeans->GetName() << std::endl;
   std::vector<Double_t> vectorToSafe;
   //std::cout << "\t\tMean value in bin " << bin << ": " << mean << " +- " << meanError << std::endl;
+  if(hMeans != NULL){
+    hMeans->SetBinContent(bin, mean );
+    hMeans->SetBinError(bin,meanError );
 
-  hMeans->SetBinContent(bin, mean );
-  hMeans->SetBinError(bin,meanError );
-
-  vectorToSafe.push_back(mean);
-  vectorToSafe.push_back(meanError);
+    vectorToSafe.push_back(mean);
+    vectorToSafe.push_back(meanError);
+  }
   if(hMedians != NULL)
   {
     //std::cout << "\t\tMedian value in bin " << bin << ": " << median << " +- " << rms << std::endl;
@@ -845,35 +880,37 @@ void saveFitValues(const int bin, TH1D* hMeans, double mean, double meanError, s
 }
 
 void normVals(std::vector<std::vector<Double_t> >* toNorm, std::vector<std::vector<Double_t> >* norm, int nAllExps){
-  for(int nExp=0; nExp<nAllExps; nExp++){
-    //std::cout << "\tnorming experiment #" << nExp << std::endl;
-    for(int i=0; i<int(norm[nExp].size()); i++)
-    {
-      //std::cout << "\t\tnorming process #" << i << std::endl;
-      double postFitMeanVal = toNorm[nExp][i][0];
-      double postFitMeanErr = toNorm[nExp][i][1];
-      double postFitMedian = toNorm[nExp][i][2];
-      double postFitRMS = toNorm[nExp][i][3];
-      double preFitMeanVal = norm[nExp][i][0];
-      double preFitMeanErr = norm[nExp][i][1];
-      double preFitMedian = norm[nExp][i][2];
-      double preFitRMS = norm[nExp][i][3];
-      if(norm[nExp][i][0] != 0 && norm[nExp][i][2] != 0)
+  if(toNorm != NULL && norm != NULL){
+    for(int nExp=0; nExp<nAllExps; nExp++){
+      //std::cout << "\tnorming experiment #" << nExp << std::endl;
+      for(int i=0; i<int(norm[nExp].size()); i++)
       {
-        toNorm[nExp][i][0] = postFitMeanVal/preFitMeanVal;
-        //std::cout << "\t\t\tnew mean val = " << toNorm[nExp][i][0] << std::endl;
-        toNorm[nExp][i][1] = toNorm[nExp][i][0]*TMath::Sqrt(TMath::Power(postFitMeanErr/postFitMeanVal,2) + TMath::Power(preFitMeanErr/preFitMeanVal,2));
-        //std::cout << "\t\t\tnew mean err = " << toNorm[nExp][i][1] << std::endl;
-        toNorm[nExp][i][2] = postFitMedian/preFitMedian;
-        //std::cout << "\t\t\tnew median val = " << toNorm[nExp][i][2] << std::endl;
+        //std::cout << "\t\tnorming process #" << i << std::endl;
+        double postFitMeanVal = toNorm[nExp][i][0];
+        double postFitMeanErr = toNorm[nExp][i][1];
+        double postFitMedian = toNorm[nExp][i][2];
+        double postFitRMS = toNorm[nExp][i][3];
+        double preFitMeanVal = norm[nExp][i][0];
+        double preFitMeanErr = norm[nExp][i][1];
+        double preFitMedian = norm[nExp][i][2];
+        double preFitRMS = norm[nExp][i][3];
+        if(norm[nExp][i][0] != 0 && norm[nExp][i][2] != 0)
+        {
+          toNorm[nExp][i][0] = postFitMeanVal/preFitMeanVal;
+          //std::cout << "\t\t\tnew mean val = " << toNorm[nExp][i][0] << std::endl;
+          toNorm[nExp][i][1] = toNorm[nExp][i][0]*TMath::Sqrt(TMath::Power(postFitMeanErr/postFitMeanVal,2) + TMath::Power(preFitMeanErr/preFitMeanVal,2));
+          //std::cout << "\t\t\tnew mean err = " << toNorm[nExp][i][1] << std::endl;
+          toNorm[nExp][i][2] = postFitMedian/preFitMedian;
+          //std::cout << "\t\t\tnew median val = " << toNorm[nExp][i][2] << std::endl;
 
-        toNorm[nExp][i][3] = toNorm[nExp][i][2]*TMath::Sqrt(TMath::Power(postFitRMS/postFitMedian,2) + TMath::Power(preFitRMS/preFitMedian,2));
-        //std::cout << "\t\t\tnew RMS = " << toNorm[nExp][i][3] << std::endl;
-      }
-      else
-      {
-        //std::cout << "\tmean value to norm to is 0! Setting all values to 0\n";
-        for(int i=0; i<int(norm[nExp][i].size()); i++) toNorm[nExp][i][i] = 0;
+          toNorm[nExp][i][3] = toNorm[nExp][i][2]*TMath::Sqrt(TMath::Power(postFitRMS/postFitMedian,2) + TMath::Power(preFitRMS/preFitMedian,2));
+          //std::cout << "\t\t\tnew RMS = " << toNorm[nExp][i][3] << std::endl;
+        }
+        else
+        {
+          //std::cout << "\tmean value to norm to is 0! Setting all values to 0\n";
+          for(int i=0; i<int(norm[nExp][i].size()); i++) toNorm[nExp][i][i] = 0;
+        }
       }
     }
   }
@@ -896,7 +933,8 @@ void resizeHisto(TH1* hist)
     xmax = hist->GetBinLowEdge(hist->GetNbinsX()-counter) + hist->GetBinWidth(hist->GetNbinsX()-counter);
     int nBins = int((xmax - xmin)/2);
     if(nBins <= 0) nBins = 100;
-    hist->SetBins(nBins, xmin, xmax);
+    std::cout << "Resizing histo " << hist->GetName() << "with nBins = " << nBins << "\txmin = " << xmin << "\txmax = " << xmax << std::endl;
+    //hist->SetBins(nBins, xmin, xmax);
   }
 }
 
@@ -1112,15 +1150,15 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
       if (folder->IsDirectory() && folderName.Contains("sig")) {
         loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
         ncolor++;
-        //loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
-        //ncolor++;
+        loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
+        ncolor++;
       }
       if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
         loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
         ncolor++;
-        //loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
-        //ncolor++;
-        //break;
+        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
+        ncolor++;
+        break;
       }
     }
     if(folder != NULL) delete folder;
