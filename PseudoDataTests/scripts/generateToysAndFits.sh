@@ -18,7 +18,7 @@ pathToConvertMDFtoMLF="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFit
 
 
 if [[ -f $toyDatacard ]]; then
-  combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $randomseed --toysFrequentist $toyDatacard"
+  combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $randomseed $toyDatacard"
   echo "$combineCmd"
   eval $combineCmd
   if [[ -f *.root.dot ]]; then
@@ -32,12 +32,21 @@ if [[ -f $toyDatacard ]]; then
     combineCmd="combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
     echo "$combineCmd"
     eval $combineCmd
-    combineCmd="combine -M MaxLikelihoodFit -m 125 --redefineSignalPOIs $listOfPOIs -n _MDF --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
-    echo "$combineCmd"
-    eval $combineCmd
-    # combineCmd='combine -M MultiDimFit '$targetDatacard' --algo=none --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _full_fit --saveWorkspace -m 125 --redefineSignalPOIs '$listOfPOIs' -t 1 --toysFile '$toyFile' --saveFitResult'
-    # echo "$combineCmd"
-    # eval $combineCmd
+
+    list=$(echo $listOfPOIs | tr "," "\n")
+    ranges=""
+    #pois=""
+    for element in $list
+    do
+      ranges=$ranges":$element=-10,10"
+    #  pois=$pois" --poi $element"
+    done
+    #combineCmd="combine -M MaxLikelihoodFit -m 125 --redefineSignalPOIs $listOfPOIs -n _MDF --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --setPhysicsModelParameterRanges $ranges -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
+
+    #
+    # combineCmd='combine -M MultiDimFit '$targetDatacard' --algo=none --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _full_fit --saveWorkspace -m 125 --redefineSignalPOIs '$listOfPOIs' --setPhysicsModelParameterRanges '$ranges' -t '$numberOfToysPerExperiment' --toysFile '$toyFile' --saveFitResult'
+    #echo "$combineCmd"
+    #eval $combineCmd
     # python $pathToConvertMDFtoMLF
   else
     echo "Could not find toyFile, skipping the fit"

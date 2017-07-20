@@ -150,7 +150,7 @@ TLine* createLine(const TString sourceFile, const TString whichfit, const TStrin
     if(result != NULL){
       const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find(parameterToDraw.Data()) );
       if(var != NULL){
-        returnLine = new TLine(var->getVal(), 0, var->getVal(), 10);
+        returnLine = new TLine(var->getVal(), 0, var->getVal(), 1);
         delete var;
       }
     }
@@ -269,7 +269,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
   const std::vector<TString>& labels,
   const TString& outLabel,
   const bool superimposeNorm = false) {
-    TCanvas* can = new TCanvas("can","",500,500);
+    TCanvas* can = new TCanvas("can","",900,500);
     can->cd();
     std::vector<TLine*> lines;
     TH1* hNorm = 0;
@@ -285,12 +285,14 @@ void compareDistributions(const std::vector<TH1*>& hists,
     }
     double xmin = findMinValue(hists,"x")*0.5;
     double xmax = findMaxValue(hists, "x")*1.5;
+    double ymin = findMinValue(hists);
+    double ymax = findMaxValue(hists);
     int nBins = int((xmax-xmin)/2);
     if(nBins ==0) nBins = 100;
     std::cout << "creating dummy histo with nBins = " << nBins << "\txmin = " << xmin << "\txmax = " << xmax << std::endl;
     TH1F dummy("dummy","",nBins, xmin, xmax);
     dummy.GetXaxis()->SetTitle(hists.front()->GetXaxis()->GetTitle());
-    dummy.GetYaxis()->SetRangeUser(findMinValue(hists), findMaxValue(hists));
+    dummy.GetYaxis()->SetRangeUser(ymin, ymax);
     dummy.Draw();
     if(hists.front() != NULL) hists.front()->Draw("HISTsame");
     if( hNorm != NULL ) hNorm->Draw("HISTsame");
@@ -315,13 +317,14 @@ void compareDistributions(const std::vector<TH1*>& hists,
       else lines.push_back(createLine(linePath, whichfit, hists.front()->GetXaxis()->GetTitle()));
       if(lines.back() != NULL){
         lines.back()->SetLineColor(hists[nLabel]->GetLineColor());
+        lines.back()->SetY2(ymax);
         lines.back()->Draw("Same");
       }
     }
     std::cout << "number of saved lines: " << lines.size() << std::endl;
 
 
-    TLegend* leg = LabelMaker::legend("top left",labels.size(),0.6);
+    TLegend* leg = LabelMaker::legend("top right",labels.size(),0.6);
     TString legendEntry;
 
     TString greekLetter;
@@ -474,7 +477,7 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
 
 
 
-    TLegend* legend = LabelMaker::legend("top left",labels.size(),0.4);
+    TLegend* legend = LabelMaker::legend("top left",labels.size(),0.1);
     TFile* expectationFile = new TFile(pathToShapeExpectationRootfile, "READ");
     TTree* tree = NULL;
     if(expectationFile->IsOpen())
@@ -528,7 +531,7 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
             {
               tree->GetEntry(0);
             }
-            prescaleVal = signalStrength*signal_prescale + background_prescale;
+            prescaleVal = signal_prescale + background_prescale;
             postscaleVal = signalStrength*signal_postscale + background_postscale;
           }
           if(listOfNPs[np].BeginsWith("ttH") || listOfNPs[np].Contains("signal"))
@@ -590,23 +593,23 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
     hPrefitMeans->GetXaxis()->SetLabelSize(0.02);
     hPrefitMeans->Draw("HIST");
     if(hExpectation != NULL) hExpectation->Draw("HISTsame");
-    hPrefitMedians->Draw("PE1same");
+    //hPrefitMedians->Draw("PE1same");
     std::cout << "drew prefit histo\n";
     hPostfitBmeans->Draw("PE1same");
     if(hPostfitBmeansWithFitErrors != NULL) hPostfitBmeansWithFitErrors->Draw("PE1same");
-    hPostfitBmedians->Draw("PE1same");
+    //hPostfitBmedians->Draw("PE1same");
     std::cout << "drew postfit b\n";
     hPostfitSBmeans->Draw("PE1same");
     if(hPostfitSBmeansWithFitErrors != NULL) hPostfitSBmeansWithFitErrors->Draw("PE1same");
-    hPostfitSBmedians->Draw("PE1same");
+    //hPostfitSBmedians->Draw("PE1same");
     std::cout << "drew postfit s+b\n";
 
     legend->AddEntry(hPrefitMeans, "Prefit Means", "l");
     legend->AddEntry(hPostfitBmeans, "B-only fit Means + Mean Error", "lp");
-    legend->AddEntry(hPostfitBmedians, "B-only fit Medians + RMS", "lp");
+    //legend->AddEntry(hPostfitBmedians, "B-only fit Medians + RMS", "lp");
     if(hPostfitBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitBmeansWithFitErrors, "B-only fit Means + Fitted Error", "l");
     legend->AddEntry(hPostfitSBmeans, "S+B fit Means + Mean Error", "lp");
-    legend->AddEntry(hPostfitSBmedians, "S+B fit Medians + RMS", "lp");
+    //legend->AddEntry(hPostfitSBmedians, "S+B fit Medians + RMS", "lp");
     if(hPostfitSBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitSBmeansWithFitErrors, "S+B fit Means + Fitted Error", "l");
 
 

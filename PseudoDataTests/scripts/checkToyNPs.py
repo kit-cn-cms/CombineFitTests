@@ -40,7 +40,7 @@ for inputFile in glob.glob(wildcard):
                 var = it.Next()
         infile.Close()
 
-print "\n__________________________________", histos, "\n_____________________ "
+print "\n__________________________________\n", histos, "\n_____________________\n"
 
 c = ROOT.TCanvas()
 for var in histos:

@@ -9,8 +9,8 @@ ROOT.gROOT.SetBatch(True)
 
 #set up parameters for toy generation here
 numberOfToys = 1000
-numberOfToysPerJob = 10
-toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
+numberOfToysPerJob = 50
+toyMode = -1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
 if toyMode == -1:
     numberOfToys = 1
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
@@ -25,19 +25,24 @@ print "input for outputDirectory:", outputDirectory
 pathToDatacard = sys.argv[2] #path to unscaled datacard with data to be fitted to scaled toys
 pathToInputRootfile = sys.argv[3] #path to corresponding root file
 
+listOfAdditionalPOIs = None
+if len(sys.argv)>4:
+    listOfAdditionalPOIs = sys.argv[4]
+
+
 datacardOrProcessList = None
 scaleFuncList = None
-if len(sys.argv)>4:
-    datacardOrProcessList = sys.argv[4] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
 if len(sys.argv)>5:
-    scaleFuncList = sys.argv[5] #if argument 3 is a list of processes this parameter is a comma-separated list of functions to use (TF1)
+    datacardOrProcessList = sys.argv[5] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
+if len(sys.argv)>6:
+    scaleFuncList = sys.argv[6] #if argument 3 is a list of processes this parameter is a comma-separated list of functions to use (TF1)
 
 pathToScaledDatacard = None
 
 scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 
 
-#check if third argument is a list of process or a datacard and act accordingly
+#check if 6th argument is a list of processes or a datacard and act accordingly
 if datacardOrProcessList is not None:
     if datacardOrProcessList.endswith(".txt"):
         pathToScaledDatacard = os.path.abspath(datacardOrProcessList)
@@ -278,8 +283,11 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
         print "creating toy data from datacard", datacardToUse
 
         listOfPOIs = "r"
-        for processPair in processScalingDic:
-            listOfPOIs = listOfPOIs+","+POIsuffix+processPair[0]
+        if listOfAdditionalPOIs is None or listOfAdditionalPOIs == "":
+            for processPair in processScalingDic:
+                listOfPOIs = listOfPOIs+","+POIsuffix+processPair[0]
+        else:
+            listOfPOIs = listOfPOIs + listOfAdditionalPOIs
         jobids = submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, listOfPOIs)
         print "waiting for toy generation to finish"
         do_qstat(jobids)

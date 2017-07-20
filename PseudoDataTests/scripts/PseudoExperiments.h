@@ -271,7 +271,6 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
         //file->GetObject("fit_s",result);
         watch.Stop();
         if(debug_) printTime(watch, "Time to load RooFitResult Object");
-        double muVal = 0;
 
         if( result == 0) {
           //std::cerr << "ERROR getting 'fit_s' from file '" << file->GetName() << "'" << std::endl;
@@ -317,10 +316,13 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
           //result->Delete();
         }
         if(result_tree != 0){
-          if(result_tree->SetBranchAddress("mu", &muVal)>=0){
+          double muVal = 0;
+          double muError = 0;
+          if(result_tree->SetBranchAddress("mu", &muVal)>=0 && result_tree->SetBranchAddress("muErr", &muError) >= 0){
             for(int i=0; i<result_tree->GetEntries(); i++){
               result_tree->GetEntry(i);
               muValues_->Fill(muVal);
+              muErrors_->Fill(muError);
             }
           }
 
