@@ -1,0 +1,15 @@
+ttH_hbb
+ttH_hcc
+ttH_hgluglu
+ttH_htt
+ttH_hww
+ttH_hzg
+ttH_hzz
+
+ttbarOther
+ttbarPlusB
+ttbarPlus2B
+ttbarPlusBBbar
+ttbarPlusCCbar
+wjets
+singlet

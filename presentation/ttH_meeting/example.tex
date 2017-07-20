@@ -1,0 +1,574 @@
+\sisetup{round-mode=places,round-precision=3, scientific-notation=fixed, fixed-exponent=0}
+\section{Analysis Strategy}
+\begin{frame}
+\centering
+\textbf{Analysis Strategy}
+\end{frame}
+\subsection{Updates}
+
+\begin{frame}{Updates}
+\begin{itemize}
+\item Updated collection of normalizations \rar hopefully solved discrepancies between expectation and mean normalization value\\
+\item Performed tests with MultiDim Fit where uncertainties for scaled processes were set as POIs\\
+\rar Constraint terms for promoted uncertainties are dropped\\
+\rar What is the impact on the postfit signal strength?
+\item Updated \texttt{combine} Commands
+\end{itemize}
+
+\end{frame}
+
+\subsection{Input for Analysis}
+
+\begin{frame}{Input for Analysis}
+
+\begin{block}{Input Parameters}
+\begin{itemize}
+\item datacard: Spring17v10 \href{https://indico.cern.ch/event/628833/contributions/2624507/attachments/1474840/2283855/KITv10p2.pdf}{\textcolor{blue}{go to presentation}}
+\item default categories: $j\geq 6, t=3$; $j=4, t=4$; $j=5, t\geq 4$; $j\geq 6, t\geq 4$ (63-44-54-64)
+\item signal process: \ttbarH(\bbbar)
+\item background processes: \ttbar+lf, \ttbar+b, \ttbar+2b, \ttbar+\bbbar, \ttbar + \ccbar
+%\item only considering b-tagging, cross section, lumi and lepton efficiency uncertainties, no JES uncertainties\\
+\item list of considered uncertainties can be found on the next slide
+\end{itemize}
+\end{block}
+\begin{itemize}
+\item Following example shows results for combined fit in default categories with $\num[round-precision=1]{1.2}\cdot$(\ttbar+\bbbar)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{List of Nuisance Parameters}
+
+\lstinputlisting[numbers=none, basicstyle=\tiny,  frame=none]{../listOfNP.txt}
+\end{frame}
+
+\subsection{Analysis Steps}
+
+\subsubsection{Input Histograms}
+\begin{frame}{Templates for Category 64}
+
+\begin{minipage}{0.48\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/ljets_jge6_tge4_JTBDT_Spring17v10_original_stackplot.pdf}\label{fig::stackPlot64}\\
+Stacked Plot of BDT Template Histograms
+
+\end{center}
+\end{minipage}
+\begin{minipage}{0.48\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/ljets_jge6_tge4_JTBDT_Spring17v10_original_normed_stackplot.pdf}\label{fig::normed_stackPlot64}\\
+Normalized BDT Template Histograms
+
+\end{center}
+
+\end{minipage}
+
+
+
+\end{frame}
+
+\subsubsection{Step 1: Scale Histograms}
+\begin{frame}{Step 1: Scale Histograms}
+
+\begin{minipage}{0.48\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/ljets_jge6_tge4_JTBDT_Spring17v10_original_stackplot.pdf}\\
+Stacked Plot of Original BDT Template Histograms
+\label{fig::compare_stackPlot64}
+\end{center}
+
+\end{minipage}
+\begin{minipage}{0.48\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/ljets_jge6_tge4_JTBDT_Spring17v10_ttHbb_scaled_ttbarPlusBBbar_1p2_stackplot.pdf}\\
+Stacked Plot of BDT Template Histograms with \ttbar+\bbbar Scaled by \num[round-precision=1]{1.2}
+\label{fig::compare_scaled_stackPlot64}
+\end{center}
+
+\end{minipage}
+
+
+
+
+\end{frame}
+
+\subsubsection{Step 2: Generate Toy Data}
+\begin{frame}{Step 2: Generate Toy Data}
+\begin{block}{Generate Toys from Scaled BDT Template}
+\begin{itemize}
+\item Sample toy measurement from Poisson distribution around bin mean
+\item Use different injected signal strengths for toy generation (nominal signal strength)
+\item Systematic uncertainties considered according to assumed priors when throwing the toys (via using \texttt{combine})
+\item Generate \num{1000} toys for each nominal signal strength
+\end{itemize}
+\end{block}
+\end{frame}
+
+\subsubsection{Step 3: Perform Fit}
+
+\begin{frame}{Step 3: Perform Fit}
+\begin{block}{Fit Original Histograms to Toys from Scaled Data}
+\begin{itemize}
+\item Fit original histograms to generated toy\\
+$\rightarrow$ Perform MaxLikelihoodFit with signal strength as POI via \texttt{combine}\\
+$\rightarrow$ Check distributions
+\end{itemize}
+\end{block}
+
+\begin{block}{Collect Fit Results}
+\begin{itemize}
+\item Analyze distribution of fit results for each parameter, respectively
+\item Is the average POI equal to the injected signal strength during toy generation? 
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+\section{MultiDimFit Results}
+%\subsection{Results}
+\begin{frame}
+\centering
+\textbf{\huge{MultiDimFit Results}}
+\end{frame}
+
+\begin{frame}{Workflow}
+
+\begin{itemize}
+\item Perform MultiDimFit
+\item MultiDimFit doesn't provide normalization information\\
+\rar use MultiDimFit postfit values as input for additional MaxLikelihoodFit
+\item \texttt{combine} commands in backup
+\end{itemize}
+
+\end{frame}
+
+\subsection{$\mu$ Fit Results}
+\begin{frame}{63-44-54-64 - $\mu$ Distribution}
+
+
+\begin{block}{Collect Fit Results}
+\begin{itemize}
+\item Analyze distribution of fit results for each parameter, respectively
+\item Is the average POI equal to the injected signal strength during toy generation? 
+\end{itemize}
+\end{block}
+
+\vskip -0.15cm
+\begin{minipage}{0.55\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_POI.pdf}\\
+POI Distribution
+\end{center}
+
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_POImeans.pdf}\\
+Mean And Median Values of Distributions
+\end{center}
+
+
+
+\end{minipage}
+
+
+
+\end{frame}
+
+\begin{frame}{63-44-54-64 - $\mu$ Fit Results}
+\sisetup{round-precision=2}
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_POI}
+
+\end{scriptsize}
+\begin{itemize}
+\item Values from MultiDimFit are closer to the nominal values\\
+\rar additional freedom in fit seems to solve bias observed in MaxLikelihoodFit
+\end{itemize}
+\end{frame}
+
+\subsection{Nuisance Parameter Pulls}
+\begin{frame}{(\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - 63-44-54-64 - Nuisance Parameter Pulls}
+\vskip -0.3cm
+
+
+\begin{minipage}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_pullplot_nominal_S_0p0.pdf}\\
+Pull Plot for $\mu = 0$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+\end{center}
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_pullplot_nominal_S_1p0.pdf}\\
+Pull Plot for $\mu = 1$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+\end{center}
+
+
+\end{minipage}
+
+
+%\vskip -0.3cm
+
+\begin{itemize}
+%\item nuisance parameter pulls of background-only and signal+background fit match for $\mu=0$ and are different for $\mu = 1$\\
+\item only uncertainty for \ttbar + \bbbar normalization is pulled significantly\\
+\item strong constraints on \ttbar + \bbbar normalization uncertainty
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}{(\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - 63-44-54-64 - MDF Nuisance Parameter Pulls}
+\vskip -0.3cm
+
+
+\begin{minipage}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_pullplot_MDFnominal_S_0p0.pdf}\\
+Pull Plot for $\mu = 0$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+\end{center}
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_pullplot_MDFnominal_S_1p0.pdf}\\
+Pull Plot for $\mu = 1$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+\end{center}
+
+
+\end{minipage}
+
+
+%\vskip -0.3cm
+
+\begin{itemize}
+%\item nuisance parameter pulls of background-only and signal+background fit match for $\mu=0$ and are different for $\mu = 1$\\
+\item Prefit values shown in this plot are the postfit values of the actual fit\\
+\rar Prefit values do not have to be zero
+\end{itemize}
+
+
+\end{frame}
+
+\subsection{Normalization Pulls}
+
+\begin{frame}{64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - Normalization Pulls}
+%\vskip -0.25cm
+
+\begin{minipage}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_pullplot_nominal_S_0p0.pdf}\\
+Normalization Pull Plot for nominal $\mu = 0$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+\end{center}
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_pullplot_nominal_S_1p0.pdf}\\
+Normalization Pull Plot for nominal $\mu = 1$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+\end{center}
+
+\vskip -0.25cm
+
+
+\end{minipage}
+
+\begin{itemize}
+\item normalizations for signal process is larger than expected
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - MDF Normalization Pulls}
+\vskip -0.25cm
+
+\begin{minipage}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_pullplot_MDFnominal_S_0p0.pdf}\\
+Normalization Pull Plot for nominal $\mu = 0$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+\end{center}
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_pullplot_MDFnominal_S_1p0.pdf}\\
+Normalization Pull Plot for nominal $\mu = 1$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+\end{center}
+
+\vskip -0.25cm
+
+
+\end{minipage}
+
+\begin{itemize}
+\item still have problem extracting normalization information
+\end{itemize}
+
+\end{frame}
+%
+%\begin{frame}{Normalization for 64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - Values for $\mu = 0.0$}
+%\vskip -0.5cm
+%\begin{scriptsize}
+%\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_values_nominal_S_0p0}
+%\end{scriptsize}
+%
+%\begin{itemize}
+%\item all normalizations of background processes are too large (except for \ttbar+\bbbar and \ttbar+\ccbar)
+%
+%\end{itemize}
+%
+%\end{frame}
+%
+%\begin{frame}{Normalization for 64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - MDF Values for $\mu = 0.0$}
+%\vskip -0.5cm
+%\begin{scriptsize}
+%\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_values_MDFnominal_S_0p0}
+%\end{scriptsize}
+%
+%\begin{itemize}
+%\item all normalizations of background processes are too large (except for \ttbar+\bbbar and \ttbar+\ccbar)
+%\end{itemize}
+%
+%\end{frame}
+%
+%\begin{frame}{Normalization for 64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - Values for $\mu = 1.0$}
+%\vskip -0.5cm
+%\begin{scriptsize}
+%\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_values_nominal_S_1p0}
+%\end{scriptsize}
+%
+%\begin{itemize}
+%\item Same as for $\mu = 0$ case
+%\end{itemize}
+%
+%\end{frame}
+%
+%\begin{frame}{Normalization for 64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - MDF Values for $\mu = 1.0$}
+%\vskip -0.5cm
+%\begin{scriptsize}
+%\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_values_MDFnominal_S_1p0}
+%\end{scriptsize}
+%
+%\begin{itemize}
+%\item uncertainty for \ttbar + \bbbar normalization apparently decorrelated from process templates
+%\end{itemize}
+%
+%\end{frame}
+
+%\section{MDML Results}
+%
+%\begin{frame}
+%\centering
+%\textbf{\huge{Multidimensional MaxLikelihoodFit (MDML) Results}}
+%\end{frame}
+%
+%
+%%\end{frame}
+%\subsection{$\mu$ Fit Results}
+%\begin{frame}{63-44-54-64 - $\mu$ Distribution}
+%
+%
+%\begin{block}{Collect Fit Results}
+%\begin{itemize}
+%\item Analyze distribution of fit results for each parameter, respectively
+%\item Is the average POI equal to the injected signal strength during toy generation? 
+%\end{itemize}
+%\end{block}
+%
+%\vskip -0.15cm
+%\begin{minipage}{0.55\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_POI.pdf}\\
+%POI Distribution
+%\end{center}
+%
+%
+%\end{minipage}
+%\hfill
+%\begin{minipage}{0.4\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_POImeans.pdf}\\
+%Mean And Median Values of Distributions
+%\end{center}
+%
+%
+%
+%\end{minipage}
+%
+%
+%
+%\end{frame}
+%
+%
+%\begin{frame}{63-44-54-64 - $\mu$ Fit Results}
+%
+%\begin{scriptsize}
+%\input{\pathToTables/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_POI}
+%
+%\end{scriptsize}
+%\begin{itemize}
+%\item \texttt{combine} fit successfully recovers injected signal strength
+%\end{itemize}
+%\end{frame}
+%
+%\subsection{Nuisance Parameter Pulls}
+%\begin{frame}{(\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - 63-44-54-64 - Nuisance Parameter Pulls}
+%\vskip -0.3cm
+%
+%
+%\begin{minipage}{0.4\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_pullplot_nominal_S_0p0.pdf}\\
+%Pull Plot for $\mu = 0$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+%\end{center}
+%
+%\end{minipage}
+%\hfill
+%\begin{minipage}{0.4\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_pullplot_nominal_S_1p0.pdf}\\
+%Pull Plot for $\mu = 1$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+%\end{center}
+%
+%
+%\end{minipage}
+%
+%
+%\end{frame}
+%
+%\begin{frame}{(\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - 63-44-54-64 - 2DML Nuisance Parameter Pulls}
+%\vskip -0.3cm
+%
+%
+%\begin{minipage}{0.4\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_pullplot_MDFnominal_S_0p0.pdf}\\
+%Pull Plot for $\mu = 0$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+%\end{center}
+%
+%\end{minipage}
+%\hfill
+%\begin{minipage}{0.4\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_pullplot_MDFnominal_S_1p0.pdf}\\
+%Pull Plot for $\mu = 1$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+%\end{center}
+%
+%
+%\end{minipage}
+%
+%
+%%\vskip -0.3cm
+%
+%\begin{itemize}
+%%\item nuisance parameter pulls of background-only and signal+background fit match for $\mu=0$ and are different for $\mu = 1$\\
+%\item same as for MDF
+%\end{itemize}
+%
+%
+%\end{frame}
+%\subsection{Normalization Pulls}
+%
+%\begin{frame}{64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - Normalization Pullplots}
+%%\vskip -0.25cm
+%
+%\begin{minipage}{0.4\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_pullplot_nominal_S_0p0.pdf}\\
+%Normalization Pull Plot for nominal $\mu = 0$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+%\end{center}
+%
+%\end{minipage}
+%\hfill
+%\begin{minipage}{0.4\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_pullplot_nominal_S_1p0.pdf}\\
+%Normalization Pull Plot for nominal $\mu = 1$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+%\end{center}
+%
+%\vskip -0.25cm
+%
+%
+%\end{minipage}
+%
+%\begin{itemize}
+%\item normalizations for background processes are too high (except for \ttbar+\ccbar)
+%\end{itemize}
+%
+%\end{frame}
+%
+%\begin{frame}{64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - 2DML Normalization Pullplots}
+%%\vskip -0.25cm
+%
+%\begin{minipage}{0.4\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_pullplot_MDFnominal_S_0p0.pdf}\\
+%Normalization Pull Plot for nominal $\mu = 0$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+%\end{center}
+%
+%\end{minipage}
+%\hfill
+%\begin{minipage}{0.4\textwidth}
+%\begin{center}
+%\includegraphics[width=\textwidth]{\pathToPlots/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_pullplot_MDFnominal_S_1p0.pdf}\\
+%Normalization Pull Plot for nominal $\mu = 1$ in Category 64 with (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$
+%\end{center}
+%
+%\vskip -0.25cm
+%
+%
+%\end{minipage}
+%
+%\begin{itemize}
+%\item Medians indicate asymmetric distributions
+%\end{itemize}
+%
+%\end{frame}
+%
+%\begin{frame}{Normalization for 64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - Values for $\mu = 0.0$}
+%\vskip -0.5cm
+%\begin{scriptsize}
+%\input{\pathToTables/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_values_nominal_S_0p0}
+%\end{scriptsize}
+%
+%\begin{itemize}
+%\item all normalizations of background processes are too large (except for \ttbar+\bbbar and \ttbar+\ccbar)
+%\item total normalization does not match total background normalization
+%\end{itemize}
+%
+%\end{frame}
+%
+%\begin{frame}{Normalization for 64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - 2DML Values for $\mu = 0.0$}
+%\vskip -0.5cm
+%\begin{scriptsize}
+%\input{\pathToTables/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_values_MDFnominal_S_0p0}
+%\end{scriptsize}
+%
+%\end{frame}
+%
+%\begin{frame}{Normalization for 64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - Values for $\mu = 1.0$}
+%\vskip -0.5cm
+%\begin{scriptsize}
+%\input{\pathToTables/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_values_nominal_S_1p0}
+%\end{scriptsize}
+%
+%
+%\end{frame}
+%
+%\begin{frame}{Normalization for 64 - (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$ - 3DML Values for $\mu = 1.0$}
+%\vskip -0.5cm
+%\begin{scriptsize}
+%\input{\pathToTables/JTBDT_Spring17v10/2DMaxLikelihood/63445464_ttHbb_N1000_ttbarPlusBBbar_1p2_ljets_jge6_tge4_normalisation_values_MDFnominal_S_1p0}
+%\end{scriptsize}
+%
+%
+%\end{frame}
+

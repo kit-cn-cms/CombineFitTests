@@ -1,0 +1,157 @@
+\sisetup{round-mode=places,round-precision=2, scientific-notation=fixed, fixed-exponent=0}
+\section{Results}
+
+\begin{frame}
+\begin{center}
+
+\huge\textbf{Results}
+\end{center}
+\end{frame}
+
+\subsection{Result Table for JES uncertainties for j $\geq 6$, t $\geq 4$}
+\begin{frame}{Results in j $\geq 6$, t $\geq 4$}
+\include{\pathToTables/JES_values_1sigma_64}
+\begin{itemize}
+\item Pulls in background-only fit are compatible with each other
+\item Constraints in signal+background fit are different, clear trend visible\\
+\begin{itemize}
+\item nominal information is always the same, but 1 $\sigma$ region is different (larger for increasing JES scalings)\\
+\item constraints indicate amount of information available on specific uncertainty\\
+\item stronger constraints for larger 1 $\sigma$ region, as expected
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\subsection{Pullplots for j $\geq 6$, t $\geq 4$}
+\begin{frame}{Pullplots in j $\geq 6$, t $\geq 4$}
+\begin{minipage}{0.25\textwidth}
+\begin{block}{\num{0.25} JES}
+\includegraphics[width=\textwidth]{\pathToPlots/CMS_scale_0p25j_1sigma_jge6_tge4_pullplot_nominal_S_1p0.pdf}\\
+\end{block}
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.25\textwidth}
+\begin{block}{\num{0.5} JES}
+\includegraphics[width=\textwidth]{\pathToPlots/CMS_scale_0p5j_1sigma_jge6_tge4_pullplot_nominal_S_1p0.pdf}\\
+\end{block}
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.25\textwidth}
+\begin{block}{\num{0.75} JES}
+\includegraphics[width=\textwidth]{\pathToPlots/CMS_scale_0p75j_1sigma_jge6_tge4_pullplot_nominal_S_1p0.pdf}\\
+\end{block}
+\end{minipage}
+\hfill
+
+\begin{minipage}{0.25\textwidth}
+\begin{block}{1 JES}
+\includegraphics[width=\textwidth]{\pathToPlots/63445463_CMS_scale_1j_1sigma_jge6_tge4_pullplot_nominal_S_1p0}\\
+\end{block}
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.25\textwidth}
+\begin{block}{\num{1.25} JES}
+\includegraphics[width=\textwidth]{\pathToPlots/CMS_scale_1p25j_1sigma_jge6_tge4_pullplot_nominal_S_1p0.pdf}\\
+\end{block}
+\end{minipage}
+\end{frame}
+
+\subsection{Normalization Tables for j $\geq 6$, t $\geq 4$}
+
+\begin{frame}{Normalizations for \num{0.25} JES}
+\begin{scriptsize}
+\include{\pathToTables/63445463_CMS_scale_0p25j_1sigma_jge6_tge4_ljets_jge6_tge4_normalisation_values_nominal_S_1p0}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}{Normalizations for \num{0.5} JES}
+\begin{scriptsize}
+\include{\pathToTables/63445463_CMS_scale_0p5j_1sigma_jge6_tge4_ljets_jge6_tge4_normalisation_values_nominal_S_1p0}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}{Normalizations for \num{0.75} JES}
+\begin{scriptsize}
+\include{\pathToTables/63445463_CMS_scale_0p75j_1sigma_jge6_tge4_ljets_jge6_tge4_normalisation_values_nominal_S_1p0}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}{Normalizations for \num{1} JES}
+\begin{scriptsize}
+\include{\pathToTables/63445463_CMS_scale_1j_1sigma_jge6_tge4_ljets_jge6_tge4_normalisation_values_nominal_S_1p0}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}{Normalizations for \num{1.25} JES}
+\begin{scriptsize}
+\include{\pathToTables/63445463_CMS_scale_1p25j_1sigma_jge6_tge4_ljets_jge6_tge4_normalisation_values_nominal_S_1p0}
+\end{scriptsize}
+\end{frame}
+
+\begin{frame}{Short Summary}
+\begin{itemize}
+\item Pulls for different JES scalings are similar
+\item No impact on process normalizations visible
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Result Table for j $\geq 6$, t $\geq 4$ including only JES}
+\include{\pathToTables/JES_values_1sigma_64_reduced}
+\begin{itemize}
+\item pulls in background-only fit stronger, as expected
+\item % INTERPRETATION FOR STRONGER CONSTRAINTS
+\end{itemize}
+\end{frame}
+
+\subsection{Result Table for Combined Category}
+\begin{frame}{Result in 63445464}
+\include{\pathToTables/JES_values_1sigma_63445464}
+\begin{itemize}
+\item same behavior as in j $\geq 6$, t $\geq 4$
+\item stronger constraints due to larger statistics
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Result Table for Combined Category including only JES}
+\include{\pathToTables/JES_values_1sigma_63445464_reduced}
+\begin{itemize}
+\item same as for larger set of uncertainties
+\end{itemize}
+\end{frame}
+
+\subsection{Additional Test}
+\begin{frame}{Additional Test - Change Factors in Datacard}
+\begin{itemize}
+\item Idea: Change Factor in Datacard in such a way that 1 $\simga$ range is equal for all JES scalings\\
+
+\item Factor $f$ for shape uncertainties: $f = (\sigma \text{ range})^{-1}$
+\begin{itemize}
+\item $f>1$\rar linear extrapolation\\
+\item $f<1$\rar gaussian interpolation
+
+\end{itemize}
+\item Fit should be exactly the same if interpolation/extrapolation is working correctly
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Correlation Test in j $\geq 6$, t $\geq 4$}
+\include{\pathToTables/JES_values_forcedRange_64}
+\begin{itemize}
+\item Pulls in background-only fit are compatible within respective uncertainty\\
+\item Constraints are different
+\begin{itemize}
+\item more extrapolation \rar differences become greater
+\item conclusion: extrapolation only renders sensible values for minor enlargements of the 1 $\sigma$ region
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Correlation Test in 63445464}
+\include{\pathToTables/JES_values_forcedRange_63445464}
+\begin{itemize}
+\item same behavior as in j $\geq 6$, t $\geq 4$ category
+\end{itemize}
+\end{frame}

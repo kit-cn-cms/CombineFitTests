@@ -1,84 +1,76 @@
-\sisetup{round-mode=places,round-precision=2}
+\sisetup{round-mode=places,round-precision=2, scientific-notation=fixed, fixed-exponent=0}
 \section{Current Status}
-\subsection{Own PseudoData Generation}
-\begin{frame}{Own PseudoData Generation}
-\begin{block}{New Developments}
+\begin{frame}
+\centering
+\textbf{\Huge{Current Status}}
+\end{frame}
+
+\begin{frame}{Structure of Following Tables}
 \begin{itemize}
-\item Expert recommended new \texttt{combine} command
-\item Result: still Bias visible for $\mu = 0$, not yet understood
-\end{itemize}
-\end{block}
-
-\vskip -0.6cm
-\begin{figure}
-\centering
-\subfloat[Distribution of $\mu$]{\includegraphics[width=0.4\textwidth]{plots/ttHbb_ttbb_N100_freezeAllNuisances_POI.pdf}}
-\subfloat[Mean and Median Values]{\includegraphics[width=0.4\textwidth]{plots/ttHbb_ttbb_N100_freezeAllNuisances_POImeans.pdf}}
-\caption[Fit Results for Example with Own PseudoData and additional \texttt{combine} command]{Fit Results for Example with Own PseudoData and additional \texttt{combine} command \texttt{--freezeNuisances all}.}
-\end{figure}
-
-\end{frame}
-\subsection{Toy Generation with \texttt{combine}}
-\begin{frame}{Toy Generation with \texttt{combine}}
-\vskip -0.7cm
-\begin{figure}
-\centering
-\subfloat[Distribution of $\mu = 0$]{\includegraphics[width=0.5\textwidth]{plots/ttHbb_ttbb_N100_allInOne_sig0_combineToys_freezeNuisancesAll_POI.pdf}}
-\subfloat[Distribution of $\mu = 1$]{\includegraphics[width=0.45\textwidth]{plots/ttHbb_ttbb_N100_allInOne_sig1_combineToys_freezeNuisancesAll_POI.pdf}}
-\caption[Fit Results for Example with \texttt{combine}-generated Toys]{Fit Results for Example with \texttt{combine}-generated Toys. Command: \texttt{combine -v 99 -M MaxLikelihoodFit -m 125 --freezeNuisances all --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-5.00 --rMax=5.00 -t 100 --minos all --expectSignal \$signalStrength \$targetDatacard}.}
-\end{figure}
-\vskip -0.6cm
-\begin{block}{Test with Build-In Toy Generation}
+\item first column: Process name $\times$ scaling factor.
 \begin{itemize}
-\item generated 100 toys at once
-\item results looked promising, tried to adapt the generation to existing scripts
+\item if nothing is specified, a one-dimensional MaxLikelihoodFit was performed (\hyperlink{1DML}{\color{blue} \texttt{combine} Cmd})
+\item if column name contains MDF, a MultiDimFit was performed (\hyperlink{MDF}{\color{blue} \texttt{combine} Cmd})
+\item if column name contains XD MaxLikelihoodFit, a multi-dimensional MaxLikelihoodFit was performed (\hyperlink{MDML}{\color{blue} \texttt{combine} Cmd})
 \end{itemize}
-\end{block}
-
-\end{frame}
-\subsection{Adapted Toy Generation}
-\begin{frame}{Adapted Toy Generation Parameters}
-\begin{block}{Idea}
+\item second+third column: fit results for signal strength obtained from toys generated with specified injected signal strength
 \begin{itemize}
-\item generate 100 Toys separately $\rightarrow$ recreate data structure of own PseudoData generation
-\item important: always use different random seed (here: number between 0 and 99)
-\item \texttt{combine} command: \texttt{combine -v 99 -M MaxLikelihoodFit -m 125 --freezeNuisances all --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-5.00 --rMax=5.00 -t 1 --minos all -s \$randomSeed --expectSignal \$signalStrength \$targetDatacard} + additional options
+\item first value: mean of r distribution (TH1::GetMean())
+\item second value: mean error of distribution (TH1::GetMeanError())
+\item third value: RMS of distribution (TH1::GetRMS())
+\item forth value: mean of distribution of fitted errors
 \end{itemize}
-\end{block}
+\end{itemize}
 \end{frame}
 
-\begin{frame}{Adapted Toy Generation, no additional options}
-\begin{figure}
-\centering
-\subfloat[Distribution of $\mu$]{\includegraphics[width=0.5\textwidth]{plots/ttHbb_ttbb_N100_combineToys_POI.pdf}}
-\subfloat[Mean and Median Values]{\includegraphics[width=0.5\textwidth]{plots/ttHbb_ttbb_N100_combineToys_POImeans.pdf}}
-\caption[Adapted Toy Generation without Additional Options]{Adapted Toy Generation without Additional Options}
-\end{figure}
+\subsection{POI Fit Results for Other Scaled Processes in 63445464}
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - 1}
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarOther_allPOI}
+\end{scriptsize}
+
 \end{frame}
 
-\begin{frame}{Adapted Toy Generation with \texttt{--toysNoSystematics}}
-\begin{figure}
-\centering
-\subfloat[Distribution of $\mu$]{\includegraphics[width=0.45\textwidth]{plots/ttHbb_ttbb_N100_combineToys_toysNoSystematics_POI.pdf}}
-\subfloat[Mean and Median Values]{\includegraphics[width=0.45\textwidth]{plots/ttHbb_ttbb_N100_combineToys_toysNoSystematics_POImeans.pdf}}
-\caption[Adapted Toy Generation with option \texttt{--toysNoSystematics}]{Adapted Toy Generation with option \texttt{--toysNoSystematics}}
-\end{figure}
+\begin{frame}{POI Fit Results for Other Scaled Processes - 2}
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusCCbar_allPOI}
+\end{scriptsize}
+
 \end{frame}
 
-\begin{frame}{Adapted Toy Generation with \texttt{--freezeNuisances all}}
-\begin{figure}
-\centering
-\subfloat[Distribution of $\mu$]{\includegraphics[width=0.45\textwidth]{plots/ttHbb_ttbb_N100_combineToys_freezeNuisancesAll_POI.pdf}}
-\subfloat[Mean and Median Values]{\includegraphics[width=0.45\textwidth]{plots/ttHbb_ttbb_N100_combineToys_freezeNuisancesAll_POImeans.pdf}}
-\caption[Adapted Toy Generation with option \texttt{--freezeNuisances all}]{Adapted Toy Generation with option \texttt{--freezeNuisances all}}
-\end{figure}
+\begin{frame}{POI Fit Results for Other Scaled Processes - 3}
+\vskip -0.3cm
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_allPOI}
+\end{scriptsize}
+
 \end{frame}
 
-\begin{frame}{Adapted Toy Generation with \texttt{--toysNoSystematics --freezeNuisances all}}
-\begin{figure}
-\centering
-\subfloat[Distribution of $\mu$]{\includegraphics[width=0.45\textwidth]{plots/ttHbb_ttbb_N100_combineToys_toysNoSystematics_freezeNuisancesAll_POI.pdf}}
-\subfloat[Mean and Median Values]{\includegraphics[width=0.45\textwidth]{plots/ttHbb_ttbb_N100_combineToys_toysNoSystematics_freezeNuisancesAll_POImeans.pdf}}
-\caption[Adapted Toy Generation with options \texttt{--toysNoSystematics --freezeNuisances all}]{Adapted Toy Generation with options \texttt{--toysNoSystematics --freezeNuisances all}}
-\end{figure}
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - 4}
+\vskip -0.3cm
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusB_allPOI}
+\end{scriptsize}
+\vskip -0.1cm
+
+\end{frame}
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - 5}
+\vskip -0.3cm
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlus2B_allPOI}
+\end{scriptsize}
+\vskip -0.1cm
+
+\end{frame}
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - 6}
+\vskip -0.3cm
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_ttbarPlusB_allPOI}
+\end{scriptsize}
+\vskip -0.1cm
+
 \end{frame}

@@ -1,0 +1,77 @@
+\section{\ttbarH Analysis Study}
+\subsection{Input for Analysis}
+\begin{frame}{Input Files for the Analysis}
+\begin{block}{Analysis Starts with MC Output from MVA}
+\begin{itemize}
+\item Datacard containing information about processes and nuisance parameters (e.g. slide \ref{backup::datacard})
+\item Root file containing histograms for different processes and nuisances (see slides \ref{backup::listOfProcesses} and \ref{backup::listOfNP})
+\end{itemize}
+\end{block}
+
+\begin{minipage}{0.45\textwidth}
+\includegraphics[width=\textwidth]{plots/ljets_jge6_tge4_ttHbb_original_stackplot.pdf}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+\includegraphics[width=\textwidth]{plots/ljets_jge6_tge4_ttHbb_original_normed_stackplot.pdf}
+\end{minipage}\\
+\centering Input BDT templates for category $j\geq 6, t\geq 4$
+%\parnotes
+\end{frame}
+
+
+\subsubsection{Step 1: Scale Histograms}
+\begin{frame}{Step 1: Scale Histograms}
+
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{\pathToPlots/ljets_jge6_tge4_ttHbb_original_stackplot.pdf}
+
+\centering Original BDT Templates
+\label{fig::compare_stackPlot64}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{\pathToPlots/ljets_jge6_tge4_ttHbb_scaled_ttbarPlusBBbar_1p2_stackplot.pdf}
+
+\centering BDT Templates with \ttbar+\bbbar Scaled by \num[round-precision=1]{1.2}
+\label{fig::compare_scaled_stackPlot64}
+\end{minipage}
+
+
+
+\end{frame}
+
+\subsubsection{Step 2: Generate Toy Data}
+\begin{frame}{Step 2: Generate Toy Data}
+\begin{block}{Generate Toys from Scaled BDT Template}
+\begin{itemize}
+\item Sample toy measurement from Poisson distribution around bin mean
+\item Use different injected signal strengths for toy generation (nominal signal strength)
+\item Systematic uncertainties considered according to assumed priors when throwing the toys (via using \texttt{combine})
+\item Generate \num{1000} toys for each nominal signal strength
+\end{itemize}
+\end{block}
+\end{frame}
+
+\subsubsection{Step 3: Perform Fit}
+
+\begin{frame}{Step 3: Perform Fit}
+\begin{block}{Fit Original Histograms to Toys from Scaled Data}
+\begin{itemize}
+\item Fit original histograms to generated toy\\
+$\rightarrow$ Perform MaxLikelihoodFit with signal strength as POI via \texttt{combine}\\
+$\rightarrow$ Check distributions
+\end{itemize}
+\end{block}
+
+\begin{block}{Collect Fit Results}
+\begin{itemize}
+\item Analyze distribution of fit results for each parameter, respectively
+\item Is the average POI equal to the injected signal strength during toy generation? 
+\end{itemize}
+\end{block}
+
+\end{frame}
+

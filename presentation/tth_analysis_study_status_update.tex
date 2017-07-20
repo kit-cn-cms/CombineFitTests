@@ -60,7 +60,7 @@
 % *.eps format if you use latex+dvips+ps2pdf, 
 % *.jpg/*.png/*.pdf if you use pdflatex)
 
-\titleimage{92171324}
+%\titleimage{Karlsruher_Schloss_Front_Panorama}
 
 
 %% TITLE LOGO
@@ -97,13 +97,87 @@
 \newcommand{\Rar}{\ensuremath{\Rightarrow}\xspace}
 
 % particle physics
-\newcommand{\ttbar}{t$\overline{\text{t}}$\xspace }
-\newcommand{\boldttbar}{\textbf{t}$\overline{\textbf{t}}$\xspace}
-\newcommand{\ttbarH}{t$\overline{\text{t}}$H\xspace }
-\newcommand{\boldttbarH}{\textbf{t}$\overline{\textbf{t}}$\textbf{H}\xspace}
-\newcommand{\bbbar}{b$\overline{\text{b}}$\xspace }
-\newcommand{\pT}{${p_{T}}$\xspace}
-\newcommand{\Htobb}{H$\to $ \bbbar}
+\newcommand{\ttbar}{\text{t}\ensuremath{\overline{\text{t}}}\xspace }
+\newcommand{\boldttbar}{\textbf{t}\ensuremath{\overline{\textbf{t}}}\xspace}
+\newcommand{\ttbarH}{\text{t}\ensuremath{\overline{\text{t}}}H\xspace }
+\newcommand{\boldttbarH}{\textbf{t}\ensuremath{\overline{\textbf{t}}}\textbf{H}\xspace}
+\newcommand{\bbbar}{\text{b}\ensuremath{\overline{\text{b}}}\xspace }
+\newcommand{\ccbar}{\text{c}\ensuremath{\overline{\text{c}}}\xspace }
+\newcommand{\pT}{\ensuremath{{p_{T}}}\xspace}
+\newcommand{\Htobb}{H\ensuremath{\to } \bbbar}
+
+\newcommand{\pathToPlots}{plots}
+\newcommand{\pathToTables}{tables}
+
+
+\newcommand{\catname}{jge6_t3}
+\newcommand{\frameCatName}{63}
+\newcommand{\scaledProcessName}{63445464_ttHbb_N1000_ttbarOther_0p9}
+\newcommand{\frameScaledProcessName}{$\ttbar\cdot 0.9$}
+
+\newcommand{\createFrameSet}[2]{
+\begin{frame}{\frameCatName - #1 PostfitB}
+\vskip -0.5cm
+\begin{figure}
+\centering
+\subfloat[Normalization Distribution]{\includegraphics[width=.4\textwidth]{plots/ljets_\catname_normalisation_#2_PostfitB.pdf}}
+\subfloat[Mean And Median Values of Distributions]{\includegraphics[width=.4\textwidth]{plots/ljets_\catname_normalisation_#2_mean_PostfitB.pdf}}
+\caption[PostfitB Normalization Distribution for #1 in category \frameCatName with $\num{1.5}\cdot$ \ttbar\bbbar]{PostfitB Normalization Distribution for #1 in category \frameCatName with $\num{1.5}\cdot$ \ttbar\bbbar. Each histogram ($\mu=0$ and $\mu=1$) contains at least 900 toys, respectively.}
+\end{figure}
+\end{frame}
+
+\begin{frame}{\frameCatName - #1 PostfitS}
+\begin{figure}
+\subfloat[Normalization Distribution PostfitS]{\includegraphics[width=.4\textwidth]{plots/ljets_\catname_normalisation_#2_PostfitS.pdf}}
+\subfloat[Mean And Median Values of Distributions PostfitS]{\includegraphics[width=.4\textwidth]{plots/ljets_\catname_normalisation_#2_mean_PostfitS.pdf}}
+\caption[PostfitS Normalization Distribution for #1 in category \frameCatName with $\num{1.5}\cdot$ \ttbar\bbbar]{PostfitS Normalization Distribution for #1 in category \frameCatName with $\num{1.5}\cdot$ \ttbar\bbbar. Each histogram ($\mu=0$ and $\mu=1$) contains at least 900 toys, respectively.}
+\end{figure}
+\end{frame}
+}
+
+\newcommand{\createNormTableFrame}[6]{
+
+\begin{frame}{Normalization for #3 - #1 - Values for $\mu = #5$}
+\begin{scriptsize}
+\input{tables/63445464_ttHbb_N1000_#2_ljets_#4_normalisation_values_nominal_S_#6}
+\end{scriptsize}
+
+\end{frame}
+}
+\newcommand{\createPullplotFrame}[4]{
+\begin{frame}{#1 - #3 - Pullplots}
+\vskip -0.75cm
+\begin{figure}
+\centering
+\subfloat[Pull Plot for $\mu = 0$]{\includegraphics[width=.5\textwidth]{plots/63445464_ttHbb_N1000_#2_ljets_#4_normalisation_pullplot_nominal_S_0p0.pdf}}
+\subfloat[Pull Plot for $\mu = 1$]{\includegraphics[width=.5\textwidth]{plots/63445464_ttHbb_N1000_#2_ljets_#4_normalisation_pullplot_nominal_S_1p0.pdf}}
+\caption[Normalization Pull Plots for Category #3 with #1]{Normalization Pull Plots for Category #3 with #1 for a background-only (blue) and a signal+background (red) fit.  Circles are mean values of the respective process normalization distribution, squares the median. All values were normed to the respective prefit values. The dotted red line shows the expected values.}
+\end{figure}
+\end{frame}
+}
+\newcommand{\createNormFrameSet}[2]{
+
+\createPullplotFrame{#1}{#2}{44}{j4_t4}
+\createNormTableFrame{#1}{#2}{44}{j4_t4}{0.0}{0p0}
+\createNormTableFrame{#1}{#2}{44}{j4_t4}{1.0}{1p0}
+
+\createPullplotFrame{#1}{#2}{54}{j5_tge4}
+\createNormTableFrame{#1}{#2}{54}{j5_tge4}{0.0}{0p0}
+\createNormTableFrame{#1}{#2}{54}{j5_tge4}{1.0}{1p0}
+
+\createPullplotFrame{#1}{#2}{63}{jge6_t3}
+\createNormTableFrame{#1}{#2}{63}{jge6_t3}{0.0}{0p0}
+\createNormTableFrame{#1}{#2}{63}{jge6_t3}{1.0}{1p0}
+
+\createPullplotFrame{#1}{#2}{64}{jge6_tge4}
+\createNormTableFrame{#1}{#2}{64}{jge6_tge4}{0.0}{0p0}
+\createNormTableFrame{#1}{#2}{64}{jge6_tge4}{1.0}{1p0}
+
+}
+
+
+
+
 
 % the presentation starts here
 
@@ -112,7 +186,7 @@
 \author[Philip Keicher]{Karim~El~Morabit, Matthias~Schröder, \textbf{Philip Keicher}}
 
 \institute{Institut für Experimentelle Kernphysik (IEKP)}
-
+\date{June 29th 2017}
 
 \begin{document}
 

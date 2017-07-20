@@ -1,0 +1,99 @@
+\section*{Backup}
+\begin{frame}
+	\begin{center}
+		\textbf{\Huge Backup}
+	\end{center}
+\end{frame}
+%\subsection*{Datacard}
+
+%\subsection*{List of Processes}\label{backup::listOfProcesses}
+\begin{frame}{List of Processes}
+
+\lstinputlisting[numbers=none, basicstyle=\tiny,  frame=none]{../listOfProcesses.txt}
+\end{frame}
+
+%\subsection*{List of Nuisance Parameters}\label{backup::listOfNP}
+
+\begin{frame}{\texttt{combine} Commands - 1}
+\begin{block}{For Toy Generation}
+\texttt{combine -M GenerateOnly -m 125 --saveToys -t \$numberOfToysPerExperiment -n \$suffix --expectSignal \$signalStrength -s \$randomseed \emph{--toysFrequentist} \$toyDatacard}
+\end{block}
+\begin{block}{For MaxLikelihood Fit}
+\texttt{combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t \$numberOfToysPerExperiment --toysFile \$toyFile --minos all \$targetDatacard}
+\end{block}
+
+\end{frame}
+
+\begin{frame}{\texttt{combine} Commands - 2}
+\begin{block}{For MultiDimFit}
+\texttt{combine -M MultiDimFit \$targetDatacard --algo=none --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER\_MaxCalls=9999999 -n \$suffix --saveWorkspace -m 125 --redefineSignalPOIs \$listOfPOIs --setPhysicsModelParameterRanges \$ranges -t \$numberOfToysPerExperiment --toysFile \$toyFile --saveFitResult}
+\end{block}
+
+\end{frame}
+
+\begin{frame}{\texttt{combine} Commands -3}
+\begin{block}{Convert MultiDimFit to MaxLikelihoodFit}
+\texttt{combine MultDimFit\_output.root -w w --snapshotName MultiDimFit -M MaxLikelihoodFit --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin -10 --rMax 10 --minos all --bypassFrequentistFit --toysFrequentist -t -1 --expectSignal $\mu$ -n suffix --saveShapes --saveNormalizations}
+\end{block}
+\end{frame}
+
+\begin{frame}{\texttt{combine} Commands - 4}
+\begin{block}{For 2D MaxLikelihood Fit}
+\texttt{combine -M MaxLikelihoodFit -m 125 --redefineSignalPOIs \$listOfPOIs -n \$suffix --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t \$numberOfToysPerExperiment --toysFile \$toyFile --minos all \$targetDatacard}
+\end{block}
+\begin{itemize}
+\item Note: parameter output of MultiDimFit is used as input for an additional MaxLikelihood Fit in order to collect normalizations
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - \ttbar + lf}
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarOther_allPOI}
+\end{scriptsize}
+
+\end{frame}
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - \ttbar + \ccbar}
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusCCbar_allPOI}
+\end{scriptsize}
+
+\end{frame}
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - \ttbar + \bbbar}
+\vskip -0.3cm
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_allPOI}
+\end{scriptsize}
+
+\end{frame}
+
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - \ttbar + B}
+\vskip -0.3cm
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusB_allPOI}
+\end{scriptsize}
+\vskip -0.1cm
+
+\end{frame}
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - \ttbar + 2B}
+\vskip -0.3cm
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlus2B_allPOI}
+\end{scriptsize}
+\vskip -0.1cm
+
+\end{frame}
+
+\begin{frame}{POI Fit Results for Other Scaled Processes - \ttbar + \bbbar, \ttbar + B}
+\vskip -0.3cm
+\begin{scriptsize}
+\input{\pathToTables/JTBDT_Spring17v10/63445464_ttHbb_N1000_ttbarPlusBBbar_ttbarPlusB_allPOI}
+\end{scriptsize}
+\vskip -0.1cm
+
+\end{frame}
+

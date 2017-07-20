@@ -1,0 +1,232 @@
+%% LaTeX-Beamer template for KIT design
+%% by Erik Burger, Christian Hammer
+%% title picture by Klaus Krogmann
+%%
+%% version 2.1
+%%
+%% mostly compatible to KIT corporate design v2.0
+%% http://intranet.kit.edu/gestaltungsrichtlinien.php
+%%
+%% Problems, bugs and comments to
+%% burger@kit.edu
+
+\documentclass[18pt]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+%% SLIDE FORMAT
+
+% use 'beamerthemekit' for standard 4:3 ratio
+% for widescreen slides (16:9), use 'beamerthemekitwide'
+
+\usepackage{templates/beamerthemekit}
+% \usepackage{templates/beamerthemekitwide}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{siunitx}
+\sisetup{range-units = single, range-phrase = {-}, separate-uncertainty = true,multi-part-units=brackets, product-units=brackets, locale=US, detect-weight=true, binary-units=true}
+\usepackage{color}
+\usepackage{todonotes}
+\presetkeys{todonotes}{inline}{}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{parnotes}
+\usepackage{xspace}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{subfig}
+\usepackage{caption}
+\captionsetup{font=scriptsize,labelfont=scriptsize}
+
+\usepackage{chngcntr}
+\counterwithin{figure}{section}
+\counterwithin{table}{section}
+\setbeamertemplate{caption}[numbered]
+
+% settings for making the table of contents less ugly
+\setbeamertemplate{section in toc}{\inserttocsectionnumber\ \ ~\inserttocsection}
+\setbeamertemplate{subsection in toc}{\qquad\inserttocsectionnumber.\inserttocsubsectionnumber\ \ ~\inserttocsubsection\\ }
+
+% bibliography
+%\usepackage[style=numeric, backend=biber, sorting=ynt]{biblatex}
+%\addbibresource{bibliography.bib}
+\beamertemplatenavigationsymbolsempty
+%% TITLE PICTURE
+
+% if a custom picture is to be used on the title page, copy it into the 'logos'
+% directory, in the line below, replace 'mypicture' with the 
+% filename (without extension) and uncomment the following line
+% (picture proportions: 63 : 20 for standard, 169 : 40 for wide
+% *.eps format if you use latex+dvips+ps2pdf, 
+% *.jpg/*.png/*.pdf if you use pdflatex)
+
+%\titleimage{Karlsruher_Schloss_Front_Panorama}
+
+
+%% TITLE LOGO
+
+% for a custom logo on the front page, copy your file into the 'logos'
+% directory, insert the filename in the line below and uncomment it
+
+\titlelogo{nologo.png}
+
+% (*.eps format if you use latex+dvips+ps2pdf,
+% *.jpg/*.png/*.pdf if you use pdflatex)
+
+%% TikZ INTEGRATION
+
+% use these packages for PCM symbols and UML classes
+% \usepackage{templates/tikzkit}
+% \usepackage{templates/tikzuml}
+
+% Define KIT Colors
+\definecolor{KIT-Gruen}{RGB}{0,150,130}
+\definecolor{KIT-Blau}{RGB}{70,100,170}
+\definecolor{KIT-MaiGruen}{RGB}{140,182,60}
+\definecolor{KIT-Gelb}{RGB}{252,229,0}
+\definecolor{KIT-Orange}{RGB}{223,155,27}
+\definecolor{KIT-Braun}{RGB}{167,130,46}
+\definecolor{KIT-Rot}{RGB}{162,34,35}
+\definecolor{KIT-Lila}{RGB}{163,16,124}
+\definecolor{KIT-Cyan-Blau}{RGB}{35,161,224}
+
+
+% Define some commands
+% arrows
+\newcommand{\rar}{\ensuremath{\rightarrow}\xspace}
+\newcommand{\Rar}{\ensuremath{\Rightarrow}\xspace}
+
+% particle physics
+\newcommand{\ttbar}{\text{t}$\overline{\text{t}}$\xspace }
+\newcommand{\boldttbar}{\textbf{t}$\overline{\textbf{t}}$\xspace}
+\newcommand{\ttbarH}{\text{t}$\overline{\text{t}}$H\xspace }
+\newcommand{\boldttbarH}{\textbf{t}$\overline{\textbf{t}}$\textbf{H}\xspace}
+\newcommand{\bbbar}{\text{b}$\overline{\text{b}}$\xspace }
+\newcommand{\ccbar}{\text{c}$\overline{\text{c}}$\xspace }
+\newcommand{\pT}{${p_{T}}$\xspace}
+\newcommand{\Htobb}{H$\to $ \bbbar}
+
+\newcommand{\pathToPlots}{plots}
+\newcommand{\pathToTables}{tables}
+
+\newcommand{\catname}{jge6_t3}
+\newcommand{\frameCatName}{63}
+\newcommand{\scaledProcessName}{63445464_ttHbb_N1000_ttbarOther_0p9}
+\newcommand{\frameScaledProcessName}{$\ttbar\cdot 0.9$}
+
+\newcommand{\createFrameSet}[2]{
+\begin{frame}{\frameCatName - #1 PostfitB}
+\vskip -0.5cm
+\begin{figure}
+\centering
+\subfloat[Normalization Distribution]{\includegraphics[width=.4\textwidth]{plots/ljets_\catname_normalisation_#2_PostfitB.pdf}}
+\subfloat[Mean And Median Values of Distributions]{\includegraphics[width=.4\textwidth]{plots/ljets_\catname_normalisation_#2_mean_PostfitB.pdf}}
+\caption[PostfitB Normalization Distribution for #1 in category \frameCatName with $\num{1.5}\cdot$ \ttbar\bbbar]{PostfitB Normalization Distribution for #1 in category \frameCatName with $\num{1.5}\cdot$ \ttbar\bbbar. Each histogram ($\mu=0$ and $\mu=1$) contains at least 900 toys, respectively.}
+\end{figure}
+\end{frame}
+
+\begin{frame}{\frameCatName - #1 PostfitS}
+\begin{figure}
+\subfloat[Normalization Distribution PostfitS]{\includegraphics[width=.4\textwidth]{plots/ljets_\catname_normalisation_#2_PostfitS.pdf}}
+\subfloat[Mean And Median Values of Distributions PostfitS]{\includegraphics[width=.4\textwidth]{plots/ljets_\catname_normalisation_#2_mean_PostfitS.pdf}}
+\caption[PostfitS Normalization Distribution for #1 in category \frameCatName with $\num{1.5}\cdot$ \ttbar\bbbar]{PostfitS Normalization Distribution for #1 in category \frameCatName with $\num{1.5}\cdot$ \ttbar\bbbar. Each histogram ($\mu=0$ and $\mu=1$) contains at least 900 toys, respectively.}
+\end{figure}
+\end{frame}
+}
+
+\newcommand{\createNormTableFrame}[6]{
+
+\begin{frame}{Normalization for #3 - #1 - Values for $\mu = #5$}
+\begin{scriptsize}
+\input{tables/63445464_ttHbb_N1000_#2_ljets_#4_normalisation_values_nominal_S_#6}
+\end{scriptsize}
+
+\end{frame}
+}
+\newcommand{\createPullplotFrame}[4]{
+\begin{frame}{#1 - #3 - Pullplots}
+\vskip -0.75cm
+\begin{figure}
+\centering
+\subfloat[Pull Plot for $\mu = 0$]{\includegraphics[width=.5\textwidth]{plots/63445464_ttHbb_N1000_#2_ljets_#4_normalisation_pullplot_nominal_S_0p0.pdf}}
+\subfloat[Pull Plot for $\mu = 1$]{\includegraphics[width=.5\textwidth]{plots/63445464_ttHbb_N1000_#2_ljets_#4_normalisation_pullplot_nominal_S_1p0.pdf}}
+\caption[Normalization Pull Plots for Category #3 with #1]{Normalization Pull Plots for Category #3 with #1 for a background-only (blue) and a signal+background (red) fit.  Circles are mean values of the respective process normalization distribution, squares the median. All values were normed to the respective prefit values. The dotted red line shows the expected values.}
+\end{figure}
+\end{frame}
+}
+\newcommand{\createNormFrameSet}[2]{
+
+\createPullplotFrame{#1}{#2}{44}{j4_t4}
+\createNormTableFrame{#1}{#2}{44}{j4_t4}{0.0}{0p0}
+\createNormTableFrame{#1}{#2}{44}{j4_t4}{1.0}{1p0}
+
+\createPullplotFrame{#1}{#2}{54}{j5_tge4}
+\createNormTableFrame{#1}{#2}{54}{j5_tge4}{0.0}{0p0}
+\createNormTableFrame{#1}{#2}{54}{j5_tge4}{1.0}{1p0}
+
+\createPullplotFrame{#1}{#2}{63}{jge6_t3}
+\createNormTableFrame{#1}{#2}{63}{jge6_t3}{0.0}{0p0}
+\createNormTableFrame{#1}{#2}{63}{jge6_t3}{1.0}{1p0}
+
+\createPullplotFrame{#1}{#2}{64}{jge6_tge4}
+\createNormTableFrame{#1}{#2}{64}{jge6_tge4}{0.0}{0p0}
+\createNormTableFrame{#1}{#2}{64}{jge6_tge4}{1.0}{1p0}
+
+}
+
+
+
+
+
+% the presentation starts here
+
+\title[JES uncertainty study]{JES uncertainty study}
+%\subtitle{Status Update}
+\author[Philip Keicher]{Karim~El~Morabit, Matthias~Schröder, \textbf{Philip Keicher}}
+
+\institute{Institut für Experimentelle Kernphysik (IEKP)}
+%\date{June 29th 2017}
+
+\begin{document}
+
+% change the following line to "ngerman" for German style date and logos
+%\selectlanguage{ngerman}
+\selectlanguage{english}
+
+
+%title page
+\begin{frame}
+\titlepage
+\end{frame}
+
+\section*{Outline}
+%\subsection*{Outline}
+\begin{frame}[label={outline}]
+	\frametitle{Outline}
+	\tableofcontents
+\end{frame}
+
+
+\input{motivation.tex}
+%\input{example.tex}
+\input{currentStatus.tex}
+\input{outlook.tex}
+
+
+%%% BACKUP
+
+\beginbackup
+
+\input{backup.tex}
+% PUT BACKUP SLIDES HERE
+
+%%%
+
+\backupend
+\end{document}
+
+
+
+
+
