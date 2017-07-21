@@ -208,6 +208,8 @@ def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir, listOfNorm
 
 def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys, listOfNormsPrescale, listOfNormsPostscale):
     tempObject = None
+    data_obs = {}
+
     for key in listOfKeys:
         path=ROOT.gDirectory.GetPathStatic()
         if key.IsFolder():
@@ -221,28 +223,42 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
             outputFile.cd(path)
             inputRootFile.cd(path)
         else:
-            #index = next((entryNum for entryNum, sublist in enumerate(processScalingDic) if (key.GetName().startswith(sublist[entryNum]) and not (key.GetName().endswith("Up") or key.GetName().endswith("Down")) )),-1)
-            #print "current key name:", key.GetName()
-            index = -1
-            for entry in range(len(processScalingDic)):
-                if key.GetName().startswith(processScalingDic[entry][0]+"_"):
-                    #print "Found match for process #{0}: {1}".format(entry, processScalingDic[entry][0])
-                    index = entry
-            if index is not -1:
-                #print "found match at index", index
+            keyName = key.GetName()
+            if not keyName.endswith("Up") and not keyName.endswith("Down") and "_finaldiscr_" in keyName:
+                cat = keyName.split("_finaldiscr_")[-1]
+                if not cat in data_obs:
+                    temp = inputRootFile.Get("data_obs_finaldiscr_" + cat)
+                    data_obs[cat] = temp.Clone()
+                    data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
+                    data_obs[cat].Reset()
+            if not keyName.startswith("data_obs_finaldiscr"):
+                #index = next((entryNum for entryNum, sublist in enumerate(processScalingDic) if (key.GetName().startswith(sublist[entryNum]) and not (key.GetName().endswith("Up") or key.GetName().endswith("Down")) )),-1)
+                #print "current key name:", key.GetName()
+                index = -1
+                for entry in range(len(processScalingDic)):
+                    if key.GetName().startswith(processScalingDic[entry][0]+"_"):
+                        #print "Found match for process #{0}: {1}".format(entry, processScalingDic[entry][0])
+                        index = entry
+                if index is not -1:
+                    #print "found match at index", index
 
-                tempObject = scaleHistogram(key,inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path), listOfNormsPrescale, listOfNormsPostscale)
-            else:
-                tempObject = inputRootFile.Get(key.GetName())
-                collectNorms(listOfNormsPrescale, tempObject)
-                collectNorms(listOfNormsPostscale, tempObject)
+                    tempObject = scaleHistogram(key,inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path), listOfNormsPrescale, listOfNormsPostscale)
+                else:
+                    tempObject = inputRootFile.Get(key.GetName())
+                    collectNorms(listOfNormsPrescale, tempObject)
+                    collectNorms(listOfNormsPostscale, tempObject)
 
-                tempObject.SetDirectory(outputFile.GetDirectory(path))
-                #print "\tCopied", key.GetName(),"to new root file"
-            if tempObject is not None:
-                #checkCopy(inputRootFile.Get(key.GetName()), tempObject)
-                tempObject.Write()
-                del tempObject
+                    tempObject.SetDirectory(outputFile.GetDirectory(path))
+                    #print "\tCopied", key.GetName(),"to new root file"
+                if tempObject is not None:
+                    #checkCopy(inputRootFile.Get(key.GetName()), tempObject)
+                    if not "HIGHBIN" in keyName and not "Mu" in keyName and not "El" in keyName and not keyName.startswith("ttH") and not (keyName.endswith("Up") or keyName.endswith("Down")):
+                        cat = keyName.split("_finaldiscr_")[-1]
+                        data_obs[cat].Add(tempObject)
+                    tempObject.Write()
+                    del tempObject
+    for cat in data_obs:
+        data_obs[cat].Write()
     print "\tdone with copying/scaling"
 
 def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath):
@@ -311,7 +327,8 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
         entries = line.split()
         for i, entry in enumerate(entries):
             #print "\t", i, "\t", entry
-
+            if entries[0] == "observation" and not i == 0:
+                entry = "-1"
             if entries[0]=="process":
                 #print "first entry of line is process!"
                 if entry in listOfProcesses:
