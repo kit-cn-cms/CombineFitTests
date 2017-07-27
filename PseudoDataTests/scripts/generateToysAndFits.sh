@@ -12,10 +12,7 @@ toyDatacard=$2
 numberOfToysPerExperiment=$3
 signalStrength=$4
 randomseed=$5
-listOfPOIs=$6
-
-pathToConvertMDFtoMLF="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/convertMDFtoMLF.py"
-
+pathToMSworkspace=$6
 
 if [[ -f $toyDatacard ]]; then
   combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $randomseed $toyDatacard"
@@ -33,21 +30,17 @@ if [[ -f $toyDatacard ]]; then
     echo "$combineCmd"
     eval $combineCmd
 
-    list=$(echo $listOfPOIs | tr "," "\n")
-    ranges=""
-    #pois=""
-    for element in $list
-    do
-      ranges=$ranges":$element=-10,10"
-    #  pois=$pois" --poi $element"
-    done
-    #combineCmd="combine -M MaxLikelihoodFit -m 125 --redefineSignalPOIs $listOfPOIs -n _MDF --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --setPhysicsModelParameterRanges $ranges -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
+    if [[ -f $pathToMSworkspace ]]; then
+      combineCmd="combine -M MaxLikelihoodFit -m 125 -n _MS_mlfit --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $pathToMSworkspace"
+      echo "$combineCmd"
+      eval $combineCmd
 
+      combineCmd='combine -M MultiDimFit '$pathToMSworkspace' --algo=grid --points=400 --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _MS_multidim --saveWorkspace -m 125 -t '$numberOfToysPerExperiment' --toysFile '$toyFile' --saveFitResult'
+      echo "$combineCmd"
+      eval $combineCmd
+    fi
     #
-    # combineCmd='combine -M MultiDimFit '$targetDatacard' --algo=none --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _full_fit --saveWorkspace -m 125 --redefineSignalPOIs '$listOfPOIs' --setPhysicsModelParameterRanges '$ranges' -t '$numberOfToysPerExperiment' --toysFile '$toyFile' --saveFitResult'
-    #echo "$combineCmd"
-    #eval $combineCmd
-    # python $pathToConvertMDFtoMLF
+
   else
     echo "Could not find toyFile, skipping the fit"
   fi

@@ -17,6 +17,7 @@
 #include "TTree.h"
 #include "TBranch.h"
 #include "TH1D.h"
+#include "TH2D.h"
 #include "TString.h"
 #include "TUUID.h"
 #include "TStopwatch.h"
@@ -58,9 +59,9 @@ public:
   }
 
   size_t npsN() const { return nps_.size(); }
-  const std::set<TString>& nps() const { return nps_; }
-  std::set<TString>::const_iterator npsBegin() const { return nps_.begin(); }
-  std::set<TString>::const_iterator npsEnd() const { return nps_.end(); }
+  const std::vector<TString>& nps() const { return nps_; }
+  std::vector<TString>::const_iterator npsBegin() const { return nps_.begin(); }
+  std::vector<TString>::const_iterator npsEnd() const { return nps_.end(); }
   TH1* npPrefit(const TString& np) const {
     return getClone(getHist(npValuesPrefit_,np));
   }
@@ -150,6 +151,35 @@ public:
     return postfitSshapes_;
   }
 
+  TH1* correlationPostfitBDist(TString np1, TString np2)const {
+    std::map<TString, std::map<TString,TH1*> >::const_iterator it = correlationsPostfitB_.find(np1);
+    if(it != correlationsPostfitB_.end()){
+      return getClone(getHist(it->second, np2));
+    }
+    else{
+      std::cerr << "Could not find distribution for correlations of nuisance parameter" << np1 << std::endl;
+      return NULL;
+    }
+  }
+
+  TH1* correlationPostfitSDist(TString np1, TString np2)const {
+    std::map<TString, std::map<TString,TH1*> >::const_iterator it = correlationsPostfitS_.find(np1);
+    if(it != correlationsPostfitB_.end()){
+      return getClone(getHist(it->second, np2));
+    }
+    else{
+      std::cerr << "Could not find distribution for correlations of nuisance parameter" << np1 << std::endl;
+      return NULL;
+    }
+  }
+
+  TH2D* getCorrelationPlotPostfitB() const{
+    return getCorrelationPlot(correlationsPostfitB_);
+  }
+  TH2D* getCorrelationPlotPostfitS() const{
+    return getCorrelationPlot(correlationsPostfitS_);
+  }
+
 private:
   bool debug_;
   bool fitBmustConverge_;
@@ -160,13 +190,13 @@ private:
   double injectedMu_;
   int color_;
 
-  double nBins_;
-  double min_;
-  double max_;
+  static constexpr int nBins_ = 400;
+  static constexpr double min_ = -10;
+  static constexpr double max_ = 10;
 
   TH1* muValues_;
   TH1* muErrors_;
-  std::set<TString> nps_;
+  std::vector<TString> nps_;
   std::map<TString,TH1*> npValuesPrefit_;
 
   std::map<TString,TH1*> npValuesPostfitB_;
@@ -184,17 +214,22 @@ private:
   std::vector<ShapeContainer*> postfitBshapes_;
   std::vector<ShapeContainer*> postfitSshapes_;
 
+  std::map<TString, std::map<TString,TH1*> > correlationsPostfitB_;
+  std::map<TString, std::map<TString,TH1*> > correlationsPostfitS_;
 
-  void initContainers(TFile* file, RooFitResult* result);
-  void createHistograms(std::map<TString,TH1*>& hists, const std::set<TString>& nps, const TString& name) const;
-  TH1* createHistogram(const TString& par, const TString& name) const;
+
+  void initContainers(TFile* file, RooFitResult* result, int nBins = nBins_, double min = min_, double max = max_);
+  void createHistograms(std::map<TString,TH1*>& hists, const std::vector<TString>& nps, const TString& name, int nBins = nBins_, double min = min_, double max = max_) const;
+  TH1* createHistogram(const TString& par, const TString& name, int nBins = nBins_, double min = min_, double max = max_) const;
   void storeRooArgSetResults(std::map<TString,TH1*>& hists, TFile* file, const TString& name) const;
-  void storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TFile* file, const TString& name);
+  void storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TFile* file, const TString& name, std::map<TString, std::map<TString, TH1*> >& correlations);
   TH1* getHist(const std::map<TString,TH1*>& hists, const TString& key) const;
   TH1* getClone(const TH1* h) const;
   bool checkFitStatus(TFile* file);
   bool checkCovarianceMatrix(TFile* file);
   void storeShapes(std::vector<ShapeContainer*>& shapes, TFile* file, const TString& name) const;
+  TH2D* getCorrelationPlot(const std::map<TString, std::map<TString,TH1*> >& correlations) const;
+  void collectCorrelations(std::map<TString, std::map<TString,TH1*> >& correlations, RooFitResult* result) const;
 };
 
 void printTime(TStopwatch& watch, TString text){
@@ -208,7 +243,6 @@ fitBmustConverge_(true),
 fitSBmustConverge_(true),
 accurateCovariance_(true),
 label_(label), injectedMu_(injectedMu), color_(kGray),
-nBins_(400), min_(-10), max_(10),
 muValues_(0) {
   if( debug_ ) std::cout << "DEBUG " << this << ": constructor" << std::endl;
 }
@@ -329,11 +363,11 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
           // store nuisance parameter values
           if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
           if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
-          storeRooFitResults(npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file,"fit_b");
+          storeRooFitResults(npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file,"fit_b", correlationsPostfitB_);
           if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
           storeRooArgSetResults(npValuesPrefit_,file,"tree_fit_b");
           if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
-          storeRooFitResults(npValuesPostfitS_,npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_, file,"fit_s");
+          storeRooFitResults(npValuesPostfitS_,npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_, file,"fit_s", correlationsPostfitS_);
           if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
 
           if(debug_) std::cout << "  DEBUG: store shapes\n";
@@ -462,7 +496,7 @@ bool PseudoExperiments::checkCovarianceMatrix(TFile* file){
   return accurateCovariance;
 }
 
-void PseudoExperiments::initContainers(TFile* file, RooFitResult* result) {
+void PseudoExperiments::initContainers(TFile* file, RooFitResult* result, int nBins, double min, double max) {
   // RooFitResult* fit_b = 0;
   // file->GetObject("fit_b",fit_b);
   // if( fit_b == 0 ) {
@@ -475,7 +509,7 @@ void PseudoExperiments::initContainers(TFile* file, RooFitResult* result) {
     TString varName;
     while( (var =  static_cast<RooRealVar*>(it.Next())) ) {
       varName = var->GetName();
-      nps_.insert( varName );
+      nps_.push_back( varName );
       //var = static_cast<RooRealVar*>(it.Next());
       delete var;
     }
@@ -493,14 +527,14 @@ void PseudoExperiments::initContainers(TFile* file, RooFitResult* result) {
 //}
 
 
-void PseudoExperiments::createHistograms(std::map<TString,TH1*>& hists, const std::set<TString>& nps, const TString& name) const {
+void PseudoExperiments::createHistograms(std::map<TString,TH1*>& hists, const std::vector<TString>& nps, const TString& name, int nBins, double min, double max) const {
   for(auto& np: nps) {
     hists[np] = createHistogram(np,name);
   }
 }
 
 
-TH1* PseudoExperiments::createHistogram(const TString& par, const TString& name) const {
+TH1* PseudoExperiments::createHistogram(const TString& par, const TString& name, int nBins, double min, double max) const {
   if( debug_ ) std::cout << "DEBUG: createHistogram: " << par << ", " << name << std::endl;
   const TUUID id;
   TH1* h = new TH1D(label_+":"+par+":"+name+":"+id.AsString(),name+";"+par+";N(experiments)",nBins_,min_,max_);
@@ -547,7 +581,7 @@ void PseudoExperiments::storeRooArgSetResults(std::map<TString,TH1*>& hists, TFi
 }
 
 
-void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo, TFile* file, const TString& name) {
+void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo, TFile* file, const TString& name, std::map<TString, std::map<TString, TH1*> >& correlations) {
   RooFitResult* result = (RooFitResult*)file->Get(name.Data());
 
   //file->GetObject(name,result);
@@ -596,6 +630,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
       //if(debug_) printTime(watch, "Time to fill histo in errors");
       //delete var;
     }
+    collectCorrelations(correlations, result);
   }
   // TTree* result_tree = (TTree*)file->Get(name.Data());
   // if(result_tree != NULL){
@@ -678,4 +713,69 @@ void PseudoExperiments::storeShapes(std::vector<ShapeContainer*>& shapes, TFile*
   else std::cerr << "ERROR    Could not change into directory " << name.Data() << " in file " << file->GetName() <<std::endl;
 }
 
+
+TH2D* PseudoExperiments::getCorrelationPlot(const std::map<TString, std::map<TString,TH1*> >& correlations) const{
+  int nNps = int(correlations.size());
+  TH1* tempHisto = NULL;
+  const TUUID id;
+  TString name;
+  name.Form("correlationPlot_%s", id.AsString());
+  TH2D* correlationPlot = new TH2D(name.Data(),"", nNps, 0, nNps, nNps, 0, nNps);
+  int i=1;
+  int j=1;
+  for(std::map<TString, std::map<TString,TH1*> >::const_iterator it = correlations.begin(); it != correlations.end(); it++){
+
+    correlationPlot->GetXaxis()->SetBinLabel(i, it->first);
+    correlationPlot->GetYaxis()->SetBinLabel(i, it->first);
+    j=i;
+    for(std::map<TString, std::map<TString,TH1*> >::const_iterator sub_it = it; sub_it != correlations.end(); sub_it++){
+      if(debug_) std::cout << "getting correlations for " << it->first << ", " << sub_it->first << std::endl;
+      tempHisto = getHist(it->second, sub_it->first);
+      if(tempHisto){
+        if (debug_) std::cout << "setting bin content: (" << i << ", " << j << ") = " << tempHisto->GetMean() << std::endl;
+        correlationPlot->SetBinContent(i,j, tempHisto->GetMean());
+        correlationPlot->SetBinContent(j,i, tempHisto->GetMean());
+        tempHisto = NULL;
+      }
+      else{
+        correlationPlot->SetBinContent(i,j, -2);
+        correlationPlot->SetBinContent(j,i, -2);
+      }
+      j++;
+    }
+    i++;
+  }
+
+  return correlationPlot;
+}
+
+void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,TH1*> >& correlations, RooFitResult* result) const{
+  std::vector<TString> values;
+  TIter it = result->floatParsFinal().createIterator();
+  RooRealVar* var = NULL;
+  TString varName;
+  if(debug_) std::cout << result << std::endl;
+  if(debug_) std::cout << "collecting variable names from RooFitResult " << result->GetName() << std::endl;
+  while( (var =  static_cast<RooRealVar*>(it.Next())) ) {
+    varName = var->GetName();
+    values.push_back(varName);
+    //delete var;
+  }
+  if(debug_)std::cout << "\ndone" << std::endl;
+  if(debug_)std::cout << "current size of correlation container: " << correlations.size() << std::endl;
+  if(correlations.empty()){
+    if(debug_) std::cout << "initializing correlation histos\n";
+    TString name;
+    for(auto& varName : values){
+      const TUUID id;
+      name.Form("%s_correlations_%s", varName.Data(), id.AsString());
+      createHistograms(correlations[varName], values, name, nBins_, -1.2, 1.2);
+    }
+  }
+  for(auto& np_i : values){
+    for(auto& np_j : values){
+      correlations[np_i][np_j]->Fill(result->correlation(np_i, np_j));
+    }
+  }
+}
 #endif

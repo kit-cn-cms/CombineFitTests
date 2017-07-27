@@ -141,6 +141,26 @@ void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const
   }
 }
 
+void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const TString label){
+  TString outputName = label;
+  if(outputName.Contains(" = ")) outputName.ReplaceAll(" = ", "_");
+  if(outputName.Contains("=")) outputName.ReplaceAll("=","_");
+  if(outputName.Contains(" ")) outputName.ReplaceAll(" ", "_");
+  if(outputName.Contains(".")) outputName.ReplaceAll(".","p");
+  outputName.Prepend(outlabel);
+
+  TFile* output = TFile::Open(outputName+".root", "RECREATE");
+  TCanvas can;
+  can.SetMargin(0.3, 0.1, 0.15, 0.08);
+  correlationPlot->SetStats(kFALSE);
+  correlationPlot->Draw("coltz");
+  correlationPlot->Write();
+  can.Write(outputName);
+  can.SaveAs(outputName+".pdf");
+  output->Close();
+}
+
+
 TLine* createLine(const TString sourceFile, const TString whichfit, const TString parameterToDraw){
   TFile* inputRootFile = new TFile(sourceFile, "READ");
   TLine* returnLine = NULL;
@@ -843,6 +863,8 @@ const TString& outLabel, const TString& testName) {
     hists.back()->SetLineColor( exp.color() );
     norm(hists.back());
     //setXRange(hists.back(),-3,5);
+    printCorrelationPlots(exps.at(iE).getCorrelationPlotPostfitB(), outLabel, "correlationPlot_PostfitB_" + labels.back());
+    printCorrelationPlots(exps.at(iE).getCorrelationPlotPostfitS(), outLabel, "correlationPlot_PostfitS_" + labels.back());
 
   }
   //hInit->GetYaxis()->SetRangeUser(-1.1,3.1);
@@ -1153,13 +1175,13 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
       if (folder->IsDirectory() && folderName.Contains("sig")) {
         loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
         ncolor++;
-        loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
+        loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], "MDF", "mlfit_MS_mlfit.root");
         ncolor++;
       }
       if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
         loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
         ncolor++;
-        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], "MDF", "mlfit_MDF.root");
+        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], "MDF", "mlfit_MS_mlfit.root");
         ncolor++;
         break;
       }

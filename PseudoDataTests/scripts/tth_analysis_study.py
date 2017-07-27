@@ -10,12 +10,11 @@ ROOT.gROOT.SetBatch(True)
 #set up parameters for toy generation here
 numberOfToys = 1000
 numberOfToysPerJob = 50
-toyMode = -1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
+toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
 if toyMode == -1:
     numberOfToys = 1
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 
-POIsuffix = "bgnorm_"
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
@@ -25,9 +24,9 @@ print "input for outputDirectory:", outputDirectory
 pathToDatacard = sys.argv[2] #path to unscaled datacard with data to be fitted to scaled toys
 pathToInputRootfile = sys.argv[3] #path to corresponding root file
 
-listOfAdditionalPOIs = None
+POImap = None
 if len(sys.argv)>4:
-    listOfAdditionalPOIs = sys.argv[4]
+    POImap = sys.argv[4]
 
 
 datacardOrProcessList = None
@@ -59,9 +58,9 @@ if datacardOrProcessList is not None:
 
 
 
-def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, listOfPOIs):
+def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
     jobids=[]
-    command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), listOfPOIs]
+    command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), pathToMSworkspace]
     a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
     output = a.communicate()[0]
     #print output
@@ -261,6 +260,34 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
         data_obs[cat].Write()
     print "\tdone with copying/scaling"
 
+def checkForMSworkspace(pathToDatacard, POImap):
+    returnString = ""
+    PathToMSDatacard = pathToDatacard
+    if not( POImap is None or POImap == ""):
+        maps = POImap.split(";")
+        for mapping in maps:
+            containsPOIname = mapping.split(":")[-1]
+            POIname = containsPOIname.split("[")[0]
+            PathToMSDatacard = PathToMSDatacard.replace(".txt", "_"+POIname+".txt")
+        msworkspacePath = PathToMSDatacard.replace(".txt","_multisig.root")
+        if os.path.exists(PathToMSDatacard):
+            if not os.path.exists(msworkspacePath):
+                bashCmd = "source {0}/setupCMSSW.txt ;".format(workdir)
+                bashCmd = bashCmd + "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose  --PO \'map=.*/(ttH_*):r[1,-10,10]\'"
+                for mapping in POImap.split(";"):
+                    bashCmd = bashCmd + " --PO \'map=.*/" + mapping + "\'"
+                bashCmd = bashCmd + " {0} -o {1}".format(pathToDatacard, msworkspacePath)
+                print bashCmd
+                os.system(bashCmd)
+
+        else:
+            print "could not find datacard for multisig workspace in", tempPathToDatacard
+
+    if os.path.exists(msworkspacePath):
+        returnString = msworkspacePath
+
+    return returnString
+
 def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath):
     print "outputPath in generateToysAndFit:", outputPath
     if not os.path.exists("temp"):
@@ -297,14 +324,8 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
 
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
-
-        listOfPOIs = "r"
-        if listOfAdditionalPOIs is None or listOfAdditionalPOIs == "":
-            for processPair in processScalingDic:
-                listOfPOIs = listOfPOIs+","+POIsuffix+processPair[0]
-        else:
-            listOfPOIs = listOfPOIs + listOfAdditionalPOIs
-        jobids = submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, listOfPOIs)
+        pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
+        jobids = submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace)
         print "waiting for toy generation to finish"
         do_qstat(jobids)
         os.chdir(workdir)
