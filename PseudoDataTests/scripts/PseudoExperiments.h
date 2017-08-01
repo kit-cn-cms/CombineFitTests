@@ -198,6 +198,9 @@ private:
   TH1* muErrors_;
   std::vector<TString> nps_;
   std::map<TString,TH1*> npValuesPrefit_;
+  std::map<TString,TH1*> npValuesPrefiterrors_;
+  std::map<TString,TH1*> npValuesPrefiterrorHi_;
+  std::map<TString,TH1*> npValuesPrefiterrorLo_;
 
   std::map<TString,TH1*> npValuesPostfitB_;
   std::map<TString,TH1*> npValuesPostfitBerrors_;
@@ -218,18 +221,18 @@ private:
   std::map<TString, std::map<TString,TH1*> > correlationsPostfitS_;
 
 
-  void initContainers(TFile* file, RooFitResult* result, int nBins = nBins_, double min = min_, double max = max_);
+  void initContainers(TFile* file,  const RooFitResult* result, int nBins = nBins_, double min = min_, double max = max_) ;
   void createHistograms(std::map<TString,TH1*>& hists, const std::vector<TString>& nps, const TString& name, int nBins = nBins_, double min = min_, double max = max_) const;
   TH1* createHistogram(const TString& par, const TString& name, int nBins = nBins_, double min = min_, double max = max_) const;
-  void storeRooArgSetResults(std::map<TString,TH1*>& hists, TFile* file, const TString& name) const;
-  void storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TFile* file, const TString& name, std::map<TString, std::map<TString, TH1*> >& correlations);
+  void storePrefitValues(std::map<TString,TH1*>& hists, TFile* file, const RooFitResult* result) const;
+  void storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TFile* file, const RooFitResult* result, std::map<TString, std::map<TString, TH1*> >& correlations);
   TH1* getHist(const std::map<TString,TH1*>& hists, const TString& key) const;
   TH1* getClone(const TH1* h) const;
   bool checkFitStatus(TFile* file);
   bool checkCovarianceMatrix(TFile* file);
   void storeShapes(std::vector<ShapeContainer*>& shapes, TFile* file, const TString& name) const;
   TH2D* getCorrelationPlot(const std::map<TString, std::map<TString,TH1*> >& correlations) const;
-  void collectCorrelations(std::map<TString, std::map<TString,TH1*> >& correlations, RooFitResult* result) const;
+  void collectCorrelations(std::map<TString, std::map<TString,TH1*> >& correlations, const RooFitResult* result) ;
 };
 
 void printTime(TStopwatch& watch, TString text){
@@ -290,7 +293,7 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
       if(storeExperiment)
       {
         TStopwatch watch;
-
+        TTree* result_tree = (TTree*)file->Get("tree_fit_sb");
         if( muValues_ == 0 ) {
           watch.Start();
           muValues_ = createHistogram("mu","postfitS");
@@ -298,57 +301,7 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
           watch.Stop();
           if(debug_) printTime(watch, "Time to create muValues_ and muErrors_");
         }
-        if( debug_ ) std::cout << "  DEBUG: getting mu" << std::endl;
-        RooFitResult* result = NULL;//(RooFitResult*)file->Get("fit_s");
-        TTree* result_tree = (TTree*)file->Get("tree_fit_sb");
-        watch.Start();
-        //file->GetObject("fit_s",result);
-        watch.Stop();
-        if(debug_) printTime(watch, "Time to load RooFitResult Object");
-
-        if( result == 0) {
-          //std::cerr << "ERROR getting 'fit_s' from file '" << file->GetName() << "'" << std::endl;
-          //throw std::exception();
-        }
-        else{
-          watch.Start();
-          const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find("r") );
-          if(var != 0)
-          {
-
-            if( debug_ ) std::cout << "    DEBUG: found mu = " << var->getVal() << std::endl;
-            muValues_->Fill( var->getVal() );
-            muErrors_->Fill( var->getError() );
-            watch.Stop();
-            if(debug_) printTime(watch, "Time to get mu and fill Histos");
-
-            // if called the first time, get list of NPs
-            if( nps_.empty() ) {
-              if( debug_ ) std::cout << "  DEBUG: initialize NPs" << std::endl;
-              //initContainers(file);
-            }
-            // store nuisance parameter values
-            // if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
-            // if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
-            // storeRooArgSetResults(npValuesPrefit_,file,"nuisances_prefit");
-            // if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
-            // storeRooFitResults(npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file,"fit_b");
-            // if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
-            // storeRooFitResults(npValuesPostfitS_,npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_, file,"fit_s");
-            // if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
-            // if(debug_) std::cout << "  DEBUG: store shapes\n";
-            // if(debug_) std::cout << "\tDEBUG: prefit shapes\n";
-            // storeShapes(prefitShapes_, file, "shapes_prefit");
-            // if(debug_) std::cout << "\tDEBUG: postfit B shapes\n";
-            // storeShapes(postfitBshapes_, file, "shapes_fit_b");
-            // if(debug_) std::cout << "\tDEBUG: postfit S shapes\n";
-            // storeShapes(postfitSshapes_, file, "shapes_fit_s");
-            // if( debug_ ) std::cout << "  DEBUG: done storing shapes" << std::endl;
-            delete var;
-          }
-
-          //result->Delete();
-        }
+        //RooFitResult* result = (RooFitResult*)file->Get("fit_s");
         if(result_tree != 0){
           double muVal = 0;
           double muError = 0;
@@ -363,12 +316,38 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
           // store nuisance parameter values
           if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
           if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
-          storeRooFitResults(npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file,"fit_b", correlationsPostfitB_);
-          if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
-          storeRooArgSetResults(npValuesPrefit_,file,"tree_fit_b");
-          if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
-          storeRooFitResults(npValuesPostfitS_,npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_, file,"fit_s", correlationsPostfitS_);
-          if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
+          const RooFitResult* result = NULL;
+          result = (RooFitResult*)file->Get("fit_b");
+
+          if( result == 0 ) {
+            std::cerr << "ERROR getting 'fit_b' from file '" << file->GetName() << "'" << std::endl;
+            //throw std::exception();
+          }
+          else{
+            storeRooFitResults(npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file, result, correlationsPostfitB_);
+            if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
+            storePrefitValues(npValuesPrefit_, file, result);
+          }
+          if(result != NULL){
+            if(debug_)std::cout << "deleting RooFitResult Pointer fit_b";
+
+            //delete result;
+          }
+          result = (RooFitResult*)file->Get("fit_s");
+
+          if( result == 0 ) {
+            std::cerr << "ERROR getting 'fit_s' from file '" << file->GetName() << "'" << std::endl;
+            //throw std::exception();
+          }
+          else{
+            if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
+            storeRooFitResults(npValuesPostfitS_, npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_, file, result, correlationsPostfitS_);
+            if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
+          }
+          if(result != NULL) {
+            if(debug_)std::cout << "deleting RooFitResult Pointer fit_s";
+            delete result;
+          }
 
           if(debug_) std::cout << "  DEBUG: store shapes\n";
           if(debug_) std::cout << "\tDEBUG: prefit shapes\n";
@@ -496,35 +475,28 @@ bool PseudoExperiments::checkCovarianceMatrix(TFile* file){
   return accurateCovariance;
 }
 
-void PseudoExperiments::initContainers(TFile* file, RooFitResult* result, int nBins, double min, double max) {
-  // RooFitResult* fit_b = 0;
-  // file->GetObject("fit_b",fit_b);
-  // if( fit_b == 0 ) {
-  //   std::cerr << "ERROR getting 'fit_b' from file '" << file->GetName() << "'" << std::endl;
-  //   //throw std::exception();
-  // }
-  // else{
-    TIter it = result->floatParsInit().createIterator();
-    RooRealVar* var = NULL;
-    TString varName;
-    while( (var =  static_cast<RooRealVar*>(it.Next())) ) {
-      varName = var->GetName();
-      nps_.push_back( varName );
-      //var = static_cast<RooRealVar*>(it.Next());
-      delete var;
-    }
-
-    createHistograms(npValuesPrefit_,nps_,"prefit");
-    createHistograms(npValuesPostfitB_,nps_,"postfitB");
-    createHistograms(npValuesPostfitBerrors_, nps_, "postfitB_errors");
-    createHistograms(npValuesPostfitBerrorHi_, nps_, "postfitB_errorHi");
-    createHistograms(npValuesPostfitBerrorLo_, nps_, "postfitB_errorLo");
-    createHistograms(npValuesPostfitS_,nps_,"postfitS");
-    createHistograms(npValuesPostfitSerrors_,nps_,"postfitS_errors");
-    createHistograms(npValuesPostfitSerrorHi_, nps_, "postfitS_errorHi");
-    createHistograms(npValuesPostfitSerrorLo_, nps_, "postfitS_errorLo");
+void PseudoExperiments::initContainers(TFile* file, const RooFitResult* result, int nBins, double min, double max) {
+  TIter it = result->floatParsInit().createIterator();
+  RooRealVar* var = NULL;
+  TString varName;
+  while( (var =  static_cast<RooRealVar*>(it.Next())) ) {
+    varName = var->GetName();
+    if(debug_) std::cout << "adding " << varName << " to list of parameters\n";
+    nps_.push_back( varName );
+    //var = static_cast<RooRealVar*>(it.Next());
+    delete var;
   }
-//}
+
+  createHistograms(npValuesPrefit_,nps_,"prefit");
+  createHistograms(npValuesPostfitB_,nps_,"postfitB");
+  createHistograms(npValuesPostfitBerrors_, nps_, "postfitB_errors");
+  createHistograms(npValuesPostfitBerrorHi_, nps_, "postfitB_errorHi");
+  createHistograms(npValuesPostfitBerrorLo_, nps_, "postfitB_errorLo");
+  createHistograms(npValuesPostfitS_,nps_,"postfitS");
+  createHistograms(npValuesPostfitSerrors_,nps_,"postfitS_errors");
+  createHistograms(npValuesPostfitSerrorHi_, nps_, "postfitS_errorHi");
+  createHistograms(npValuesPostfitSerrorLo_, nps_, "postfitS_errorLo");
+}
 
 
 void PseudoExperiments::createHistograms(std::map<TString,TH1*>& hists, const std::vector<TString>& nps, const TString& name, int nBins, double min, double max) const {
@@ -543,116 +515,61 @@ TH1* PseudoExperiments::createHistogram(const TString& par, const TString& name,
 }
 
 
-void PseudoExperiments::storeRooArgSetResults(std::map<TString,TH1*>& hists, TFile* file, const TString& name) const {
-  // RooArgSet* result = (RooArgSet*)file->Get(name.Data());
-  //
-  // //file->GetObject(name,result);
-  // if( result == 0 ) {
-  //   std::cerr << "ERROR getting '" << name << "' from file '" << file->GetName() << "'" << std::endl;
-  //   //throw std::exception();
-  // }
-  // else{
-  //   for(auto& it: hists) {
-  //     //std::cout << "filling " << it.first << " with value " << result->getRealValue(it.first) << std::endl;
-  //     it.second->Fill( result->getRealValue(it.first) );
-  //   }
-  // }
-  TTree* results_tree = (TTree*)file->Get(name.Data());
-  if(results_tree != NULL){
-    double vals = 0;
-    TString currentValue;
-    for(auto& it: hists){
-      currentValue = it.first;
-      currentValue.Append("_In");
-      if(results_tree->SetBranchAddress(currentValue.Data(), &vals)>=0){
-        for(int i=0; i<results_tree->GetEntries(); i++){
-          results_tree->GetEntry(i);
-          it.second->Fill(vals);
-        }
-        results_tree->ResetBranchAddresses();
-      }
-      else{
-        if(debug_) std::cerr << "\tError      could not find branch " << currentValue.Data() << " in TTree " << name.Data() << std::endl;
-      }
-    }
+void PseudoExperiments::storePrefitValues(std::map<TString,TH1*>& hists, TFile* file, const RooFitResult* result) const {
+  TStopwatch watch;
+  if(debug_) std::cout << "bla\n";
+  const RooFitResult* test_result = (RooFitResult*) file->Get("fit_b");
+  TIter it = test_result->floatParsInit().createIterator();
+  RooRealVar* param = NULL;
+  while( (param =  static_cast<RooRealVar*>(it.Next())) ) {
+    if(debug_) std::cout << "looking for parameter " << param->GetName() <<std::endl;
+    std::map<TString, TH1*>::const_iterator iter = hists.find(param->GetName());
+    if(iter != hists.end())
+    {
+      if(debug_) std::cout << "\tfound it! Filling histo for parameter " << iter->first << "\n";
+      iter->second->Fill(param->getVal());
 
-    delete results_tree;
+    }
+    //var = static_cast<RooRealVar*>(it.Next());
+    if(debug_) std::cout << "deleting var in storePrefitValues\n";
+    //delete var;
   }
+  if(debug_) std::cout << "deleting test_result\n";
+  if(test_result != NULL) delete test_result;
 }
 
 
-void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo, TFile* file, const TString& name, std::map<TString, std::map<TString, TH1*> >& correlations) {
-  RooFitResult* result = (RooFitResult*)file->Get(name.Data());
+void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo, TFile* file, const RooFitResult* result, std::map<TString, std::map<TString, TH1*> >& correlations) {
 
-  //file->GetObject(name,result);
-  if( result == 0 ) {
-    std::cerr << "ERROR getting '" << name << "' from file '" << file->GetName() << "'" << std::endl;
-    //throw std::exception();
+  TStopwatch watch;
+  if( nps_.empty() ) {
+    if( debug_ ) std::cout << "  DEBUG: initialize NPs" << std::endl;
+    initContainers(file, result);
   }
-  else{
-    TStopwatch watch;
-    if( nps_.empty() ) {
-      if( debug_ ) std::cout << "  DEBUG: initialize NPs" << std::endl;
-      initContainers(file, result);
-    }
-    for(auto& it: hists) {
-      watch.Start();
-      const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find( it.first ) );
-      watch.Stop();
-      if(debug_) printTime(watch, "Time to get RooRealVar Object");
-      //std::cout << "filling " << it.first << " with value " << var->getVal() << std::endl;
-      it.second->Fill(var->getVal());
+  for(auto& it: hists) {
+    watch.Start();
+    const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find( it.first ) );
+    watch.Stop();
+    if(debug_) printTime(watch, "Time to get RooRealVar Object");
+    //std::cout << "filling " << it.first << " with value " << var->getVal() << std::endl;
+    it.second->Fill(var->getVal());
 
-      //watch.Start();
-      std::map<TString, TH1*>::const_iterator iter_errorHi = hErrorsHi.find( it.first);
-      //watch.Stop();
-      //if(debug_) printTime(watch, "Time to find "+it.first+" in errorHi map");
-      //watch.Start();
-      iter_errorHi->second->Fill(var->getErrorHi());
-      //watch.Stop();
-      //if(debug_) printTime(watch, "Time to fill histo in errorHi");
-      //watch.Start();
-      std::map<TString, TH1*>::const_iterator iter_errorLo = hErrorsLo.find( it.first);
-      //watch.Stop();
-      //if(debug_) printTime(watch, "time to find "+it.first+"in errorLo");
-      //watch.Start();
-      iter_errorLo->second->Fill(var->getErrorLo());
+    std::map<TString, TH1*>::const_iterator iter_errorHi = hErrorsHi.find( it.first);
 
-      //watch.Stop();
-      //if(debug_) printTime(watch, "Time to fill histo in errorLo");
-      //watch.Start();
-      std::map<TString, TH1*>::const_iterator iter_errors = hErrors.find( it.first);
-      //watch.Stop();
-      //if(debug_) printTime(watch, "time to find "+it.first+"in errors");
-      //watch.Start();
-      iter_errors->second->Fill(var->getError());
-      //watch.Stop();
-      //if(debug_) printTime(watch, "Time to fill histo in errors");
-      //delete var;
-    }
-    collectCorrelations(correlations, result);
+    iter_errorHi->second->Fill(var->getErrorHi());
+
+    std::map<TString, TH1*>::const_iterator iter_errorLo = hErrorsLo.find( it.first);
+
+    iter_errorLo->second->Fill(var->getErrorLo());
+
+    std::map<TString, TH1*>::const_iterator iter_errors = hErrors.find( it.first);
+
+    iter_errors->second->Fill(var->getError());
+
   }
-  // TTree* result_tree = (TTree*)file->Get(name.Data());
-  // if(result_tree != NULL){
-  //   double vals = 0;
-  //   TString currentValue;
-  //   for(auto& it: hists){
-  //     currentValue = it.first;
-  //     if(results_tree->SetBranchAddress(currentValue.Data(), &vals)>=0){
-  //       for(int i=0; i<results_tree->GetEntries(); i++){
-  //         results_tree->GetEntry(i);
-  //         it.second->Fill(vals);
-  //       }
-  //       results_tree->ResetBranchAddresses();
-  //     }
-  //     else{
-  //       if(debug_) std::cerr << "\tError      could not find branch " << currentValue.Data() << " in TTree " << name.Data() << std::endl;
-  //     }
-  //   }
-  //
-  //   delete results_tree;
-  // }
+  collectCorrelations(correlations, result);
 }
+
 
 
 TH1* PseudoExperiments::getHist(const std::map<TString,TH1*>& hists, const TString& key) const {
@@ -749,7 +666,7 @@ TH2D* PseudoExperiments::getCorrelationPlot(const std::map<TString, std::map<TSt
   return correlationPlot;
 }
 
-void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,TH1*> >& correlations, RooFitResult* result) const{
+void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,TH1*> >& correlations, const RooFitResult* result) {
   std::vector<TString> values;
   TIter it = result->floatParsFinal().createIterator();
   RooRealVar* var = NULL;

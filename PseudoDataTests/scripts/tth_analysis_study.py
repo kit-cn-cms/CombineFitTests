@@ -9,7 +9,7 @@ ROOT.gROOT.SetBatch(True)
 
 #set up parameters for toy generation here
 numberOfToys = 1000
-numberOfToysPerJob = 50
+numberOfToysPerJob = 100
 toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
 if toyMode == -1:
     numberOfToys = 1
@@ -281,7 +281,7 @@ def checkForMSworkspace(pathToDatacard, POImap):
                 os.system(bashCmd)
 
         else:
-            print "could not find datacard for multisig workspace in", tempPathToDatacard
+            print "could not find datacard for multisig workspace in", PathToMSDatacard
 
     if os.path.exists(msworkspacePath):
         returnString = msworkspacePath

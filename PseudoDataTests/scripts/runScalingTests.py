@@ -11,7 +11,8 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, ke
     # construct command string
     commandString = 'python tth_analysis_study.py "'+ targetPath + '/' +suffix + '" "' + pathToDatacard + '" "' + pathToRoofile
     if pois is not None:
-        commandString = commandString + '" "' + ",".join(pois)
+        commandString = commandString + '" "' + ";".join("".join(mapping) for key, mapping in sorted(pois.items()))
+            
     if key is not None:
         commandString = commandString + '" "' + key
     if factor is not None:
@@ -23,8 +24,8 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, ke
     return status, output
 
 def tth_fit_stability():
-    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/test/officialHiggsCombine/JTBDT_Spring17v10/"
-    pathToDatacards = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb_expanded_bgnorm_ttbarPlusBPlusBBbar.txt"
+    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/test/officialHiggsCombine/JTBDT_Spring17v10/test_msfit/"
+    pathToDatacards = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
 
     processDic = {
@@ -41,13 +42,14 @@ def tth_fit_stability():
     threads = list()
     que = Queue.Queue()
 
-    pois = ["bgnorm_ttbarPlusBPlusBBbar"]
+    pois = {"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]",
+            "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"
+            }
 
-    for i, poi in enumerate(pois):
-        if i is not 0:
+    for poi in sorted(pois):
+        if not targetPath.endswith('/'):
             targetPath = targetPath + "_"
         targetPath = targetPath + poi
-    pois.append("bgnorm_ttbarPlusCCbar")
 
     datacardTable = None
     for key in processDic:
@@ -117,7 +119,9 @@ que = Queue.Queue()
 # Create list to save thread output
 threadOutput = list()
 
-(threads, que) = JES_uncertainty_study()
+#(threads, que) = JES_uncertainty_study()
+(threads, que) = tth_fit_stability()
+
 
 while threads:
     print "\n___________________________________\n"
