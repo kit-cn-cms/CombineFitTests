@@ -61,6 +61,7 @@ if datacardOrProcessList is not None:
 def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
     jobids=[]
     command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), pathToMSworkspace]
+    print command
     a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
     output = a.communicate()[0]
     #print output
@@ -276,7 +277,7 @@ def checkForMSworkspace(pathToDatacard, POImap):
                 bashCmd = bashCmd + "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose  --PO \'map=.*/(ttH_*):r[1,-10,10]\'"
                 for mapping in POImap.split(";"):
                     bashCmd = bashCmd + " --PO \'map=.*/" + mapping + "\'"
-                bashCmd = bashCmd + " {0} -o {1}".format(pathToDatacard, msworkspacePath)
+                bashCmd = bashCmd + " {0} -o {1}".format(PathToMSDatacard, msworkspacePath)
                 print bashCmd
                 os.system(bashCmd)
 

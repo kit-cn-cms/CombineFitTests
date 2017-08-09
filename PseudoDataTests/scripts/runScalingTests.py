@@ -2,6 +2,7 @@ from threading import Thread
 import Queue
 import commands
 import os
+import sys
 import time
 import glob
 
@@ -9,10 +10,10 @@ scriptDir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/Pseu
 
 def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, key = None, factor = None):
     # construct command string
-    commandString = 'python tth_analysis_study.py "'+ targetPath + '/' +suffix + '" "' + pathToDatacard + '" "' + pathToRoofile
+    commandString = 'python ' + scriptDir+'/tth_analysis_study.py "'+ targetPath + '/' +suffix + '" "' + pathToDatacard + '" "' + pathToRoofile +'" "'
     if pois is not None:
-        commandString = commandString + '" "' + ";".join("".join(mapping) for key, mapping in sorted(pois.items()))
-            
+        commandString = commandString + ";".join("".join(mapping) for key, mapping in sorted(pois.items()))
+
     if key is not None:
         commandString = commandString + '" "' + key
     if factor is not None:
@@ -24,7 +25,7 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, ke
     return status, output
 
 def tth_fit_stability():
-    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/test/officialHiggsCombine/JTBDT_Spring17v10/test_msfit/"
+    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/test/officialHiggsCombine/JTBDT_Spring17v10/test_msfit/wo_NP/PseudoData/"
     pathToDatacards = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
 
@@ -42,10 +43,15 @@ def tth_fit_stability():
     threads = list()
     que = Queue.Queue()
 
-    pois = {"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]",
-            "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"
-            }
+    #pois = {"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]",
+    #        "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"
+    #        }
+    pois = dict()
+    for arg in sys.argv[1:]:
+        arglist = arg.split(";")
+        pois[arglist[0]] = arglist[1]
 
+    print pois
     for poi in sorted(pois):
         if not targetPath.endswith('/'):
             targetPath = targetPath + "_"
@@ -64,7 +70,7 @@ def tth_fit_stability():
                 process = "_".join(process)
 
             base_suffix = "63445464_ttHbb_N1000_"
-            base_suffix = base_suffix + "_".join(pois)+"_"+process+"_"+temp_factor
+            base_suffix = base_suffix + "_".join(sorted(pois))+"_"+process+"_"+temp_factor
 
             if "_" in temp_factor:
                 factor = temp_factor.replace("_",",")
@@ -86,7 +92,7 @@ def tth_fit_stability():
                 t = Thread(target=lambda q, arg1, arg2, arg3, arg4, arg5, arg6, arg7: q.put(runScript(arg1, arg2, arg3, arg4, arg5, arg6, arg7)), args=(que, targetPath, suffix, datacard, pathToRoofile, pois, key, factor), name=suffix)
                 threads.append(t)
                 t.start()
-                time.sleep(40)
+                time.sleep(120)
             if datacardTable is not None:
                 datacardTable.close()
                 datacardTable = None

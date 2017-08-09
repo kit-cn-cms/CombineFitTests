@@ -28,6 +28,10 @@
 
 #include "ShapeContainer.h"
 
+double isNaN(double x){
+    if(std::isnan(x)) return 0;
+    else return x;
+}
 
 class PseudoExperiments {
 public:
@@ -651,7 +655,9 @@ TH2D* PseudoExperiments::getCorrelationPlot(const std::map<TString, std::map<TSt
       if(tempHisto){
         if (debug_) std::cout << "setting bin content: (" << i << ", " << j << ") = " << tempHisto->GetMean() << std::endl;
         correlationPlot->SetBinContent(i,j, tempHisto->GetMean());
+        correlationPlot->SetBinError(i,j, isNaN(tempHisto->GetMeanError()));
         correlationPlot->SetBinContent(j,i, tempHisto->GetMean());
+        correlationPlot->SetBinError(j,i, isNaN(tempHisto->GetMeanError()));
         tempHisto = NULL;
       }
       else{
