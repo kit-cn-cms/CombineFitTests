@@ -1,6 +1,7 @@
 import ROOT
 import sys
 import os
+import stat
 import subprocess
 import time
 from array import array
@@ -9,7 +10,7 @@ ROOT.gROOT.SetBatch(True)
 
 #set up parameters for toy generation here
 numberOfToys = 1000
-numberOfToysPerJob = 100
+numberOfToysPerJob = 40
 toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
 if toyMode == -1:
     numberOfToys = 1
@@ -55,7 +56,50 @@ if datacardOrProcessList is not None:
 #----------------------------------------------------------------------------------------------------------------------------------------------
 
 
+def submitArrayToNAF(scripts, arrayscriptpath):
+    submitclock=ROOT.TStopwatch()
+    submitclock.Start()
+    logdir = os.getcwd()+"/logs"
+    if not os.path.exists(logdir):
+        os.makedirs(logdir)
+    # get nscripts
+    nscripts=len(scripts)
+    tasknumberstring='1-'+str(nscripts)
 
+    #create arrayscript to be run on the birds. Depinding on $SGE_TASK_ID the script will call a different plot/run script to actually run
+
+    arrayscriptcode="#!/bin/bash \n"
+    arrayscriptcode+="subtasklist=(\n"
+    for scr in scripts:
+        arrayscriptcode+=scr+" \n"
+
+    arrayscriptcode+=")\n"
+    arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
+    arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
+    arrayscriptcode+="echo \"${thescript}\n"
+    arrayscriptcode+="echo \"${thescriptbasename}\n"
+    arrayscriptcode+=". $thescript 1>>"+logdir+"/${thescriptbasename}.o$JOB_ID.$SGE_TASK_ID 2>>"+logdir+"/${thescriptbasename}.e$JOB_ID.$SGE_TASK_ID\n"
+    arrayscriptfile=open(arrayscriptpath,"w")
+    arrayscriptfile.write(arrayscriptcode)
+    arrayscriptfile.close()
+    st = os.stat(arrayscriptpath)
+    os.chmod(arrayscriptpath, st.st_mode | stat.S_IEXEC)
+
+    print 'submitting',arrayscriptpath
+    #command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', logdir+'/dev/null', '-e', logdir+'/dev/null', arrayscriptpath]
+    command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', '/dev/null', '-e', '/dev/null', arrayscriptpath]
+    a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+    output = a.communicate()[0]
+    jobidstring = output
+    if len(jobidstring)<2:
+        sys.exit("something did not work with submitting the array job")
+
+    jobidstring=jobidstring.split(".")[0]
+    print "the jobID", jobidstring
+    jobidint=int(jobidstring)
+    submittime=submitclock.RealTime()
+    print "submitted job", jobidint, " in ", submittime
+    return [jobidint]
 
 
 def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
@@ -74,6 +118,39 @@ def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, nu
             continue
 
     return jobids
+
+
+def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
+    numberOfLoops = numberOfToys//numberOfToysPerJob
+    rest = numberOfToys%numberOfToysPerJob
+    commands = []
+
+    for signalStrength in range(0,3):
+        if not outputDirectory.endswith("/"):
+            outputDirectory = outputDirectory + "/"
+        signalStrengthFolder = outputDirectory + "sig" + str(signalStrength)
+        if not os.path.exists(signalStrengthFolder):
+            os.makedirs(signalStrengthFolder)
+
+        signalStrengthFolder = os.path.abspath(signalStrengthFolder)
+
+        if not os.path.exists(signalStrengthFolder + "/asimov"):
+            os.makedirs(signalStrengthFolder + "/asimov")
+
+        commands.append("\'" + workdir + "/generateToysAndFits.sh " + pathToDatacard + " " + datacardToUse + " -1 " + str(signalStrength) + " 123456 " + pathToMSworkspace + " " + signalStrengthFolder + "/asimov\'")
+
+        for i in range(numberOfLoops):
+            upperBound = (i+1)*numberOfToysPerJob
+            lowerBound = i*numberOfToysPerJob
+            commands.append("\'" + workdir + "/createFoldersAndDoToyFits.sh " + pathToDatacard + " " + datacardToUse + " " + str(toyMode) + " " + str(signalStrength) + " " + str(lowerBound) + " " + str(upperBound) + " " + pathToMSworkspace + " " + signalStrengthFolder + "\'")
+
+        commands.append("\'" + workdir + "/createFoldersAndDoToyFits.sh " + pathToDatacard + " " + datacardToUse + " " + str(toyMode) + " " + str(signalStrength) + " " + str(int(numberOfToys - rest)) + " " + str(numberOfToys) + " " + pathToMSworkspace + " " + signalStrengthFolder + "\'" )
+
+    # for command in commands:
+    #     print command
+
+    return submitArrayToNAF(commands, outputDirectory+"temp/arrayJobs.sh")
+
 
 def do_qstat(jobids):
     allfinished=False
@@ -264,6 +341,7 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
 def checkForMSworkspace(pathToDatacard, POImap):
     returnString = ""
     PathToMSDatacard = pathToDatacard
+    msworkspacePath = ""
     if not( POImap is None or POImap == ""):
         maps = POImap.split(";")
         for mapping in maps:
@@ -326,14 +404,14 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
         pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
-        jobids = submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace)
+        jobids = submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace)
         print "waiting for toy generation to finish"
-        do_qstat(jobids)
-        os.chdir(workdir)
-        print "calling plotResults with arguments:"
-        print "\toutputPath =", outputPath
-        print "\tshapeExpectation =", shapeExpectation
-        subprocess.check_call([workdir+"/submitScript.sh", outputPath, shapeExpectation])
+        # do_qstat(jobids)
+        # os.chdir(workdir)
+        # print "calling plotResults with arguments:"
+        # print "\toutputPath =", outputPath
+        # print "\tshapeExpectation =", shapeExpectation
+        # subprocess.check_call([workdir+"/submitScript.sh", outputPath, shapeExpectation])
 
     else:
         print "Couldn't find datacard", datacardToUse

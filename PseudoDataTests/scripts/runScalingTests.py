@@ -1,6 +1,4 @@
-from threading import Thread
-import Queue
-import commands
+import subprocess
 import os
 import sys
 import time
@@ -21,11 +19,10 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, ke
     commandString = commandString +'"'
     # execute the command, queue the result
     print commandString
-    (status, output) = commands.getstatusoutput(commandString)
-    return status, output
+    subprocess.call([commandString], shell=True)
 
-def tth_fit_stability():
-    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/test/officialHiggsCombine/JTBDT_Spring17v10/test_msfit/wo_NP/PseudoData/"
+def tth_fit_stability(pois):
+    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/PseudoData"
     pathToDatacards = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
 
@@ -40,16 +37,11 @@ def tth_fit_stability():
     "ttbarPlus2B,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
     "ttbarPlusBBbar,ttbarPlus2B,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"]
     }
-    threads = list()
-    que = Queue.Queue()
 
-    #pois = {"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]",
-    #        "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"
-    #        }
-    pois = dict()
-    for arg in sys.argv[1:]:
-        arglist = arg.split(";")
-        pois[arglist[0]] = arglist[1]
+    # pois = dict()
+    # for arg in sys.argv[1:]:
+    #     arglist = arg.split(";")
+    #     pois[arglist[0]] = arglist[1]
 
     print pois
     for poi in sorted(pois):
@@ -89,14 +81,11 @@ def tth_fit_stability():
                 if len(glob.glob(pathToDatacards))>1:
                     suffix = suffix + "_" + str(i)
 
-                t = Thread(target=lambda q, arg1, arg2, arg3, arg4, arg5, arg6, arg7: q.put(runScript(arg1, arg2, arg3, arg4, arg5, arg6, arg7)), args=(que, targetPath, suffix, datacard, pathToRoofile, pois, key, factor), name=suffix)
-                threads.append(t)
-                t.start()
-                time.sleep(120)
+                runScript(targetPath, suffix, datacard, pathToRoofile, pois, key, factor)
+                
             if datacardTable is not None:
                 datacardTable.close()
                 datacardTable = None
-    return threads, que
 
 
 def JES_uncertainty_study():
@@ -117,36 +106,40 @@ def JES_uncertainty_study():
         t.start()
     return threads, que
 
+def throwToys():
+    wildcard = sys.argv[1]
+    inputRootFile = sys.argv[2]
 
-# Create empty thread list and queue
-threads = list()
-que = Queue.Queue()
+    if os.path.exists(os.path.abspath(inputRootFile)):
+        inputRootFile = os.path.abspath(inputRootFile)
+        for datacard in glob.glob(wildcard):
+            if os.path.exists(os.path.abspath(datacard)):
+                datacard = os.path.abspath(datacard)
+                outputDirectory = os.path.dirname(datacard) + "/noScaling/" + os.path.basename(datacard).replace(".txt", "")
+                if not os.path.exists(outputDirectory):
+                    os.makedirs(outputDirectory)
+                os.chdir(outputDirectory)
 
-# Create list to save thread output
-threadOutput = list()
+                runScript(os.path.dirname(datacard) + "/noScaling", os.path.basename(datacard).replace(".txt", ""), datacard, inputRootFile, None, datacard )
 
-#(threads, que) = JES_uncertainty_study()
-(threads, que) = tth_fit_stability()
+            else:
+                print "Could not find datacard", datacard
+    else:
+        sys.exit("Could not find root file in %s" % inputRootFile)
 
 
-while threads:
-    print "\n___________________________________\n"
-    for thread in threads:
-        if thread.isAlive():
-            print('Thread for processing scaling {} is alive.'.format(thread.getName()))
-            time.sleep(0.1)
-        else:
-            print('Thread for processing scaling {} is dead / finished.'.format(thread.getName()))
-            #Get return value for thread
-            thread.join()
-            print('Joined array for tree {}.'.format(thread.getName()))
-            # Remove thread from thread list
-            threads.remove(thread)
+listOfPoisCombis = [
+        {"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
+        {"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        {"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
+        {"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
+        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},
+        {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        {"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]"},
+        {"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        ]
 
-    time.sleep(15)
-
-while not que.empty():
-    tmp_array = que.get()
-    threadOutput.append(tmp_array)
-
-print threadOutput
+for pois in listOfPoisCombis:
+    tth_fit_stability(pois)

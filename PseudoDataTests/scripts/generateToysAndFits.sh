@@ -13,9 +13,14 @@ numberOfToysPerExperiment=$3
 signalStrength=$4
 randomseed=$5
 pathToMSworkspace=$6
+outputPath=$7
 
+randomseed=$((randomseed+1))
+echo "changing directory to $outputPath"
+cd $outputPath
+pwd
 if [[ -f $toyDatacard ]]; then
-  combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $randomseed $toyDatacard"
+  combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard"
   echo "$combineCmd"
   eval $combineCmd
   if [[ -f *.root.dot ]]; then

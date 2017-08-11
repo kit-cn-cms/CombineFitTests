@@ -20,7 +20,7 @@
 #include "PseudoExperiments.h"
 #include "TheLooks.h"
 
-// double isNaN(double x){
+// double checkValues(double x){
 //     if(std::isnan(x)) return 0;
 //     else return x;
 // }
@@ -139,7 +139,7 @@ void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const
         double finalBinError = binError;
         //std::cout << "\tsetting error of bin " << bin << " to " << finalBinError << std::endl;
 
-        if( finalBinError == 0) finalBinError = isNaN(histo->GetMeanError());
+        if( finalBinError == 0) finalBinError = checkValues(histo->GetMeanError());
         histo->SetBinError(bin, finalBinError);
     }
 }
@@ -154,7 +154,6 @@ void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const
 
     TFile* output = TFile::Open(outputName+".root", "RECREATE");
     TCanvas can;
-    gStyle->SetPaintTextFormat(".2f");
 
     can.SetMargin(0.25, 0.15, 0.15, 0.08);
     correlationPlot->SetStats(kFALSE);
@@ -214,14 +213,14 @@ void writePOILatexTable(const TH1* hMeans, const TH1* hMedians, const TH1* hMean
             //             output << processName.Data();
             //             for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
             //             {
-            //                 output << " & \\num{" << isNaN(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< isNaN(hMeans->GetBinError(bin)) << "}";
-            //                 output << " $\\pm$ \\num{"<< isNaN(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << isNaN(hMeansWithFittedError->GetBinError(bin)) << "}";
+            //                 output << " & \\num{" << checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeans->GetBinError(bin)) << "}";
+            //                 output << " $\\pm$ \\num{"<< checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMeansWithFittedError->GetBinError(bin)) << "}";
             //             }
             //             output << "\\\\\n";
             for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
             {
-                output <<  hMeans->GetXaxis()->GetBinLabel(bin) << " & \\num{" << isNaN(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< isNaN(hMeans->GetBinError(bin)) << "}";
-                output << " $\\pm$ \\num{"<< isNaN(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << isNaN(hMeansWithFittedError->GetBinError(bin)) << "}\\\\\n";
+                output <<  hMeans->GetXaxis()->GetBinLabel(bin) << " & \\num{" << checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeans->GetBinError(bin)) << "}";
+                output << " $\\pm$ \\num{"<< checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMeansWithFittedError->GetBinError(bin)) << "}\\\\\n";
             }
             output << "\\bottomrule\n";
             output << "\\end{tabular}\n\\end{table}";
@@ -259,12 +258,12 @@ void writeLatexTable(TH1* hMeansB, TH1* hMediansB, TH1* hMeansSB, TH1* hMediansS
         {
             processName = hMeansB->GetXaxis()->GetBinLabel(bin);
             if(processName.Contains("_")) processName.ReplaceAll("_", "\\_");
-            output << processName << " & \\num{" << isNaN(hMeansB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< isNaN(hMeansB->GetBinError(bin)) << "} $\\pm$ \\num{" << isNaN(hMediansB->GetBinError(bin)) << "}";
-            if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL) output << " $\\pm$ \\num{"<< isNaN(hMeansBwithFittedError->GetBinError(bin)) << "}";
-            output << " & \\num{" << isNaN(hMeansSB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< isNaN(hMeansSB->GetBinError(bin)) << "} $\\pm$ \\num{" << isNaN(hMediansSB->GetBinError(bin)) << "}";
-            if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL)output << " $\\pm$ \\num{"<< isNaN(hMeansSBwithFittedError->GetBinError(bin)) << "}";
+            output << processName << " & \\num{" << checkValues(hMeansB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeansB->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMediansB->GetBinError(bin)) << "}";
+            if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL) output << " $\\pm$ \\num{"<< checkValues(hMeansBwithFittedError->GetBinError(bin)) << "}";
+            output << " & \\num{" << checkValues(hMeansSB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeansSB->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMediansSB->GetBinError(bin)) << "}";
+            if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL)output << " $\\pm$ \\num{"<< checkValues(hMeansSBwithFittedError->GetBinError(bin)) << "}";
 
-            if(hExpectation != NULL) output << " & \\num{" << isNaN(hExpectation->GetBinContent(bin)) << "}";
+            if(hExpectation != NULL) output << " & \\num{" << checkValues(hExpectation->GetBinContent(bin)) << "}";
             output << "\\\\\n";
         }
         output << "\\bottomrule\n";
@@ -331,7 +330,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
     int nBins = int((xmax-xmin)/2);
     if(nBins ==0) nBins = 100;
     std::cout << "creating dummy histo with nBins = " << nBins << "\txmin = " << xmin << "\txmax = " << xmax << std::endl;
-    TH1F dummy("dummy","",nBins, xmin, xmax);
+    TH1D dummy("dummy","",nBins, xmin, xmax);
     dummy.GetXaxis()->SetTitle(hists.front()->GetXaxis()->GetTitle());
     dummy.GetYaxis()->SetRangeUser(ymin, ymax);
     dummy.Draw();
@@ -910,6 +909,7 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
 
     std::vector<TH1*> hists;
     std::vector<TString> labels;
+    TH2D* correlationPlot = NULL;
     //std::cout << "size of exps vector: " << exps.size() << std::endl;
     for(size_t iE = 0; iE < exps.size(); ++iE) {
         const int bin = iE+1;
@@ -933,8 +933,18 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
         hists.back()->SetLineColor( exp.color() );
         norm(hists.back());
         //setXRange(hists.back(),-3,5);
-        printCorrelationPlots(exps.at(iE).getCorrelationPlotPostfitB(), outLabel, "correlationPlot_PostfitB_" + labels.back());
-        printCorrelationPlots(exps.at(iE).getCorrelationPlotPostfitS(), outLabel, "correlationPlot_PostfitS_" + labels.back());
+        correlationPlot = exps.at(iE).getCorrelationPlotPostfitB();
+        if(correlationPlot != NULL){
+          printCorrelationPlots(correlationPlot, outLabel, "correlationPlot_PostfitB_" + labels.back());
+          delete correlationPlot;
+          correlationPlot = NULL;
+        }
+        correlationPlot = exps.at(iE).getCorrelationPlotPostfitS();
+        if(correlationPlot != NULL){
+          printCorrelationPlots(correlationPlot, outLabel, "correlationPlot_PostfitS_" + labels.back());
+          delete correlationPlot;
+          correlationPlot = NULL;
+        }
 
     }
     //hInit->GetYaxis()->SetRangeUser(-1.1,3.1);
@@ -1227,6 +1237,8 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
 
 void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", double injectedMu = -999) {
     TheLooks::set();
+    gStyle->SetPaintTextFormat(".2f");
+
     std::vector<PseudoExperiments> expSet;
     if(pathname.EndsWith("/")) pathname.Chop();
     TString outputPath = pathname;
@@ -1273,11 +1285,24 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
     {
         pathname += "/";
 
-        comparePOIs(expSet,outputPath, testName);
-        compareNuisanceParameters(expSet,outputPath,true);
-        compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+        // comparePOIs(expSet,outputPath, testName);
+        // compareNuisanceParameters(expSet,outputPath,true);
+        // compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+        for(auto& exp : expSet){
+          std::cout << "label " << exp() << std::endl;
+          std::cout << "\tr = " << exp.muMean() << " +- " << exp.muMeanError() << " +- " << exp.muRMS() << " +- " << exp.muError() << std::endl;
+        }
 
 
     }
     else std::cerr << "was unable to load any Pseudo Experiments!\n";
 }
+
+//
+// # ifndef __CINT__
+// int main()
+// {
+//   plotResults("/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/test/officialHiggsCombine/JTBDT_Spring17v10/test_msfit/wo_NP/PseudoData/r_ttbb/63445464_ttHbb_N1000_r_ttbb_ttbarPlusBBbar_1.2_test1", "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/test/officialHiggsCombine/JTBDT_Spring17v10/test_msfit/wo_NP/PseudoData/r_ttbb/63445464_ttHbb_N1000_r_ttbb_ttbarPlusBBbar_1.2_test1/temp/temp_shapeExpectation.root");
+//   return 0;
+// }
+// # endif

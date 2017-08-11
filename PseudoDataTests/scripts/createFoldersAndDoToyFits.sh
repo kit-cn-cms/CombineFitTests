@@ -7,14 +7,16 @@ signalStrength=$4
 lowerBound=$5
 upperBound=$6
 pathToMSworkspace=$7
+outputPath=$8
 #pwd
 workdir="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 
+cd $outputPath
 for (( i = $lowerBound; i < $upperBound; i++ )); do
   mkdir -p PseudoExperiment$i
   cd PseudoExperiment$i
 
-  eval $workdir/generateToysAndFits.sh $targetDatacard $toyDatacard $numberOfToysPerExperiment $signalStrength $i $pathToMSworkspace
+  eval $workdir/generateToysAndFits.sh $targetDatacard $toyDatacard $numberOfToysPerExperiment $signalStrength $i $pathToMSworkspace $outputPath/PseudoExperiment$i
 
   cd ../
 done
