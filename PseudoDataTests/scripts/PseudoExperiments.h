@@ -48,6 +48,7 @@ public:
   }
 
   TH1* mu() const {
+    std::cout << "original mu histo: " << muValues_ << std::endl;
     return getClone(muValues_);
   }
   Double_t muMean() const {
@@ -238,7 +239,7 @@ private:
   TH1* createHistogram(const TString& par, const TString& name, int nBins = nBins_, Double_t min = min_, Double_t max = max_) const;
   void storePrefitValues(std::map<TString,TH1*>& hists, TFile* file) const;
   void storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TFile* file, const RooFitResult* result, std::map<TString, std::map<TString, TH1*> >& correlations);
-  void readRooRealVar(std::map<TString,TH1*>& hists, RooFitResult* result, const TString& currentVarName) const;
+  void readRooRealVar(std::map<TString,TH1*>& hists, RooFitResult* result) const;
   void readRooRealVar(TH1* hist, const RooFitResult* result, const TString& currentVarName) const;
 
   TH1* getHist(const std::map<TString,TH1*>& hists, const TString& key) const;
@@ -287,18 +288,18 @@ PseudoExperiments::~PseudoExperiments() {
 
 }
 
-void PseudoExperiments::readRooRealVar(std::map<TString,TH1*>& hists, RooFitResult* result, const TString& currentVarName) const{
+void PseudoExperiments::readRooRealVar(std::map<TString,TH1*>& hists, RooFitResult* result) const{
   RooRealVar* param = NULL;
 
-  param = (RooRealVar*)result->floatParsFinal().find( currentVarName.Data() );
-  if(param != NULL){
-    Double_t value = param->getVal();
-    if(debug_) std::cout << "looking for parameter " << currentVarName <<std::endl;
-    std::map<TString, TH1*>::const_iterator iter = hists.find(currentVarName.Data());
+  TIter it = result->floatParsFinal().createIterator();
+  while((param = (RooRealVar*)it.Next())){
+    //Double_t value = param->getVal();
+    if(debug_) std::cout << "looking for parameter " << param->GetName() <<std::endl;
+    std::map<TString, TH1*>::const_iterator iter = hists.find(param->GetName());
     if(iter != hists.end())
     {
       if(debug_) std::cout << "\tfound it! Filling histo for parameter " << iter->first << "\n";
-      iter->second->Fill(value);
+      iter->second->Fill(param->getVal());
 
     }
   }
@@ -317,8 +318,7 @@ void PseudoExperiments::readRooRealVar(TH1* hist, const RooFitResult* result, co
 
 
 void PseudoExperiments::addExperiment(const TString& mlfit) {
-  //if( debug_ )
-  std::cout << "DEBUG: addExperiment: " << mlfit << std::endl;
+  if( debug_ ) std::cout << "DEBUG: addExperiment: " << mlfit << std::endl;
   TFile* file = new TFile(mlfit,"READ");
   if (file != NULL)
   {
@@ -395,7 +395,7 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
             if(var != NULL){
               Double_t muVal = var->getVal();
               Double_t muError = var->getError();
-              std::cout << "filling mu histos with " << muVal << " +- " << muError << std::endl;
+              if(debug_) std::cout << "filling mu histos with " << muVal << " +- " << muError << std::endl;
 
               muValues_->Fill(muVal);
               muErrors_->Fill(muError);
@@ -445,31 +445,39 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
   mlfitFile: .root file which contains the fit results from the combine fit
   */
   //load PseudoExperiment folders
-  TSystemDirectory dir(sourceDir.Data(), sourceDir.Data());
-  TList *folders = dir.GetListOfFiles();
-  int counter = 1;
-  //if folders are found, go through each one an look for the mlfitFile
-  if (folders) {
-    TSystemFile *pseudoExperimentFolder;
-    TString folderName;
-    TIter next(folders);
-    TStopwatch watch;
-    while ((pseudoExperimentFolder=(TSystemFile*)next())) {
-      watch.Start();
-      folderName = pseudoExperimentFolder->GetName();
-      if (pseudoExperimentFolder->IsFolder() && !folderName.EndsWith(".") && !folderName.Contains("asimov")) {
-        if(sourceDir.EndsWith("/")) sourceDir.Chop();
-        if(debug_) std::cout << "DEBUG    ";
-        if(debug_ || counter%10==0) std::cout << "Adding PseudoExperiment #" << counter << std::endl;
-        addExperiment(sourceDir+"/"+folderName+"/"+mlfitFile);
-        counter++;
-      }
-      watch.Stop();
-      if(debug_) printTime(watch, "Time for last loop");
-    }
-    delete pseudoExperimentFolder;
-    delete folders;
+  if(sourceDir.EndsWith("/")) sourceDir.Chop();
+
+  TSystemFile *pseudoExperimentFolder;
+  TString folderName;
+  TString dirName;
+  if(sourceDir.Contains("PseudoExperiment")){
+    std::cout << "loading experiment from " << sourceDir << "/" << mlfitFile << std::endl;
+    addExperiment(sourceDir+"/"+mlfitFile);
   }
+  else{
+    TSystemDirectory dir(sourceDir.Data(), sourceDir.Data());
+    TList *folders = dir.GetListOfFiles();
+    int counter = 1;
+    //if folders are found, go through each one an look for the mlfitFile
+    if (folders) {
+      TIter next(folders);
+      TStopwatch watch;
+      while ((pseudoExperimentFolder=(TSystemFile*)next())) {
+        watch.Start();
+        folderName = pseudoExperimentFolder->GetName();
+        if (pseudoExperimentFolder->IsFolder() && !folderName.EndsWith(".") && !folderName.Contains("asimov")) {
+          if(debug_) std::cout << "DEBUG    ";
+          if(debug_ || counter%10==0) std::cout << "Adding PseudoExperiment #" << counter << std::endl;
+          addExperiment(sourceDir+"/"+folderName+"/"+mlfitFile);
+          counter++;
+        }
+        watch.Stop();
+        if(debug_) printTime(watch, "Time for last loop");
+      }
+      delete folders;
+    }
+  }
+  if(pseudoExperimentFolder != NULL) delete pseudoExperimentFolder;
 }
 
 bool PseudoExperiments::checkFitStatus(TFile* file){
@@ -586,17 +594,9 @@ void PseudoExperiments::storePrefitValues(std::map<TString,TH1*>& hists, TFile* 
   RooFitResult* test_result = (RooFitResult*) file->Get("fit_b");
   //std::vector<TString> values;
   if(test_result != NULL){
-    TString varName = test_result->floatParsFinal().contentsString();
-    TString currentVarName;
-
     if(debug_) std::cout << "collecting variable names from RooFitResult fit_b" << std::endl;
-    while( varName.Contains(",") ) {
-      currentVarName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
-      varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
-      readRooRealVar(hists, test_result, currentVarName);
-    }
-    currentVarName = varName;
-    readRooRealVar(hists, test_result, currentVarName);
+    readRooRealVar(hists, test_result);
+
     if(debug_)std::cout << "\ndone" << std::endl;
     //if(debug_) std::cout << "deleting test_result in storePrefitValues\n";
     if(test_result != NULL) delete test_result;

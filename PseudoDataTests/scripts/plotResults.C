@@ -1203,10 +1203,10 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
 
 }
 
-void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSignalStrength, std::vector<PseudoExperiments>& expSet, Color_t color = kBlue, const TString suffix = "", const TString sourceFile = "mlfit.root", double injectedMu = -999){
+void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSignalStrength, std::vector<PseudoExperiments>& expSet, Color_t color = kBlue, double injectedMu = -999, const TString suffix = "", const TString sourceFile = "mlfit.root"){
     double nominalMu=0;
     TString helper;
-
+    std::cout << "in 'loadPseudoExperiments': injectedMu = " << injectedMu << std::endl;
     if(injectedMu != -999) nominalMu = injectedMu;
     else
     {
@@ -1236,66 +1236,71 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
 }
 
 void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", double injectedMu = -999) {
-    TheLooks::set();
-    gStyle->SetPaintTextFormat(".2f");
+  TheLooks::set();
+  gStyle->SetPaintTextFormat(".2f");
 
-    std::vector<PseudoExperiments> expSet;
-    if(pathname.EndsWith("/")) pathname.Chop();
-    TString outputPath = pathname;
-    if(outputPath.Contains("/")) outputPath.Remove(0, outputPath.Last('/')+1);
-    TString testName = outputPath;
-    if(outputPath.Contains(".")) outputPath.ReplaceAll(".", "p");
-    outputPath.Prepend(pathname + "/");
-    outputPath.Append("_");
-    //if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
-    //std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
-    TSystemDirectory dir(pathname.Data(), pathname.Data());
+  std::vector<PseudoExperiments> expSet;
+  if(pathname.EndsWith("/")) pathname.Chop();
+  TString outputPath = pathname;
+  if(outputPath.Contains("/")) outputPath.Remove(0, outputPath.Last('/')+1);
+  TString testName = outputPath;
+  if(outputPath.Contains(".")) outputPath.ReplaceAll(".", "p");
+  outputPath.Prepend(pathname + "/");
+  outputPath.Append("_");
+
+  int ncolor=0;
+  Color_t colors[5] = {kBlue, kRed, kBlack, kGreen, kOrange};
+
+  //if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
+  //std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
+  TSystemDirectory dir(pathname.Data(), pathname.Data());
+  if(pathname.Contains("PseudoExperiment")){
+    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+    ncolor++;
+  }
+  else{
     TList *folders = dir.GetListOfFiles();
     //if folders are found, go through each one an look for the mlfitFile
     if (folders) {
-        TSystemFile *folder;
-        TString folderName;
-        TIter next(folders);
-        int ncolor=0;
-        while ((folder=(TSystemFile*)next())) {
-            folderName = folder->GetName();
-            if(ncolor > 4) ncolor = 0;
-            Color_t colors[5] = {kBlue, kRed, kBlack, kGreen, kOrange};
-            if (folder->IsDirectory() && folderName.Contains("sig")) {
-                loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
-                ncolor++;
-                loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], "MDF", "mlfit_MS_mlfit.root");
-                ncolor++;
-            }
-            if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
-                loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
-                ncolor++;
-                loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], "MDF", "mlfit_MS_mlfit.root");
-                ncolor++;
-                break;
-            }
+      TSystemFile *folder;
+      TString folderName;
+      TIter next(folders);
+      while ((folder=(TSystemFile*)next())) {
+        folderName = folder->GetName();
+        if(ncolor > 4) ncolor = 0;
+        if (folder->IsDirectory() && folderName.Contains("sig")) {
+          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
+          ncolor++;
+          // loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          // ncolor++;
         }
-        if(folder != NULL) delete folder;
-        if(folders != NULL) delete folders;
-
-    }
-    // set inputs
-    std::cout << "loaded Experiments: " << expSet.size() << std::endl;
-    if(expSet.size() != 0)
-    {
-        pathname += "/";
-
-        // comparePOIs(expSet,outputPath, testName);
-        // compareNuisanceParameters(expSet,outputPath,true);
-        // compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
-        for(auto& exp : expSet){
-          std::cout << "label " << exp() << std::endl;
-          std::cout << "\tr = " << exp.muMean() << " +- " << exp.muMeanError() << " +- " << exp.muRMS() << " +- " << exp.muError() << std::endl;
+        if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
+          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+          ncolor++;
+          // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          // ncolor++;
+          break;
         }
-
-
+      }
     }
-    else std::cerr << "was unable to load any Pseudo Experiments!\n";
+  }
+  // set inputs
+  std::cout << "loaded Experiments: " << expSet.size() << std::endl;
+  if(expSet.size() != 0)
+  {
+    pathname += "/";
+
+    // comparePOIs(expSet,outputPath, testName);
+    // compareNuisanceParameters(expSet,outputPath,true);
+    // compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+    for(auto& exp : expSet){
+      std::cout << "label " << exp() << std::endl;
+      std::cout << "\tr = " << exp.muMean() << " +- " << exp.muMeanError() << " +- " << exp.muRMS() << " +- " << exp.muError() << std::endl;
+    }
+
+
+  }
+  else std::cerr << "was unable to load any Pseudo Experiments!\n";
 }
 
 //

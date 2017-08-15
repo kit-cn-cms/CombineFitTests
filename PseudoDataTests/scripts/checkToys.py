@@ -7,10 +7,14 @@ import math
 ROOT.gROOT.SetBatch(True)
 
 path1 = sys.argv[1]
-path2 = sys.argv[2]
+path2 = None
+if len(sys.argv) == 1:
+    path2 = sys.argv[2]
+else:
+    path2 = path1
 
 
-filesToCheck = ["mlfit.root", "mlfit_MS_mlfit.root"]
+filesToCheck = ["mlfit.root"]#, "mlfit_MS_mlfit.root"]
 
 if os.path.exists(os.path.abspath(path1)):
     path1 = os.path.abspath(path1)
@@ -41,11 +45,19 @@ def loadVariable(pathToLoad, takeTree = False):
         if results.IsOpen() and not results.TestBit(ROOT.TFile.kRecovered) and not results.IsZombie():
             if not takeTree:
                 fit_s = results.Get("fit_s")
+                if not isinstance(fit_s,ROOT.RooFitResult):
+                    print pathToLoad,"does not contain RooFitResult"
+                    return val, error
+                ROOT.gDirectory.cd('PyROOT:/')
                 var = fit_s.floatParsFinal().find("r")
                 val = var.getVal()
                 error = var.getError()
             else:
                 tree = results.Get("tree_fit_sb")
+                if not isinstance(tree,ROOT.TTree):
+                    print pathToLoad,"does not contain limit tree"
+                    return val, error
+                ROOT.gDirectory.cd('PyROOT:/')
                 for entry in tree:
                     val = entry.mu
                     error = entry.muErr
@@ -99,8 +111,8 @@ for path in sorted(glob.glob(path1)):
 
                 mu1[infile].Fill(r1)
                 muError1[infile].Fill(error1)
-                print infile, "in", os.path.basename(path)
-                print "\tr1 = {0} +- {1}\n\tr2 = {2} +- {3}".format(r1, error1, r2, error2)
+                #print infile, "in", os.path.basename(path)
+                #print "\tr1 = {0} +- {1}\n\tr2 = {2} +- {3}".format(r1, error1, r2, error2)
                 mu2[infile].Fill(r2)
                 muError2[infile].Fill(error2)
                 compareVals(r1, error1, r2, error2, "while checking {0} in folder {1}: error in RooFitResult values".format(infile, os.path.basename(path)))

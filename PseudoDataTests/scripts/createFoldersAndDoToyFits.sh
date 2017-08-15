@@ -11,12 +11,18 @@ outputPath=$8
 #pwd
 workdir="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 
-cd $outputPath
-for (( i = $lowerBound; i < $upperBound; i++ )); do
-  mkdir -p PseudoExperiment$i
-  cd PseudoExperiment$i
+if [[ -d $outputPath ]]; then
+  cd $outputPath
 
-  eval $workdir/generateToysAndFits.sh $targetDatacard $toyDatacard $numberOfToysPerExperiment $signalStrength $i $pathToMSworkspace $outputPath/PseudoExperiment$i
+  echo "starting PseudoExperiment generation"
+  for (( i = $lowerBound; i < $upperBound; i++ )); do
+    mkdir -p PseudoExperiment$i
+    cd PseudoExperiment$i
 
-  cd ../
-done
+    eval "$workdir/generateToysAndFits.sh $targetDatacard $toyDatacard $numberOfToysPerExperiment $signalStrength $i $pathToMSworkspace $outputPath/PseudoExperiment$i"
+
+    cd ../
+  done
+else
+  echo "$outputPath is not a directory! Aborting"
+fi

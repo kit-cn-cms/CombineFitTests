@@ -22,7 +22,7 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, ke
     subprocess.call([commandString], shell=True)
 
 def tth_fit_stability(pois):
-    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/PseudoData"
+    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/PseudoData/"
     pathToDatacards = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
 
@@ -82,7 +82,7 @@ def tth_fit_stability(pois):
                     suffix = suffix + "_" + str(i)
 
                 runScript(targetPath, suffix, datacard, pathToRoofile, pois, key, factor)
-                
+
             if datacardTable is not None:
                 datacardTable.close()
                 datacardTable = None
@@ -120,14 +120,14 @@ def throwToys():
                     os.makedirs(outputDirectory)
                 os.chdir(outputDirectory)
 
-                runScript(os.path.dirname(datacard) + "/noScaling", os.path.basename(datacard).replace(".txt", ""), datacard, inputRootFile, None, datacard )
+                runScript(os.path.dirname(datacard) + "/noScaling", os.path.basename(datacard).replace(".txt", ""), datacard, inputRootFile)
 
             else:
                 print "Could not find datacard", datacard
     else:
         sys.exit("Could not find root file in %s" % inputRootFile)
 
-
+throwToys()
 listOfPoisCombis = [
         {"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
         {"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
@@ -141,5 +141,5 @@ listOfPoisCombis = [
         {"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         ]
 
-for pois in listOfPoisCombis:
-    tth_fit_stability(pois)
+# for pois in listOfPoisCombis:
+#     tth_fit_stability(pois)

@@ -9,8 +9,8 @@ from array import array
 ROOT.gROOT.SetBatch(True)
 
 #set up parameters for toy generation here
-numberOfToys = 1000
-numberOfToysPerJob = 40
+numberOfToys = 100
+numberOfToysPerJob = 2
 toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
 if toyMode == -1:
     numberOfToys = 1
@@ -78,7 +78,7 @@ def submitArrayToNAF(scripts, arrayscriptpath):
     arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
     arrayscriptcode+="echo \"${thescript}\n"
     arrayscriptcode+="echo \"${thescriptbasename}\n"
-    arrayscriptcode+=". $thescript 1>>"+logdir+"/${thescriptbasename}.o$JOB_ID.$SGE_TASK_ID 2>>"+logdir+"/${thescriptbasename}.e$JOB_ID.$SGE_TASK_ID\n"
+    arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
     arrayscriptfile=open(arrayscriptpath,"w")
     arrayscriptfile.write(arrayscriptcode)
     arrayscriptfile.close()
@@ -124,8 +124,9 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
     numberOfLoops = numberOfToys//numberOfToysPerJob
     rest = numberOfToys%numberOfToysPerJob
     commands = []
-
-    for signalStrength in range(0,3):
+    if pathToMSworkspace is None or pathToMSworkspace == "":
+        pathToMSworkspace = "\'\'\"\"\'\'"
+    for signalStrength in range(0,1):
         if not outputDirectory.endswith("/"):
             outputDirectory = outputDirectory + "/"
         signalStrengthFolder = outputDirectory + "sig" + str(signalStrength)
@@ -146,8 +147,8 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
 
         commands.append("\'" + workdir + "/createFoldersAndDoToyFits.sh " + pathToDatacard + " " + datacardToUse + " " + str(toyMode) + " " + str(signalStrength) + " " + str(int(numberOfToys - rest)) + " " + str(numberOfToys) + " " + pathToMSworkspace + " " + signalStrengthFolder + "\'" )
 
-    # for command in commands:
-    #     print command
+    for command in commands:
+        print command
 
     return submitArrayToNAF(commands, outputDirectory+"temp/arrayJobs.sh")
 
