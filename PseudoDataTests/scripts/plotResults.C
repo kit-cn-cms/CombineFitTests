@@ -1257,6 +1257,8 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   if(pathname.Contains("PseudoExperiment")){
     loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
     ncolor++;
+    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+    ncolor++;
   }
   else{
     TList *folders = dir.GetListOfFiles();
@@ -1271,14 +1273,14 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
         if (folder->IsDirectory() && folderName.Contains("sig")) {
           loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
           ncolor++;
-          // loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-          // ncolor++;
+          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          ncolor++;
         }
         if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
           loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
           ncolor++;
-          // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-          // ncolor++;
+          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          ncolor++;
           break;
         }
       }
@@ -1290,9 +1292,9 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   {
     pathname += "/";
 
-    // comparePOIs(expSet,outputPath, testName);
-    // compareNuisanceParameters(expSet,outputPath,true);
-    // compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+    comparePOIs(expSet,outputPath, testName);
+    compareNuisanceParameters(expSet,outputPath,true);
+    compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
     for(auto& exp : expSet){
       std::cout << "label " << exp() << std::endl;
       std::cout << "\tr = " << exp.muMean() << " +- " << exp.muMeanError() << " +- " << exp.muRMS() << " +- " << exp.muError() << std::endl;

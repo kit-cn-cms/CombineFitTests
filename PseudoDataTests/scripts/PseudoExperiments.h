@@ -239,7 +239,7 @@ private:
   TH1* createHistogram(const TString& par, const TString& name, int nBins = nBins_, Double_t min = min_, Double_t max = max_) const;
   void storePrefitValues(std::map<TString,TH1*>& hists, TFile* file) const;
   void storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TFile* file, const RooFitResult* result, std::map<TString, std::map<TString, TH1*> >& correlations);
-  void readRooRealVar(std::map<TString,TH1*>& hists, RooFitResult* result) const;
+  void readRooRealVar(std::map<TString,TH1*>& hists, TIter it) const;
   void readRooRealVar(TH1* hist, const RooFitResult* result, const TString& currentVarName) const;
 
   TH1* getHist(const std::map<TString,TH1*>& hists, const TString& key) const;
@@ -288,10 +288,11 @@ PseudoExperiments::~PseudoExperiments() {
 
 }
 
-void PseudoExperiments::readRooRealVar(std::map<TString,TH1*>& hists, RooFitResult* result) const{
+void PseudoExperiments::readRooRealVar(std::map<TString,TH1*>& hists, TIter it) const{
   RooRealVar* param = NULL;
 
-  TIter it = result->floatParsFinal().createIterator();
+  // if(init) TIter it = result->floatParsInit().createIterator();
+  // else TIter it = result->floatParsFinal().createIterator();
   while((param = (RooRealVar*)it.Next())){
     //Double_t value = param->getVal();
     if(debug_) std::cout << "looking for parameter " << param->GetName() <<std::endl;
@@ -595,7 +596,7 @@ void PseudoExperiments::storePrefitValues(std::map<TString,TH1*>& hists, TFile* 
   //std::vector<TString> values;
   if(test_result != NULL){
     if(debug_) std::cout << "collecting variable names from RooFitResult fit_b" << std::endl;
-    readRooRealVar(hists, test_result);
+    readRooRealVar(hists, test_result->floatParsInit().createIterator());
 
     if(debug_)std::cout << "\ndone" << std::endl;
     //if(debug_) std::cout << "deleting test_result in storePrefitValues\n";

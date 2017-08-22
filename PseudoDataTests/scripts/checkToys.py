@@ -14,7 +14,7 @@ else:
     path2 = path1
 
 
-filesToCheck = ["mlfit.root"]#, "mlfit_MS_mlfit.root"]
+filesToCheck = ["mlfit.root", "mlfit_MS_mlfit.root"]
 
 if os.path.exists(os.path.abspath(path1)):
     path1 = os.path.abspath(path1)
@@ -64,7 +64,8 @@ def loadVariable(pathToLoad, takeTree = False):
             results.Close()
     else:
         print "Could not load file", pathToLoad
-    return math.ceil(val*10**6)/10**6, math.ceil(error*10**6)/10**6
+    #return math.ceil(val*10**6)/10**6, math.ceil(error*10**6)/10**6
+    return val, error
 
 def compareVals(val1, error1, val2, error2, errormessage):
     if not (val1 == val2 and error1 == error2):
