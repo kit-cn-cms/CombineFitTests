@@ -25,7 +25,7 @@ group_globalOptions.add_option("-p", "--additionalPOI", action="append", dest="P
 group_scalingOptions.add_option("--scaledDatacard", dest="pathToScaledDatacard", help="use this datacard to throw toys from", metavar="path/to/toy/datacard")
 group_scalingOptions.add_option("--scaleProcesses", dest="listOfProcesses", help="comma-separated list of processes to be scaled. Names have to match names in datacard", metavar="PROCESS1,PROCESS2,...")
 group_scalingOptions.add_option("--scaleFuncs", dest = "listOfFormulae", help="comma-separated list of functions to scale processes with.\nBased on TF1 functionality. Requires same order as in option '--scaleProcesses'", metavar="FUNC1,FUNC2,...")
-group_required.add_option("-c", "--config", dest = "config", default = "config.py", help="path to config file specifying lists of signal processes, background processes and keys for templates in root file", metavar="path/to/config")
+group_required.add_option("-c", "--config", dest = "config", default = "config.py", help="path to config.py file specifying lists of signal processes, background processes and keys for templates in root file", metavar="path/to/config")
 parser.add_option("-v", "--verbose", dest="verbose", help="increase output", action="store_true", default=False)
 parser.add_option_group(group_required)
 parser.add_option_group(group_globalOptions)
@@ -280,14 +280,13 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
             postscaleProcesses = listOfNormsPostscale[category][1][process]
 
             processName = prescaleProcesses[0]
-            #print "\tcreating branch for process", processName
+            print "\tcreating branchs for process", processName
             tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[{1}]/D".format(processName, process))
             tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[{1}]/D".format(processName, process))
 
-            #print "\t\tsuccess"
+            print "\t\tsuccess"
             prescaleVals[process][0] = prescaleProcesses[1]
             postscaleVals[process][0] = postscaleProcesses[1]
-            #print "\tfill branch", processName, "with value", ratios[process][0]
 
             print "adding process", processName, "\n\tprescale:", prescaleProcesses[1], "\tpostscale", postscaleProcesses[1]
             if processName.startswith("ttH_"):
@@ -489,6 +488,24 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     else:
         print "Couldn't find datacard", datacardToUse
 
+def skipParameter(param):
+    if not config.ignoreUncertainties == None:
+        for np in config.ignoreUncertainties:
+            if np.startswith("*") and np.endswith("*"):
+                if np.replace("*", "") in entries[0]:
+                    return True
+            elif np.startswith("*"):
+                if param.endswith(np.replace("*","")):
+                    return True
+            elif np.endswith("*"):
+                if param.startswith(np.replace("*","")):
+                    return True
+            else:
+                if np == param:
+                    return True
+    return False
+
+
 def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     print "creating new datacard from input", pathToDatacard
     datacard = open(pathToDatacard)
@@ -498,6 +515,12 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     print listOfProcesses
     for line in datacard:
         entries = line.split()
+        if entries[0].startswith("#"): #skip lines that start with '#', as those are not considered in combine anyway
+            continue
+        if skipParameter(entries[0]): #skip line if parameter is to be ignored (as per definition in config file)
+            print "skipping line that starts with", entries[0]
+            continue
+
         for i, entry in enumerate(entries):
             #print "\t", i, "\t", entry
             if entries[0] == "observation" and not i == 0:

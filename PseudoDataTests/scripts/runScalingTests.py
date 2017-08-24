@@ -8,33 +8,34 @@ scriptDir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/Pseu
 
 def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, key = None, factor = None):
     # construct command string
-    commandString = 'python ' + scriptDir+'/tth_analysis_study.py "'+ targetPath + '/' +suffix + '" "' + pathToDatacard + '" "' + pathToRoofile +'" "'
+    commandString = 'python ' + scriptDir+'/tth_analysis_study.py -o "'+ targetPath + '/' +suffix + '" -d "' + pathToDatacard + '" -r "' + pathToRoofile +'" '
     if pois is not None:
-        commandString = commandString + ";".join("".join(mapping) for key, mapping in sorted(pois.items()))
+        for poi in pois:
+            commandString = commandString + '-p "' + pois[poi] + '" '
 
     if key is not None:
-        commandString = commandString + '" "' + key
+        commandString = commandString + key + ' '
     if factor is not None:
-        commandString = commandString + '" "' + factor
-    commandString = commandString +'"'
+        commandString = commandString + factor+ ' '
+
     # execute the command, queue the result
     print commandString
-    subprocess.call([commandString], shell=True)
+    #subprocess.call([commandString], shell=True)
 
 def tth_fit_stability(pois):
     targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/asimov/"
-    pathToDatacards = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
+    pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
 
     processDic = {
-    "ttbarOther": ["0.99", "0.9", "1.01", "1.1"],
+    #"ttbarOther": ["0.99", "0.9", "1.01", "1.1"],
     "ttbarPlusBBbar": ["0.5", "0.8", "1.2", "1.5"],
-    "ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
-    "ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
-    "ttbarPlusCCbar": ["0.5", "0.8", "1.2", "1.5"],
-    "ttbarPlusBBbar,ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
-    "ttbarPlusBBbar,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
-    "ttbarPlus2B,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
+    #"ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
+    #"ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
+    #"ttbarPlusCCbar": ["0.5", "0.8", "1.2", "1.5"],
+    #"ttbarPlusBBbar,ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
+    #"ttbarPlusBBbar,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
+    #"ttbarPlus2B,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
     "ttbarPlusBBbar,ttbarPlus2B,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"]
     }
 
@@ -49,7 +50,9 @@ def tth_fit_stability(pois):
             targetPath = targetPath + "_"
         targetPath = targetPath + poi
 
-    datacardTable = None
+    base_suffix = "63445464_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
+    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pathToRoofile, pois)
+
     for key in processDic:
         for factor in processDic[key]:
             process = key
@@ -61,31 +64,16 @@ def tth_fit_stability(pois):
                     temp_factor = temp_factor + "_" + factor
                 process = "_".join(process)
 
-            base_suffix = "63445464_ttHbb_N1000_"
-            base_suffix = base_suffix + "_".join(sorted(pois))+"_"+process+"_"+temp_factor
+            suffix_noscale = base_suffix
+            #produce unscaled toys
+
+            suffix = base_suffix+process+"_"+temp_factor
 
             if "_" in temp_factor:
                 factor = temp_factor.replace("_",",")
 
-            if len(glob.glob(pathToDatacards))>1 and datacardTable == None and not os.path.exists(targetPath+"datacardTable.txt"):
-                datacardTable = open(targetPath+"datacardTable.txt","w")
-                string = "Number\t\t Path to Datacard\n"
-                string.write()
 
-            for i, datacard in enumerate(glob.glob(pathToDatacards)):
-                if datacardTable is not None:
-                    string = str(i) + "\t\t" + datacard
-                    string.write()
-
-                suffix = base_suffix
-                if len(glob.glob(pathToDatacards))>1:
-                    suffix = suffix + "_" + str(i)
-
-                runScript(targetPath, suffix, datacard, pathToRoofile, pois, key, factor)
-
-            if datacardTable is not None:
-                datacardTable.close()
-                datacardTable = None
+            runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois, "--scaleProcesses " + key, "--scaleFuncs " + factor)
 
 
 def JES_uncertainty_study():
@@ -133,8 +121,8 @@ listOfPoisCombis = [
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
         #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
-        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        #{"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
+        #{"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},
         {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]"},
