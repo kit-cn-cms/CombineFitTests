@@ -18,6 +18,7 @@ group_required.add_option("-o", "--outputDirectory", dest="outputDirectory", hel
 group_globalOptions.add_option("-n", "--numberOfToys", dest="numberOfToys", help="generate this many toys per signal strength (default = 1000)", default = 1000, type="int")
 group_globalOptions.add_option("--numberOfToysPerJob", dest = "nPerJob", help="process this many toys at once on bird system (default = 30)", default = 30 , type="int")
 group_globalOptions.add_option("--asimov", action="store_true", dest="asimov", default=False, help="only generate asimov toys. If this flag is activated input for '-n' is ignored and is set to 1")
+group_globalOptions.add_option("-s", "--injectSignalStrength", dest = "signalStrengths", help="use this signal strength for toy generation", action = "append", type="float")
 group_required.add_option("-d", "--datacard", dest="pathToDatacard", help="path to datacard with original MC templates", metavar="path/to/orignal/datacard")
 group_required.add_option("-r", "--rootfile", dest="pathToRoofile", help="path to root file specified in the datacard for option '-d'", metavar = "path/to/root/file")
 group_globalOptions.add_option("-p", "--additionalPOI", action="append", dest="POIs",
@@ -51,6 +52,11 @@ if options.asimov and options.numberOfToys:
 
 
 verbose = options.verbose
+listOfMus = options.signalStrengths
+if listOfMus == None:
+    listOfMus = [0.,1.]
+for mu in listOfMus:
+    print "generating toys for signal strength", mu
 #set up parameters for toy generation here
 numberOfToys = options.numberOfToys
 numberOfToysPerJob = options.nPerJob
@@ -425,7 +431,7 @@ def checkForMSworkspace(pathToDatacard, POImap):
             if not os.path.exists(msworkspacePath):
                 bashCmd = "source {0}/setupCMSSW.txt ;".format(workdir)
                 bashCmd = bashCmd + "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose  --PO \'map=.*/(ttH_*):r[1,-10,10]\'"
-                for mapping in POImap.split(";"):
+                for mapping in POImap:
                     bashCmd = bashCmd + " --PO \'map=.*/" + mapping + "\'"
                 bashCmd = bashCmd + " {0} -o {1}".format(PathToMSDatacard, msworkspacePath)
                 print bashCmd
