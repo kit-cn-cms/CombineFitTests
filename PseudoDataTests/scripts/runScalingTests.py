@@ -6,7 +6,7 @@ import glob
 
 scriptDir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 
-def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, key = None, factor = None):
+def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, key = None, factor = None, pathToConfig = None, listOfMus = None):
     # construct command string
     commandString = 'python ' + scriptDir+'/tth_analysis_study.py -o "'+ targetPath + '/' +suffix + '" -d "' + pathToDatacard + '" -r "' + pathToRoofile +'" '
     if pois is not None:
@@ -17,15 +17,19 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois = None, ke
         commandString = commandString + key + ' '
     if factor is not None:
         commandString = commandString + factor+ ' '
-
+    if listOfMus is not None:
+        for mu in listOfMus:
+            commandString += "-s " + mu + " "
+    if pathToConfig is not None:
+        commandString = commandString + "-c " + pathToConfig + " "
     # execute the command, queue the result
     print commandString
-    #subprocess.call([commandString], shell=True)
+    subprocess.call([commandString], shell=True)
 
 def tth_fit_stability(pois):
-    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/asimov/"
-    pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
-    pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
+    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/PseudoData_newPowheg/"
+    pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_powheg/limits_BDT_powheg_datacard_63445464_ttHbb.txt"
+    pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_powheg/limits_BDT_powheg/limits_BDT_powheg_limitInput.root"
 
     processDic = {
     #"ttbarOther": ["0.99", "0.9", "1.01", "1.1"],
@@ -94,12 +98,13 @@ def JES_uncertainty_study():
         t.start()
     return threads, que
 
-def throwToys(wildcard, inputRootFile):
+def throwToys(wildcard, inputRootFile, pathToConfig):
     #wildcard = sys.argv[1]
     #inputRootFile = sys.argv[2]
-
+    listOfSignalStrenghts = [0.,1.,2.]
     if os.path.exists(os.path.abspath(inputRootFile)):
         inputRootFile = os.path.abspath(inputRootFile)
+        pathToConfig = os.path.abspath(pathToConfig)
         for datacard in glob.glob(wildcard):
             if os.path.exists(os.path.abspath(datacard)):
                 datacard = os.path.abspath(datacard)
@@ -108,14 +113,14 @@ def throwToys(wildcard, inputRootFile):
                     os.makedirs(outputDirectory)
                 os.chdir(outputDirectory)
 
-                runScript(os.path.dirname(datacard) + "/noScaling", os.path.basename(datacard).replace(".txt", ""), datacard, inputRootFile)
+                runScript(os.path.dirname(datacard) + "/noScaling", os.path.basename(datacard).replace(".txt", ""), datacard, inputRootFile, pathToConfig = pathToConfig, listOfMus = listOfSignalStrenghts)
 
             else:
                 print "Could not find datacard", datacard
     else:
         sys.exit("Could not find root file in %s" % inputRootFile)
 
-#throwToys(sys.argv[1], sys.argv[2])
+throwToys(sys.argv[1], sys.argv[2], sys.argv[3])
 listOfPoisCombis = [
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
@@ -129,5 +134,5 @@ listOfPoisCombis = [
         #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         ]
 
-for pois in listOfPoisCombis:
-   tth_fit_stability(pois)
+# for pois in listOfPoisCombis:
+#    tth_fit_stability(pois)
