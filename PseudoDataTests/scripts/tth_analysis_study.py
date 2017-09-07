@@ -5,53 +5,103 @@ import stat
 import subprocess
 import time
 from array import array
+from optparse import OptionParser
+from optparse import OptionGroup
 #import glob
 ROOT.gROOT.SetBatch(True)
 
+parser = OptionParser()
+group_required = OptionGroup(parser, "Required Options")
+group_globalOptions = OptionGroup(parser, "Options Valid for All Option Groups")
+group_scalingOptions = OptionGroup(parser, "Scaling Related Options")
+group_required.add_option("-o", "--outputDirectory", dest="outputDirectory", help="save signal strength folders with PseudoExperiments here", metavar = "PATH")
+group_globalOptions.add_option("-n", "--numberOfToys", dest="numberOfToys", help="generate this many toys per signal strength (default = 1000)", default = 1000, type="int")
+group_globalOptions.add_option("--numberOfToysPerJob", dest = "nPerJob", help="process this many toys at once on bird system (default = 30)", default = 30 , type="int")
+group_globalOptions.add_option("--asimov", action="store_true", dest="asimov", default=False, help="only generate asimov toys. If this flag is activated input for '-n' is ignored and is set to 1")
+group_globalOptions.add_option("-s", "--injectSignalStrength", dest = "signalStrengths", help="use this signal strength for toy generation", action = "append", type="float")
+group_required.add_option("-d", "--datacard", dest="pathToDatacard", help="path to datacard with original MC templates", metavar="path/to/orignal/datacard")
+group_required.add_option("-r", "--rootfile", dest="pathToRoofile", help="path to root file specified in the datacard for option '-d'", metavar = "path/to/root/file")
+group_globalOptions.add_option("-p", "--additionalPOI", action="append", dest="POIs",
+                    help="add an additional POI to the fit.\nSyntax: (PROCESSNAME):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE]\n In order to map multiple process to one POI, use\n(PROCESSNAME1|PROCESSNAME2|...):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE].\nUses combine physics model 'multiSignalModel'. DANGER! This requires an additional datacard of the form 'path/to/original/datacard_POINAME1_POINAME2_....txt'")
+group_scalingOptions.add_option("--scaledDatacard", dest="pathToScaledDatacard", help="use this datacard to throw toys from", metavar="path/to/toy/datacard")
+group_scalingOptions.add_option("--scaleProcesses", dest="listOfProcesses", help="comma-separated list of processes to be scaled. Names have to match names in datacard", metavar="PROCESS1,PROCESS2,...")
+group_scalingOptions.add_option("--scaleFuncs", dest = "listOfFormulae", help="comma-separated list of functions to scale processes with.\nBased on TF1 functionality. Requires same order as in option '--scaleProcesses'", metavar="FUNC1,FUNC2,...")
+group_required.add_option("-c", "--config", dest = "config", default = "config.py", help="path to config.py file specifying lists of signal processes, background processes and keys for templates in root file", metavar="path/to/config")
+parser.add_option("-v", "--verbose", dest="verbose", help="increase output", action="store_true", default=False)
+parser.add_option_group(group_required)
+parser.add_option_group(group_globalOptions)
+parser.add_option_group(group_scalingOptions)
+
+(options, args) = parser.parse_args()
+
+
+if options.outputDirectory == None:
+    parser.error("output directory has to be specified!")
+if options.pathToDatacard == None:
+    parser.error("Path to original MC template datacard has to be specified!")
+if options.pathToRoofile == None:
+    parser.error("Path to root file with MC templates has to be specified!")
+if options.config == None:
+    parser.error("Path to config file has to be specified!")
+if options.pathToScaledDatacard and (options.listOfProcesses or options.listOfFormulae):
+    parser.error("Cannot specify both path to datacard to throw toys from and list of processes to scale/ scaling functions!")
+if (not options.listOfProcesses and options.listOfFormulae) or (options.listOfProcesses and not options.listOfFormulae):
+    parser.error("Need to specify both processes to scale and corresponding scaling functions!")
+if options.asimov and options.numberOfToys:
+    print "WARNGING:\twill ignore input for option '-n' and throw one toy!"
+
+
+verbose = options.verbose
+listOfMus = options.signalStrengths
+if listOfMus == None:
+    listOfMus = [0.,1.]
+for mu in listOfMus:
+    print "generating toys for signal strength", mu
 #set up parameters for toy generation here
-numberOfToys = 100
-numberOfToysPerJob = 2
+numberOfToys = options.numberOfToys
+numberOfToysPerJob = options.nPerJob
 toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
-if toyMode == -1:
+if options.asimov:
+    toyMode = -1
+    if verbose:
+        print "Will only generate one asimov toy"
     numberOfToys = 1
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
+pathToConfig = os.path.abspath(options.config)
+if os.path.exists(pathToConfig) and os.path.basename(pathToConfig) == "config.py":
+    sys.path.append(pathToConfig)
+    import config
+else:
+    sys.exit("Unable to find config.py file in %s" % pathToConfig)
+
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
-outputDirectory = sys.argv[1] #path to store PseudoExperiments in
+outputDirectory = options.outputDirectory #path to store PseudoExperiments in
 print "input for outputDirectory:", outputDirectory
-pathToDatacard = sys.argv[2] #path to unscaled datacard with data to be fitted to scaled toys
-pathToInputRootfile = sys.argv[3] #path to corresponding root file
+pathToDatacard = options.pathToDatacard #path to unscaled datacard with data to be fitted to scaled toys
 
-POImap = None
-if len(sys.argv)>4:
-    POImap = sys.argv[4]
+pathToInputRootfile = options.pathToRoofile #path to corresponding root file
+
+POImap = options.POIs
 
 
-datacardOrProcessList = None
-scaleFuncList = None
-if len(sys.argv)>5:
-    datacardOrProcessList = sys.argv[5] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
-if len(sys.argv)>6:
-    scaleFuncList = sys.argv[6] #if argument 3 is a list of processes this parameter is a comma-separated list of functions to use (TF1)
+listOfProcessesString = options.listOfProcesses
+scaleFuncList = options.listOfFormulae
 
-pathToScaledDatacard = None
+pathToScaledDatacard = options.pathToScaledDatacard
 
 scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 
 
 #check if 6th argument is a list of processes or a datacard and act accordingly
-if datacardOrProcessList is not None:
-    if datacardOrProcessList.endswith(".txt"):
-        pathToScaledDatacard = os.path.abspath(datacardOrProcessList)
-        print "using already scaled data from", pathToScaledDatacard
-    else:
-        listOfProcesses = datacardOrProcessList.split(",")
-        listOfFormulae = scaleFuncList.split(",")
-        scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
-        print "using scaling dictionary:", scalingDic
+if listOfProcessesString and scaleFuncList:
+    listOfProcesses = listOfProcessesString.split(",")
+    listOfFormulae = scaleFuncList.split(",")
+    scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
+    print "using scaling dictionary:", scalingDic
 
 #----------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -126,7 +176,7 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
     commands = []
     if pathToMSworkspace is None or pathToMSworkspace == "":
         pathToMSworkspace = "\'\'\"\"\'\'"
-    for signalStrength in range(0,1):
+    for signalStrength in range(0,2):
         if not outputDirectory.endswith("/"):
             outputDirectory = outputDirectory + "/"
         signalStrengthFolder = outputDirectory + "sig" + str(signalStrength)
@@ -182,18 +232,21 @@ def checkCopy(original, copy):
     for currentBin in range(1, original.GetNbinsX()+1):
         print "values in bin", currentBin, ": original =", original.GetBinContent(currentBin), "\tcopy =", copy.GetBinContent(currentBin)
 
-def collectNorms(listOfNorms, histo):
+def collectNorms(listOfNorms, histo, category):
     histoName = histo.GetName()
-    processName, trunk = histoName.split("_finaldiscr_")
-    groups = trunk.split("_")
-    if not (groups[len(groups)-1].endswith("Up") or groups[len(groups)-1].endswith("Down")):
-        print "saving norm for histogram", histo.GetName()
 
-        categoryName = "_".join(groups[:3])
+    if histoName in config.signalHistos[category] or histoName in config.backgroundHistos[category]:
+        if verbose:
+            print "saving norm for histogram", histo.GetName()
+        histoCatKey = config.histoKey.replace("$CHANNEL", category)
+        processName = histoName.replace(histoCatKey.replace("$PROCESS", ""), "")
+        if verbose:
+            print "found process name", processName
+
         indexCategory = -1
         integral = histo.Integral()
         for entry in range(len(listOfNorms)):
-            if listOfNorms[entry][0] == categoryName:
+            if listOfNorms[entry][0] == category:
                 indexCategory = entry
         indexProcess = -1
         if not indexCategory == -1:
@@ -205,7 +258,7 @@ def collectNorms(listOfNorms, histo):
             else:
                 listOfNorms[indexCategory][1].append([processName, integral])
         else:
-            listOfNorms.append([categoryName,[[processName, integral]]])
+            listOfNorms.append([category,[[processName, integral]]])
     #else:
         #print "skipping normalisation for histo", histo.GetName()
 
@@ -213,10 +266,12 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
     outfile = ROOT.TFile(outputFileName, "RECREATE")
     print "number of collected categories:", len(listOfNormsPrescale), "\tpostscale:", len(listOfNormsPostscale)
     for category in range(len(listOfNormsPrescale)):
-        print "Creating TTree for category", listOfNormsPrescale[category][0]
+        if verbose:
+            print "Creating TTree for category", listOfNormsPrescale[category][0]
 
         tree = ROOT.TTree(listOfNormsPrescale[category][0], listOfNormsPrescale[category][0])
-        print "\tsuccess"
+        if verbose:
+            print "\tsuccess"
         prescaleVals = []
         postscaleVals = []
         total_background_prescale = array("d", [0.])
@@ -231,14 +286,13 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
             postscaleProcesses = listOfNormsPostscale[category][1][process]
 
             processName = prescaleProcesses[0]
-            #print "\tcreating branch for process", processName
+            print "\tcreating branchs for process", processName
             tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[{1}]/D".format(processName, process))
             tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[{1}]/D".format(processName, process))
 
-            #print "\t\tsuccess"
+            print "\t\tsuccess"
             prescaleVals[process][0] = prescaleProcesses[1]
             postscaleVals[process][0] = postscaleProcesses[1]
-            #print "\tfill branch", processName, "with value", ratios[process][0]
 
             print "adding process", processName, "\n\tprescale:", prescaleProcesses[1], "\tpostscale", postscaleProcesses[1]
             if processName.startswith("ttH_"):
@@ -265,14 +319,15 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
         del tree
     outfile.Close()
 
-def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir, listOfNormsPrescale, listOfNormsPostscale):
+def scaleHistogram(key, category, inputRootFile, funcFormula, currentOutputDir, listOfNormsPrescale, listOfNormsPostscale):
     histo = inputRootFile.Get(key.GetName())
     histo.SetDirectory(currentOutputDir)
     #for usage depending on x values:
     #lowerBound = histo.GetXaxis().GetBinLowerEdge(1)
     #upperBound = histo.GetXaxis().GetBinLowerEdge(histo.GetNbinsX()) + histo.GetXaxis().GetBinWidth(histo.GetNbinsX())/2
-    collectNorms(listOfNormsPrescale, histo)
-    print "\tScaling", key.GetName(),"with function", funcFormula
+    collectNorms(listOfNormsPrescale, histo, category)
+    if verbose:
+        print "\tScaling", key.GetName(),"with function", funcFormula
 
     scaleFunc = ROOT.TF1("scaleFunc",funcFormula,0, histo.GetNbinsX() )
     if scaleFunc is not None:
@@ -281,8 +336,37 @@ def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir, listOfNorm
             scaleFactor = scaleFunc.Eval(currentBin)
             histo.SetBinContent(currentBin, histo.GetBinContent(currentBin)*scaleFactor)
             #print "\t\tAfter scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
-    collectNorms(listOfNormsPostscale, histo)
+    collectNorms(listOfNormsPostscale, histo, category)
     return histo
+
+
+def saveHistos(category, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs, bkg=False):
+    index = -1
+    for entry in range(len(processScalingDic)):
+        if key.GetName().startswith(processScalingDic[entry][0]+"_"):
+            if verbose:
+                print "Found match for process #{0}: {1}".format(entry, processScalingDic[entry][0])
+            index = entry
+    if index is not -1:
+        if verbose:
+            print "found match at index", index
+
+        tempObject = scaleHistogram(key, category, inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path), listOfNormsPrescale, listOfNormsPostscale)
+    else:
+        tempObject = inputRootFile.Get(key.GetName())
+        collectNorms(listOfNormsPrescale, tempObject, category)
+        collectNorms(listOfNormsPostscale, tempObject, category)
+
+        tempObject.SetDirectory(outputFile.GetDirectory(path))
+        if verbose:
+            print "\tCopied", key.GetName(),"to new root file"
+    if tempObject is not None:
+        if verbose:
+            checkCopy(inputRootFile.Get(key.GetName()), tempObject)
+        if bkg:
+            data_obs[category].Add(tempObject)
+        tempObject.Write()
+
 
 def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys, listOfNormsPrescale, listOfNormsPostscale):
     tempObject = None
@@ -302,39 +386,33 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
             inputRootFile.cd(path)
         else:
             keyName = key.GetName()
-            if not keyName.endswith("Up") and not keyName.endswith("Down") and "_finaldiscr_" in keyName:
-                cat = keyName.split("_finaldiscr_")[-1]
-                if not cat in data_obs:
-                    temp = inputRootFile.Get("data_obs_finaldiscr_" + cat)
-                    data_obs[cat] = temp.Clone()
-                    data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
-                    data_obs[cat].Reset()
-            if not keyName.startswith("data_obs_finaldiscr"):
-                #index = next((entryNum for entryNum, sublist in enumerate(processScalingDic) if (key.GetName().startswith(sublist[entryNum]) and not (key.GetName().endswith("Up") or key.GetName().endswith("Down")) )),-1)
-                #print "current key name:", key.GetName()
-                index = -1
-                for entry in range(len(processScalingDic)):
-                    if key.GetName().startswith(processScalingDic[entry][0]+"_"):
-                        #print "Found match for process #{0}: {1}".format(entry, processScalingDic[entry][0])
-                        index = entry
-                if index is not -1:
-                    #print "found match at index", index
+            saved=False
+            for cat in config.categories:
+                if not saved:
+                    if not cat in data_obs:
+                        histoCatKey = config.histoKey.replace("$CHANNEL", cat)
+                        data_obs_key = histoCatKey.replace("$PROCESS", "data_obs")
+                        temp = inputRootFile.Get(data_obs_key)
+                        if not isinstance(temp, ROOT.TH1):
+                            sys.exit("Unable to load data_obs with key %s! Aborting" % data_obs_key)
 
-                    tempObject = scaleHistogram(key,inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path), listOfNormsPrescale, listOfNormsPostscale)
+                        data_obs[cat] = temp.Clone()
+                        data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
+                        data_obs[cat].Reset()
+
+                    for signalHistoName in config.signalHistos[cat]:
+                        if keyName.startswith(signalHistoName):
+                            saveHistos(cat, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs)
+                            saved = True
+                            break
+                    if not saved:
+                        for backgroundHistoName in config.backgroundHistos[cat]:
+                            if keyName.startswith(backgroundHistoName):
+                                saveHistos(cat, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs, (keyName == backgroundHistoName))
+                                saved = True
+                                break
                 else:
-                    tempObject = inputRootFile.Get(key.GetName())
-                    collectNorms(listOfNormsPrescale, tempObject)
-                    collectNorms(listOfNormsPostscale, tempObject)
-
-                    tempObject.SetDirectory(outputFile.GetDirectory(path))
-                    #print "\tCopied", key.GetName(),"to new root file"
-                if tempObject is not None:
-                    #checkCopy(inputRootFile.Get(key.GetName()), tempObject)
-                    if not "HIGHBIN" in keyName and not "Mu" in keyName and not "El" in keyName and not keyName.startswith("ttH") and not (keyName.endswith("Up") or keyName.endswith("Down")):
-                        cat = keyName.split("_finaldiscr_")[-1]
-                        data_obs[cat].Add(tempObject)
-                    tempObject.Write()
-                    del tempObject
+                    break
     for cat in data_obs:
         data_obs[cat].Write()
     print "\tdone with copying/scaling"
@@ -344,8 +422,7 @@ def checkForMSworkspace(pathToDatacard, POImap):
     PathToMSDatacard = pathToDatacard
     msworkspacePath = ""
     if not( POImap is None or POImap == ""):
-        maps = POImap.split(";")
-        for mapping in maps:
+        for mapping in POImap:
             containsPOIname = mapping.split(":")[-1]
             POIname = containsPOIname.split("[")[0]
             PathToMSDatacard = PathToMSDatacard.replace(".txt", "_"+POIname+".txt")
@@ -354,7 +431,7 @@ def checkForMSworkspace(pathToDatacard, POImap):
             if not os.path.exists(msworkspacePath):
                 bashCmd = "source {0}/setupCMSSW.txt ;".format(workdir)
                 bashCmd = bashCmd + "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose  --PO \'map=.*/(ttH_*):r[1,-10,10]\'"
-                for mapping in POImap.split(";"):
+                for mapping in POImap:
                     bashCmd = bashCmd + " --PO \'map=.*/" + mapping + "\'"
                 bashCmd = bashCmd + " {0} -o {1}".format(PathToMSDatacard, msworkspacePath)
                 print bashCmd
@@ -417,6 +494,24 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     else:
         print "Couldn't find datacard", datacardToUse
 
+def skipParameter(param):
+    if not config.ignoreUncertainties == None:
+        for np in config.ignoreUncertainties:
+            if np.startswith("*") and np.endswith("*"):
+                if np.replace("*", "") in entries[0]:
+                    return True
+            elif np.startswith("*"):
+                if param.endswith(np.replace("*","")):
+                    return True
+            elif np.endswith("*"):
+                if param.startswith(np.replace("*","")):
+                    return True
+            else:
+                if np == param:
+                    return True
+    return False
+
+
 def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     print "creating new datacard from input", pathToDatacard
     datacard = open(pathToDatacard)
@@ -426,6 +521,12 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     print listOfProcesses
     for line in datacard:
         entries = line.split()
+        if entries[0].startswith("#"): #skip lines that start with '#', as those are not considered in combine anyway
+            continue
+        if skipParameter(entries[0]): #skip line if parameter is to be ignored (as per definition in config file)
+            print "skipping line that starts with", entries[0]
+            continue
+
         for i, entry in enumerate(entries):
             #print "\t", i, "\t", entry
             if entries[0] == "observation" and not i == 0:

@@ -42,3 +42,27 @@ label nominal S=0.0
 label MDFnominal S=0.0
 	r = 0.0456206 +- 0.0264749 +- 0.806073 +- 0.786875
 
+
+
+
+__________________________________________________________________________
+
+/nfs/dust/cms/user/pkeicher/forMatthias/noScaling/merged_rate+shape-sym-njets+linear_isrfsr:
+
+loaded Experiments: 3
+label nominal S=1.9
+	r = 1.68263 +- 0.03926 +- 1.01622 +- 1.07739
+label nominal S=1.0
+	r = 0.680686 +- 0.0378936 +- 1.004 +- 1.00652
+label nominal S=0.0
+	r = -0.297473 +- 0.0352269 +- 0.964086 +- 0.959403
+
+after only loading existing mlfit files:
+
+loaded Experiments: 3
+label nominal S=1.9
+	r = 1.68263 +- 0.03926 +- 1.01622 +- 1.07739
+label nominal S=1.0
+	r = 0.680686 +- 0.0378936 +- 1.004 +- 1.00652
+label nominal S=0.0
+	r = -0.297473 +- 0.0352269 +- 0.964086 +- 0.959403

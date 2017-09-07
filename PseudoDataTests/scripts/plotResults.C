@@ -27,57 +27,55 @@
 
 double findMaxValue(const std::vector<TH1*> histos, const TString mode = "y")
 {
-    double maxVal = -999;
-    int maxBin = 0;
-    if(mode.EqualTo("y"))
+  double maxVal = -999;
+  double current = 0;
+  if(mode.EqualTo("y"))
+  {
+    for(int histogram=0; histogram < int(histos.size()); histogram++)
     {
-        for(int histogram=0; histogram < int(histos.size()); histogram++)
-        {
-            if(histos[histogram] != NULL){
-                maxBin = histos[histogram]->GetNbinsX();
-                for(int bin=1; bin<=maxBin; bin++){
-                    if(histos[histogram]->GetBinContent(bin) > maxVal) maxVal = histos[histogram]->GetBinContent(bin);
-
-                }
-            }
-        }
+      if(histos[histogram] != NULL){
+        current = histos[histogram]->GetBinContent(histos[histogram]->GetMaximumBin());
+        if (maxVal < current) maxVal = current;
+      }
     }
-    if(mode.EqualTo("x"))
+  }
+  if(mode.EqualTo("x"))
+  {
+    for(int histogram=0; histogram < int(histos.size()); histogram++)
     {
-        for(int histogram=0; histogram < int(histos.size()); histogram++)
-        {
-            if(histos[histogram] != NULL){
-                maxBin = histos[histogram]->GetNbinsX();
-                if(histos[histogram]->GetXaxis()->GetBinUpEdge(maxBin) > maxVal) maxVal = histos[histogram]->GetXaxis()->GetBinUpEdge(maxBin);
-            }
-        }
+      if(histos[histogram] != NULL){
+        current = histos[histogram]->GetXaxis()->GetBinUpEdge(histos[histogram]->GetNbinsX());
+        if(current > maxVal) maxVal = current;
+      }
     }
-    return maxVal;
+  }
+  return maxVal;
 }
 
 double findMinValue(const std::vector<TH1*> histos, const TString mode = "y")
 {
-    double minVal = 999;
-    if(mode.EqualTo("y"))
-    {
-        for(int bin=0; bin<histos[0]->GetNbinsX(); bin++){
-            for(int histogram=0; histogram < int(histos.size()); histogram++) {
-                if(histos[histogram] != NULL){
-                    if(histos[histogram]->GetBinContent(bin+1) < minVal) minVal = histos[histogram]->GetBinContent(bin+1);
-                }
-            }
-        }
+  double minVal = 999;
+  double current = 0;
+  if(mode.EqualTo("y"))
+  {
+    for(int histogram=0; histogram < int(histos.size()); histogram++) {
+      if(histos[histogram] != NULL){
+        current = histos[histogram]->GetBinContent(histos[histogram]->GetMinimumBin());
+        if(current < minVal) minVal = current;
+      }
     }
-    if(mode.EqualTo("x"))
-    {
-        for(int histogram=0; histogram < int(histos.size()); histogram++){
-            if(histos[histogram] != NULL)
-            {
-                if(histos[histogram]->GetXaxis()->GetBinLowEdge(1) < minVal) minVal = histos[histogram]->GetXaxis()->GetBinLowEdge(1);
-            }
-        }
+  }
+  if(mode.EqualTo("x"))
+  {
+    for(int histogram=0; histogram < int(histos.size()); histogram++){
+      if(histos[histogram] != NULL)
+      {
+        current = histos[histogram]->GetXaxis()->GetBinLowEdge(1);
+        if(current < minVal) minVal = current;
+      }
     }
-    return minVal;
+  }
+  return minVal;
 }
 
 void norm(TH1* h) {
@@ -309,6 +307,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
                           const std::vector<TString>& labels,
                           const TString& outLabel,
                           const bool superimposeNorm = false) {
+    gStyle->SetOptStat(000110000);
     TCanvas* can = new TCanvas("can","",900,500);
     can->cd();
     std::vector<TLine*> lines;
@@ -395,6 +394,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
     for(int nLine=0; nLine<int(lines.size()); nLine++){
         if(lines[nLine] != NULL) delete lines[nLine];
     }
+    gStyle->SetOptStat(000000000);
 }
 
 
@@ -1257,6 +1257,8 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   if(pathname.Contains("PseudoExperiment")){
     loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
     ncolor++;
+    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+    ncolor++;
   }
   else{
     TList *folders = dir.GetListOfFiles();
@@ -1271,14 +1273,14 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
         if (folder->IsDirectory() && folderName.Contains("sig")) {
           loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
           ncolor++;
-          // loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-          // ncolor++;
+          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          ncolor++;
         }
         if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
           loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
           ncolor++;
-          // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-          // ncolor++;
+          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          ncolor++;
           break;
         }
       }
@@ -1290,9 +1292,9 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   {
     pathname += "/";
 
-    // comparePOIs(expSet,outputPath, testName);
-    // compareNuisanceParameters(expSet,outputPath,true);
-    // compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+    comparePOIs(expSet,outputPath, testName);
+    compareNuisanceParameters(expSet,outputPath,true);
+    compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
     for(auto& exp : expSet){
       std::cout << "label " << exp() << std::endl;
       std::cout << "\tr = " << exp.muMean() << " +- " << exp.muMeanError() << " +- " << exp.muRMS() << " +- " << exp.muError() << std::endl;
