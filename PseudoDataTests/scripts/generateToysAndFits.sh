@@ -1,5 +1,5 @@
 #!/bin/bash
-pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW.txt"
+pathToCMSSWsetup="/afs/cern.ch/user/f/fischeda/public/CombineFitTests/PseudoDataTests/scripts/setupCMSSW.txt"
 if [[ -f "$pathToCMSSWsetup" ]]; then
 
   eval "source $pathToCMSSWsetup"
