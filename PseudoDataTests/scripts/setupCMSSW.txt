@@ -1,5 +1,5 @@
 
-CMSSW_BASE=/afs/cern.ch/user/f/fischeda/public/CMSSW_7_4_7
+CMSSW_BASE=/nfs/dust/cms/user/firin/CMSSW_7_4_7/src
 export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch
 source $VO_CMS_SW_DIR/cmsset_default.sh
 cd $CMSSW_BASE
