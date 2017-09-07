@@ -170,13 +170,13 @@ def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, nu
     return jobids
 
 
-def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
+def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus):
     numberOfLoops = numberOfToys//numberOfToysPerJob
     rest = numberOfToys%numberOfToysPerJob
     commands = []
     if pathToMSworkspace is None or pathToMSworkspace == "":
         pathToMSworkspace = "\'\'\"\"\'\'"
-    for signalStrength in range(0,2):
+    for signalStrength in listOfMus:
         if not outputDirectory.endswith("/"):
             outputDirectory = outputDirectory + "/"
         signalStrengthFolder = outputDirectory + "sig" + str(signalStrength)
@@ -482,7 +482,7 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
         pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
-        jobids = submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace)
+        jobids = submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus = listOfMus)
         print "waiting for toy generation to finish"
         # do_qstat(jobids)
         # os.chdir(workdir)

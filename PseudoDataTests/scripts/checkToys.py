@@ -197,6 +197,7 @@ def getDataObs(pathToPseudoExps, rootfile, pdfOutputPath = "./"):
         orig_data_obs = None
         if origFile.IsOpen() and not origFile.IsZombie() and not origFile.TestBit(ROOT.TFile.kRecovered):
             orig_data_obs = origFile.Get("data_obs_finaldiscr_" + cat)
+        else: print "could not open file", rootfile
         for i in sorted(data_obs_dic[cat]):
             outFile = ROOT.TFile(pdfOutputPath+"/"+data_obs_dic[cat][i].GetName()+".root", "RECREATE")
             canvas = ROOT.TCanvas()
@@ -212,6 +213,8 @@ def getDataObs(pathToPseudoExps, rootfile, pdfOutputPath = "./"):
                 leg.AddEntry(line,"orig_val = {0}".format(val),"l")
                 line.Draw("Same")
                 leg.Draw("Same")
+            else:
+                print "could not load data_obs object \'{0}\' from file \'{1}\'".format("data_obs_finaldiscr_" + cat, rootfile)
             if i == 0:
                 canvas.Print(pdfOutputPath+"/"+name.replace("_{0}".format(i), "")+".pdf(","pdf")
             elif i == len(data_obs_dic[cat])-1:

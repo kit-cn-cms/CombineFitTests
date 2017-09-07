@@ -31,6 +31,10 @@ def tth_fit_stability(pois):
     pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_powheg/limits_BDT_powheg_datacard_63445464_ttHbb.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_powheg/limits_BDT_powheg/limits_BDT_powheg_limitInput.root"
 
+    pathToSherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_sherpa_ol/limits_BDT_sherpa_ol_datacard_63445464_ttHbb.txt"
+    pathToAMC = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_amc/limits_BDT_amc_datacard_63445464_ttHbb.txt"
+
+
     processDic = {
     #"ttbarOther": ["0.99", "0.9", "1.01", "1.1"],
     "ttbarPlusBBbar": ["0.5", "0.8", "1.2", "1.5"],
@@ -56,7 +60,8 @@ def tth_fit_stability(pois):
 
     base_suffix = "63445464_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
     runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pathToRoofile, pois)
-
+    runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa)
+    runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
         for factor in processDic[key]:
             process = key
@@ -80,23 +85,19 @@ def tth_fit_stability(pois):
             runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois, "--scaleProcesses " + key, "--scaleFuncs " + factor)
 
 
-def JES_uncertainty_study():
+def JES_uncertainty_study(pathToDatacards):
     targetPath = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/tests/CMS_nominal_CSV/"
-    pathToDatacards = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/datacard_63445463_CMS_scale_*j_*.txt"
+    #pathToDatacards = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/datacard_63445463_CMS_scale_*j_*.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/nuisanceImpact/nuisanceImpact_limitInput.root"
 
-    threads = list()
-    que = Queue.Queue()
     for datacard in glob.glob(pathToDatacards):
-
+        if "reduced" in datacard:
+            continue
         suffix = datacard.split("/")[-1]
         suffix = suffix.replace(".txt","")
         suffix = suffix.replace("datacard_","")
 
-        t = Thread(target=lambda q, arg1, arg2, arg3, arg4: q.put(runScript(arg1, arg2, arg3, arg4)), args=(que, targetPath, suffix, datacard, pathToRoofile), name=suffix)
-        threads.append(t)
-        t.start()
-    return threads, que
+        runScript(targetPath, suffix + "_redefineSignalPOI", datacard, pathToRoofile, key = "--asimov")
 
 def throwToys(wildcard, inputRootFile, pathToConfig):
     #wildcard = sys.argv[1]
@@ -120,12 +121,12 @@ def throwToys(wildcard, inputRootFile, pathToConfig):
     else:
         sys.exit("Could not find root file in %s" % inputRootFile)
 
-throwToys(sys.argv[1], sys.argv[2], sys.argv[3])
+#throwToys(sys.argv[1], sys.argv[2], sys.argv[3])
 listOfPoisCombis = [
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
-        #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        {"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
+        {"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         #{"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
         #{"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},
@@ -136,3 +137,5 @@ listOfPoisCombis = [
 
 # for pois in listOfPoisCombis:
 #    tth_fit_stability(pois)
+
+JES_uncertainty_study(sys.argv[1])
