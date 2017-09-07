@@ -30,13 +30,20 @@ int main()
 	RooRealVar* varpostb;
 
 	// Tree to save values from Fit
-	TTree* Tbpostb;
+	TTree* Tpostb = new TTree("Tpostb","Nuisances postfit,only background");
 
 	// Test for Iterator
 	while((varpostb = (RooRealVar*) itpostb->Next()))
 	{
-		Branch* Bbtemp
+		double_t cat[3];
+		Tpostb->Branch(varpostb->GetName(),cat,"cat[3]/D");
+		cat[0] = varpostb->GetVal();
+		cat[1] = varpostb->GetError();
+		cat[2] = varpostb->GetHigh();
+		cat[3] = varpostb->GetLow();
+		Tpostb->Fill();
 	}
 
+	Tpost.Print();
 	return 0;
 }
