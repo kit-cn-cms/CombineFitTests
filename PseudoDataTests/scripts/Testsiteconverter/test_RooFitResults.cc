@@ -19,31 +19,28 @@ int main()
 	// Initalizing fit_b
 	RooFitResult* fit_b = (RooFitResult*) file->Get("fit_b");
 
-	// Trees for fit values
-	TTree* tpostb;
-
 	// Iterator for fit values
-	TIter* itpostb = (TIter*) fit_b->floatParsInit().createIterator();
+	TIter* Itpostb = (TIter*) fit_b->floatParsInit().createIterator();
 
 
 	// Variables for nuisances
-	RooRealVar* varpostb;
+	RooRealVar* Varpostb;
 
 	// Tree to save values from Fit
 	TTree* Tpostb = new TTree("Tpostb","Nuisances postfit,only background");
 
 	// Test for Iterator
-	while((varpostb = (RooRealVar*) itpostb->Next()))
+	while((Varpostb = (RooRealVar*) Itpostb->Next()))
 	{
-		double_t cat[3];
-		Tpostb->Branch(varpostb->GetName(),cat,"cat[3]/D");
-		cat[0] = varpostb->GetVal();
-		cat[1] = varpostb->GetError();
-		cat[2] = varpostb->GetHigh();
-		cat[3] = varpostb->GetLow();
+		double_t cat[4];
+		Tpostb->Branch(Varpostb->GetName(),cat,"cat[3]/D");
+		cat[0] = Varpostb->getVal();
+		cat[1] = Varpostb->getError();
+		cat[2] = Varpostb->getErrorHi();
+		cat[3] = Varpostb->getErrorLo();
 		Tpostb->Fill();
 	}
 
-	Tpost.Print();
+	Tpostb->Scan();
 	return 0;
 }
