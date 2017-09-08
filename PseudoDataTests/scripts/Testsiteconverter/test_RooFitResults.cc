@@ -13,7 +13,7 @@
 
 using namespace std;
 
-void test(TString filename = "mlfit.root")
+void test(TString filename = "mlfit.root", char &adress = "fit_b")
 {
 	// Reading of data
 	TFile* file = new TFile(filename.Data());
@@ -23,7 +23,7 @@ void test(TString filename = "mlfit.root")
 	{
 		// Initalizing fitb
 		RooFitResult* fitb;
-		file->GetObject("fit_s",fitb);
+		file->GetObject(&adress,fitb);
 		std::cout << "loaded fit_b\n";
 
 		// Iterator for fit values
@@ -31,7 +31,7 @@ void test(TString filename = "mlfit.root")
 		TIter Ipostb = fitb->floatParsFinal().createIterator();
 
 		// Creating Folder for Trees
-		TFolder* Fpostb = new TFolder("test","Nuisances postfit,only background");
+		TFolder* Fpostb = new TFolder("test","Nuisances postfit");
 
 		// Creating Varpostb to temporarily save data
 
