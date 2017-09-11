@@ -38,22 +38,20 @@ void test1(TString filename = "mlfit.root", bool mod =0)
 		RooRealVar* Varpostb_one;
 		RooRealVar* Varpostb_two;
 
-		// Creating Folder
-		TFolder* Fpostb = new TFolder("test","correlation");
-
-		while(Varpostb_one = (RooRealVar*) Ipostb_one.Next())
+		while((Varpostb_one = (RooRealVar*) Ipostb_one.Next()))
 		{
-			TTree* Tpostb = new TFolder(Varpostb_one->GetName(),Varpostb_one->GetName());
-			while(Varpostb_two=(RooRealVar*) Ipostb_two.Next())
+			TTree* Tpostb = new TTree(Varpostb_one->GetName(),Varpostb_one->GetName());
+			while((Varpostb_two=(RooRealVar*) Ipostb_two.Next()))
 			{
-				value = -999;
-				Tpostb->Branch(Varpostb_two->GetName(),&value, "correlation\D");
-				value = correlation(Varpostb_one,Varpostb_two);
-				Tpost->Fill();
+				Double_t value = -999;
+				Tpostb->Branch(Varpostb_two->GetName(),&value, "correlation/D");
+				value = fitb->correlation(Varpostb_one->GetName(),Varpostb_two->GetName());
+				Tpostb->Fill();
 			}
 		Fpostb->Add(Tpostb);
 		}
 	TFile* output = new TFile("testcor.root","RECREATE");
 	Fpostb->Write();
-	output->close();
+	output->Close();
+	}
 }
