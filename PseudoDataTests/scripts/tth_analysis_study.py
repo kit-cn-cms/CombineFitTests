@@ -4,11 +4,15 @@ import os
 import stat
 import subprocess
 import time
+import shutil
 from array import array
 from optparse import OptionParser
 from optparse import OptionGroup
 #import glob
 ROOT.gROOT.SetBatch(True)
+
+workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
+
 
 parser = OptionParser()
 group_required = OptionGroup(parser, "Required Options")
@@ -16,13 +20,14 @@ group_globalOptions = OptionGroup(parser, "Options Valid for All Option Groups")
 group_scalingOptions = OptionGroup(parser, "Scaling Related Options")
 group_required.add_option("-o", "--outputDirectory", dest="outputDirectory", help="save signal strength folders with PseudoExperiments here", metavar = "PATH")
 group_globalOptions.add_option("-n", "--numberOfToys", dest="numberOfToys", help="generate this many toys per signal strength (default = 1000)", default = 1000, type="int")
-group_globalOptions.add_option("--numberOfToysPerJob", dest = "nPerJob", help="process this many toys at once on bird system (default = 30)", default = 30 , type="int")
+group_globalOptions.add_option("--nToysPerJob", dest = "nPerJob", help="process this many toys at once on bird system (default = 30)", default = 30 , type="int")
 group_globalOptions.add_option("--asimov", action="store_true", dest="asimov", default=False, help="only generate asimov toys. If this flag is activated input for '-n' is ignored and is set to 1")
 group_globalOptions.add_option("-s", "--injectSignalStrength", dest = "signalStrengths", help="use this signal strength for toy generation", action = "append", type="float")
 group_required.add_option("-d", "--datacard", dest="pathToDatacard", help="path to datacard with original MC templates", metavar="path/to/orignal/datacard")
 group_required.add_option("-r", "--rootfile", dest="pathToRoofile", help="path to root file specified in the datacard for option '-d'", metavar = "path/to/root/file")
 group_globalOptions.add_option("-p", "--additionalPOI", action="append", dest="POIs",
                     help="add an additional POI to the fit.\nSyntax: (PROCESSNAME):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE]\n In order to map multiple process to one POI, use\n(PROCESSNAME1|PROCESSNAME2|...):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE].\nUses combine physics model 'multiSignalModel'. DANGER! This requires an additional datacard of the form 'path/to/original/datacard_POINAME1_POINAME2_....txt'")
+group_globalOptions.add_option("--toysFrequentist", dest="toysFrequentist", help = "generate frequentist toys", action="store_true", default = False)
 group_scalingOptions.add_option("--scaledDatacard", dest="pathToScaledDatacard", help="use this datacard to throw toys from", metavar="path/to/toy/datacard")
 group_scalingOptions.add_option("--scaleProcesses", dest="listOfProcesses", help="comma-separated list of processes to be scaled. Names have to match names in datacard", metavar="PROCESS1,PROCESS2,...")
 group_scalingOptions.add_option("--scaleFuncs", dest = "listOfFormulae", help="comma-separated list of functions to scale processes with.\nBased on TF1 functionality. Requires same order as in option '--scaleProcesses'", metavar="FUNC1,FUNC2,...")
@@ -66,7 +71,7 @@ if options.asimov:
     if verbose:
         print "Will only generate one asimov toy"
     numberOfToys = 1
-workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
+
 pathToConfig = os.path.abspath(options.config)
 if os.path.exists(pathToConfig) and os.path.basename(pathToConfig) == "config.py":
     sys.path.append(pathToConfig)
@@ -74,7 +79,11 @@ if os.path.exists(pathToConfig) and os.path.basename(pathToConfig) == "config.py
 else:
     sys.exit("Unable to find config.py file in %s" % pathToConfig)
 
+generatorScript = "generateToysAndFits.sh"
+if options.toysFrequentist:
+    generatorScript = "generateFrequentistToysAndFits.sh"
 
+print "will use {0} to generate toys and perform fits".format(workdir + "/" + generatorScript)
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
@@ -110,8 +119,12 @@ def submitArrayToNAF(scripts, arrayscriptpath):
     submitclock=ROOT.TStopwatch()
     submitclock.Start()
     logdir = os.getcwd()+"/logs"
-    if not os.path.exists(logdir):
-        os.makedirs(logdir)
+    if os.path.exists(logdir):
+        print "emptying directory", logdir
+        shutil.rmtree(logdir)
+
+    os.makedirs(logdir)
+
     # get nscripts
     nscripts=len(scripts)
     tasknumberstring='1-'+str(nscripts)
@@ -180,15 +193,19 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
         if not outputDirectory.endswith("/"):
             outputDirectory = outputDirectory + "/"
         signalStrengthFolder = outputDirectory + "sig" + str(signalStrength)
-        if not os.path.exists(signalStrengthFolder):
-            os.makedirs(signalStrengthFolder)
+        if os.path.exists(signalStrengthFolder):
+            print "resetting folder", signalStrengthFolder
+            shutil.rmtree(signalStrengthFolder)
+
 
         signalStrengthFolder = os.path.abspath(signalStrengthFolder)
+        os.makedirs(signalStrengthFolder)
+
 
         if not os.path.exists(signalStrengthFolder + "/asimov"):
             os.makedirs(signalStrengthFolder + "/asimov")
 
-        commands.append("\'" + workdir + "/generateToysAndFits.sh " + pathToDatacard + " " + datacardToUse + " -1 " + str(signalStrength) + " 123456 " + pathToMSworkspace + " " + signalStrengthFolder + "/asimov\'")
+        commands.append("\'" + workdir + "/"+ generatorScript +" " + pathToDatacard + " " + datacardToUse + " -1 " + str(signalStrength) + " 123456 " + pathToMSworkspace + " " + signalStrengthFolder + "/asimov\'")
 
         for i in range(numberOfLoops):
             upperBound = (i+1)*numberOfToysPerJob

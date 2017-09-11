@@ -1,6 +1,5 @@
 #!/bin/bash
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW.txt"
-pathToNLLscanner="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/plotting/nllscan.py"
 if [[ -f "$pathToCMSSWsetup" ]]; then
 
   eval "source $pathToCMSSWsetup"
@@ -11,9 +10,7 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
   randomseed=$5
   pathToMSworkspace=$6
   outputPath=$7
-
   randomseed=$((randomseed+1))
-  param="CMS_scale_0p5j"
   echo "input variables:"
   echo "targetDatacard = $1"
   echo "toyDatacard = $2"
@@ -22,14 +19,13 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
   echo "randomseed = $randomseed"
   echo "pathToMSworkspace = $pathToMSworkspace"
   echo "outputPath = $outputPath"
-  echo "current parameter = $param"
 
   echo "changing directory to $outputPath"
   if [[ -d "$outputPath" ]]; then
     cd $outputPath
 
     if [[ -f $toyDatacard ]]; then
-      combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard"
+      combineCmd="combine -M GenerateOnly --toysFrequentist -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard"
       echo "$combineCmd"
       eval $combineCmd
       if [[ -f *.root.dot ]]; then
@@ -40,7 +36,7 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
       echo "$toyFile"
 
       if [[ -f $toyFile ]]; then
-        combineCmd="combine -M MaxLikelihoodFit --redefineSignalPOIs $param -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
+        combineCmd="combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
         echo "$combineCmd"
         eval $combineCmd
 
@@ -53,17 +49,17 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
         fi
 
         echo "performing NLL scan"
-        #combineCmd='combine -M MultiDimFit '$targetDatacard' --algo=grid --points=400 --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _MS_multidim --saveWorkspace -m 125 -t '$numberOfToysPerExperiment' --toysFile '$toyFile' --saveFitResult'
-        #echo "$combineCmd"
-        #eval $combineCmd
-        cmd='python '$pathToNLLscanner' --toysFile '$toyFile' -d '$targetDatacard' --addCommand "--redefineSignalPOIs '$param'" -x '$param' -t '$numberOfToysPerExperiment' --addCommand "--saveInactivePOI 1"'
+        combineCmd='combine -M MultiDimFit '$targetDatacard' --algo=grid --points=400 --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _MS_multidim --saveWorkspace -m 125 -t '$numberOfToysPerExperiment' --toysFile '$toyFile' --saveFitResult'
+        echo "$combineCmd"
+        eval $combineCmd
 
-        echo "$cmd"
-        eval $cmd
-        if [[ -f "higgsCombineTest.MultiDimFit.mH125.123456.root" ]]; then
-          rm "higgsCombineTest.MultiDimFit.mH125.123456.root"
+        if [[ -f "higgsCombineTest.MaxLikelihoodFit.mH125.123456.root" ]]; then
+          rm "higgsCombineTest.MaxLikelihoodFit.mH125.123456.root"
         fi
 
+        if ! [[ -f "mlfit.root" ]]; then
+          echo "could not produce mlfit.root file!"
+        fi
 
         # if [[ -f $pathToMSworkspace ]]; then
         #   echo "starting multiSignal analysis"
