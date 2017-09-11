@@ -13,7 +13,7 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
   outputPath=$7
 
   randomseed=$((randomseed+1))
-  param="CMS_scale_0p5j"
+  param="CMS_scale_0p25j"
   echo "input variables:"
   echo "targetDatacard = $1"
   echo "toyDatacard = $2"
@@ -57,14 +57,18 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
         #echo "$combineCmd"
         #eval $combineCmd
         cmd='python '$pathToNLLscanner' --toysFile '$toyFile' -d '$targetDatacard' --addCommand "--redefineSignalPOIs '$param'" -x '$param' -t '$numberOfToysPerExperiment' --addCommand "--saveInactivePOI 1"'
-
         echo "$cmd"
         eval $cmd
         if [[ -f "higgsCombineTest.MultiDimFit.mH125.123456.root" ]]; then
           rm "higgsCombineTest.MultiDimFit.mH125.123456.root"
         fi
 
-
+        cmd='python '$pathToNLLscanner' --scan2D -x r -y '$param' --toysFile '$toyFile' -t '$numberOfToysPerExperiment' -d '$targetDatacard' --addCommand "--redefineSignalPOIs r,'$param'" --addCommand "--setPhysicsModelParameterRanges r=-10,10:'$param'=-5,5"'
+        echo "$cmd"
+        eval $cmd
+        if [[ -f "higgsCombineTest.MultiDimFit.mH125.123456.root" ]]; then
+          rm "higgsCombineTest.MultiDimFit.mH125.123456.root"
+        fi
         # if [[ -f $pathToMSworkspace ]]; then
         #   echo "starting multiSignal analysis"
         #   combineCmd="combine -M MaxLikelihoodFit -m 125 -n _MS_mlfit --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $pathToMSworkspace"
