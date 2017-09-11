@@ -13,7 +13,7 @@
 
 using namespace std;
 
-void test(TString filename = "mlfit.root", char &adress = "fit_b")
+void test(TString filename = "mlfit.root", bool mod=0)
 {
 	// Reading of data
 	TFile* file = new TFile(filename.Data());
@@ -23,8 +23,10 @@ void test(TString filename = "mlfit.root", char &adress = "fit_b")
 	{
 		// Initalizing fitb
 		RooFitResult* fitb;
-		file->GetObject(&adress,fitb);
-		std::cout << "loaded fit_b\n";
+		if(mod==0){file->GetObject("fit_b",fitb);}
+		else {file->GetObject("fit_s",fitb);}
+
+		std::cout << "loaded data\n";
 
 		// Iterator for fit values
 		std::cout << "created iterator\n";
