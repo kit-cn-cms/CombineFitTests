@@ -52,6 +52,7 @@ if directDrawPath == None:
 xVar = options.x
 if xVar == None:
     parser.error("variable for x axis of scan needs to be specified!")
+
 yVar = options.y
 suffix = options.suffix
 outputDirectory = os.path.abspath(options.outputDirectory)
@@ -86,6 +87,8 @@ if directDrawPath is None:
 
     print multidimfitcmd
     subprocess.call([multidimfitcmd], shell=True)
+    for workspace in glob.glob("roostat*.root"):
+        os.remove(workspace)
 
     fitresFile = os.path.abspath(fitresFile + ".MultiDimFit.mH125.root")
     os.chdir(basepath)
@@ -95,7 +98,7 @@ else:
 #________________________________________________________________
 
 
-def do1DScan(limit):
+def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     xVals = []
     yVals = []
     for e in limit:
@@ -128,7 +131,7 @@ def do1DScan(limit):
     graph.SaveAs(outputDirectory + "/" + filename + ".root")
 
 
-def do2DScan(limit):
+def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     xVals = []
     yVals = []
     zVals = []
@@ -169,9 +172,9 @@ if os.path.exists(fitresFile):
             print "loaded limit TTree with {0} events".format(limit.GetEntries())
 
             if scan2D:
-                do2DScan(limit)
+                do2DScan(limit, xVar = xVar, yVar = yVar, outputDirectory = outputDirectory, suffix = suffix)
             else:
-                do1DScan(limit)
+                do1DScan(limit, xVar = xVar, yVar = yVar, outputDirectory = outputDirectory, suffix = suffix)
 
 
         else:

@@ -4,7 +4,7 @@ categories = ["ljets_j4_t4", "ljets_j5_tge4", "ljets_jge6_t3", "ljets_jge6_tge4"
 histoKey = "$PROCESS_finaldiscr_$CHANNEL" #key for templates in datacard
 sProcesses = ["ttH_hbb"] #list of signal processes
 bProcesses = ["ttbarOther", "ttbarPlusB", "ttbarPlus2B", "ttbarPlusBBbar", "ttbarPlusCCbar"] #list of background processes
-ignoreUncertainties = []#["bgnorm_*", "QCDscale*"] #list of nuisance parameters to be ignored during toy generation
+ignoreUncertainties = ["bgnorm_*", "QCDscale*"] #list of nuisance parameters to be ignored during toy generation
 
 #user input ends here
 #_________________________________________________________________________________________________

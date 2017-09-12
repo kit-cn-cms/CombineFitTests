@@ -13,7 +13,6 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
   outputPath=$7
 
   randomseed=$((randomseed+1))
-  param="CMS_scale_0p25j"
   echo "input variables:"
   echo "targetDatacard = $1"
   echo "toyDatacard = $2"
@@ -22,7 +21,6 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
   echo "randomseed = $randomseed"
   echo "pathToMSworkspace = $pathToMSworkspace"
   echo "outputPath = $outputPath"
-  echo "current parameter = $param"
 
   echo "changing directory to $outputPath"
   if [[ -d "$outputPath" ]]; then
@@ -40,7 +38,7 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
       echo "$toyFile"
 
       if [[ -f $toyFile ]]; then
-        combineCmd="combine -M MaxLikelihoodFit --redefineSignalPOIs $param -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
+        combineCmd="combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
         echo "$combineCmd"
         eval $combineCmd
 
@@ -52,23 +50,6 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
           echo "could not produce mlfit.root file!"
         fi
 
-        echo "performing NLL scan"
-        #combineCmd='combine -M MultiDimFit '$targetDatacard' --algo=grid --points=400 --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _MS_multidim --saveWorkspace -m 125 -t '$numberOfToysPerExperiment' --toysFile '$toyFile' --saveFitResult'
-        #echo "$combineCmd"
-        #eval $combineCmd
-        cmd='python '$pathToNLLscanner' --toysFile '$toyFile' -d '$targetDatacard' --addCommand "--redefineSignalPOIs '$param'" -x '$param' -t '$numberOfToysPerExperiment' --addCommand "--saveInactivePOI 1"'
-        echo "$cmd"
-        eval $cmd
-        if [[ -f "higgsCombineTest.MultiDimFit.mH125.123456.root" ]]; then
-          rm "higgsCombineTest.MultiDimFit.mH125.123456.root"
-        fi
-
-        cmd='python '$pathToNLLscanner' --scan2D -x r -y '$param' --toysFile '$toyFile' -t '$numberOfToysPerExperiment' -d '$targetDatacard' --addCommand "--redefineSignalPOIs r,'$param'" --addCommand "--setPhysicsModelParameterRanges r=-10,10:'$param'=-5,5"'
-        echo "$cmd"
-        eval $cmd
-        if [[ -f "higgsCombineTest.MultiDimFit.mH125.123456.root" ]]; then
-          rm "higgsCombineTest.MultiDimFit.mH125.123456.root"
-        fi
         # if [[ -f $pathToMSworkspace ]]; then
         #   echo "starting multiSignal analysis"
         #   combineCmd="combine -M MaxLikelihoodFit -m 125 -n _MS_mlfit --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $pathToMSworkspace"

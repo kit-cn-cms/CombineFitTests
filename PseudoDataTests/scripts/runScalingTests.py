@@ -59,9 +59,9 @@ def tth_fit_stability(pois):
         targetPath = targetPath + poi
 
     base_suffix = "63445464_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
-    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pathToRoofile, pois)
-    runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa)
-    runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
+    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pathToRoofile, pois, key = "--toysFrequentist ")
+    runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa+ " --toysFrequentist")
+    runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC + " --toysFrequentist")
     for key in processDic:
         for factor in processDic[key]:
             process = key
@@ -82,7 +82,7 @@ def tth_fit_stability(pois):
                 factor = temp_factor.replace("_",",")
 
 
-            runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois, "--scaleProcesses " + key, "--scaleFuncs " + factor)
+            runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois, "--scaleProcesses " + key+ " --toysFrequentist", "--scaleFuncs " + factor)
 
 
 def JES_uncertainty_study(pathToDatacards):
@@ -135,7 +135,7 @@ listOfPoisCombis = [
         #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         ]
 
-# for pois in listOfPoisCombis:
-#    tth_fit_stability(pois)
+for pois in listOfPoisCombis:
+    tth_fit_stability(pois)
 
-JES_uncertainty_study(sys.argv[1])
+#JES_uncertainty_study(sys.argv[1])
