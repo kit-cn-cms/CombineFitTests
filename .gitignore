@@ -51,3 +51,11 @@ CVS
 # Plots #
 #########
 *.pdf
+
+# Root Files#
+#############
+*.root
+
+# Test Files#
+#############
+test*

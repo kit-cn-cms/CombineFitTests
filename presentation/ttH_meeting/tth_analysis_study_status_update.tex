@@ -115,32 +115,61 @@
 \newcommand{\frameScaledProcessName}{$\ttbar\cdot 0.9$}
 
 
-\newcommand{\createNormTableFrame}[6]{
+\newcommand{\createNormTableFrame}[7]{
 
-\begin{frame}{Normalization for #3 - #1 - Values for $\mu = #5$}
+\begin{frame}{Normalization for #4 - #2 - Values for $\mu = #6$}
 \begin{scriptsize}
-\input{\pathToTables/63445464_ttHbb_N1000_#2_ljets_#4_normalisation_values_nominal_S_#6}
+\input{#1/63445464_ttHbb_N1000_#3_ljets_#5_normalisation_values_nominal_S_#7}
 \end{scriptsize}
 
 \end{frame}
 }
 
-\newcommand{\createPullplotFrame}[2]{
-\begin{frame}{#1 - 63-44-54-64 - Nuisance Parameter Pullplots}
+\newcommand{\createPOItables}[5]{
+%#1: path/to/tables
+%#2: additional POI(s) in path form
+%#3: additional POI(s) in text form
+%#4: process scaling in path form
+%#5: process scaling in text form
+
+
+\begin{frame}{#3, #5 - Asimov POI values}
+
+\begin{scriptsize}
+\input{#1/asimov/#2/63445464_ttHbb_N1000_#2_#4_POI.tex}
+\end{scriptsize}
+
+\end{frame}
+
+\begin{frame}{#3 - #5 - PseudoData POI values}
+
+\begin{scriptsize}
+\input{#1/PseudoData/#2/63445464_ttHbb_N1000_#2_#4_POI.tex}
+\end{scriptsize}
+
+\end{frame}
+
+}
+
+\newcommand{\createPullplotFrame}[3]{
+%#1: path/to/plots
+%#2: process scaling in text form
+%#3: process scaling in path form
+\begin{frame}{#2 - 63-44-54-64 - Nuisance Parameter Pullplots}
 
 \begin{figure}
 
 \begin{minipage}{0.48\textwidth}
 \centering
-\includegraphics[width=\textwidth]{\pathToPlots/63445464_ttHbb_N1000_#2_pullplot_nominal_S_0p0.pdf}
-\caption{Pull Plot for $\mu = 0$ in Category 63-44-54-64 with #1}
+\includegraphics[width=\textwidth]{#1/63445464_ttHbb_N1000_#3_pullplot_nominal_S_0p0.pdf}
+\caption{Pull Plot for $\mu = 0$ in Category 63-44-54-64 with #2}
 
 \end{minipage}
 \hfill
 \begin{minipage}{0.48\textwidth}
 \centering
-\includegraphics[width=\textwidth]{\pathToPlots/63445464_ttHbb_N1000_#2_pullplot_nominal_S_1p0.pdf}
-\caption{Pull Plot for $\mu = 1$ in Category 63-44-54-64 with #1}
+\includegraphics[width=\textwidth]{#1/63445464_ttHbb_N1000_#3_pullplot_nominal_S_1p0.pdf}
+\caption{Pull Plot for $\mu = 1$ in Category 63-44-54-64 with #2}
 
 \end{minipage}
 
@@ -148,47 +177,235 @@
 \end{frame}
 }
 
-\newcommand{\createNormPullplotFrame}[4]{
-\begin{frame}{#1 - #3 - Normalization Pullplots}
+\newcommand{\createPullplotFrameAsimovComparison}[7]{
+%#1: path/to/plots
+%#2: additional POI(s) in path form
+%#3: additional POI(s) in text form
+%#4: process scaling in path form
+%#5: process scaling in text form
+%#6: fit + injected signal strength in path form
+%#7: fit + injected signal strength in text form
+
+
+\begin{frame}{#3, #5 - 63-44-54-64 - Pull Plots for #7}
+
+\begin{minipage}{0.44\textwidth}
+\centering
+\includegraphics[width=\textwidth]{#1/asimov/#2/63445464_ttHbb_N1000_#2_#4_pullplot_#6.pdf}\\
+\vskip -0.2cm
+Asimov Pull Plot of #7
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.44\textwidth}
+\centering
+\includegraphics[width=\textwidth]{#1/PseudoData/#2/63445464_ttHbb_N1000_#2_#4_pullplot_#6.pdf}\\
+\vskip -0.2cm
+PseudoData Pull Plot of #7
+
+\end{minipage}
+
+\end{frame}
+
+
+}
+
+\newcommand{\createCorrelationplotFrameAsimovComparison}[7]{
+%#1: path/to/plots
+%#2: additional POI(s) in path form
+%#3: additional POI(s) in text form
+%#4: process scaling in path form
+%#5: process scaling in text form
+%#6: fit + injected signal strength in path form
+%#7: fit + injected signal strength in text form
+
+
+\begin{frame}{#3, #5 - 63-44-54-64 - Correlation PostfitB for #7}
+
+\begin{minipage}{0.44\textwidth}
+\centering
+\includegraphics[width=\textwidth]{#1/asimov/#2/63445464_ttHbb_N1000_#2_#4_correlationPlot_PostfitB_#6.pdf}\\
+\vskip -0.2cm
+Asimov Correlation Plot of #7
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.44\textwidth}
+\centering
+\includegraphics[width=\textwidth]{#1/PseudoData/#2/63445464_ttHbb_N1000_#2_#4_correlationPlot_PostfitB_#6.pdf}\\
+\vskip -0.2cm
+PseudoData Correlation Plot of #7
+
+\end{minipage}
+
+\end{frame}
+
+
+\begin{frame}{#3, #5 - 63-44-54-64 - Correlation PostfitS for #7}
+
+\begin{minipage}{0.44\textwidth}
+\centering
+\includegraphics[width=\textwidth]{#1/asimov/#2/63445464_ttHbb_N1000_#2_#4_correlationPlot_PostfitS_#6.pdf}\\
+\vskip -0.2cm
+Asimov Correlation Plot of #7
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.44\textwidth}
+\centering
+\includegraphics[width=\textwidth]{#1/PseudoData/#2/63445464_ttHbb_N1000_#2_#4_correlationPlot_PostfitS_#6.pdf}\\
+\vskip -0.2cm
+PseudoData Correlation Plot of #7
+
+\end{minipage}
+
+\end{frame}
+
+}
+
+\newcommand{\createNormPullplotFrame}[5]{
+%#1: path/to/plots
+%#2: process scaling in text form
+%#3: process scaling in path form
+%#4: category in text form
+%#5: category in path form
+\begin{frame}{#2 - #4 - Normalization Pullplots}
 
 \begin{figure}
 
 \begin{minipage}{0.48\textwidth}
 \centering
-\includegraphics[width=\textwidth]{\pathToPlots/63445464_ttHbb_N1000_#2_ljets_#4_normalisation_pullplot_nominal_S_0p0.pdf}
-\caption{Normalization Pull Plot for $\mu = 0$ in Category #3 with #1}
+\includegraphics[width=\textwidth]{#1/63445464_ttHbb_N1000_#3_ljets_#5_normalisation_pullplot_nominal_S_0p0.pdf}
+\caption{Normalization Pull Plot for $\mu = 0$ in Category #4 with #2}
 
 \end{minipage}
 \hfill
 \begin{minipage}{0.48\textwidth}
 \centering
-\includegraphics[width=\textwidth]{\pathToPlots/63445464_ttHbb_N1000_#2_ljets_#4_normalisation_pullplot_nominal_S_1p0.pdf}
-\caption{Normalization Pull Plot for $\mu = 1$ in Category #3 with #1}
+\includegraphics[width=\textwidth]{#1/63445464_ttHbb_N1000_#3_ljets_#5_normalisation_pullplot_nominal_S_1p0.pdf}
+\caption{Normalization Pull Plot for $\mu = 1$ in Category #4 with #2}
 
 \end{minipage}
 
 \end{figure}
 \end{frame}
 }
-\newcommand{\createNormFrameSet}[2]{
 
-\createPullplotFrame{#1}{#2}
-\createNormPullplotFrame{#1}{#2}{44}{j4_t4}
-\createNormTableFrame{#1}{#2}{44}{j4_t4}{0.0}{0p0}
-\createNormTableFrame{#1}{#2}{44}{j4_t4}{1.0}{1p0}
 
-\createNormPullplotFrame{#1}{#2}{54}{j5_tge4}
-\createNormTableFrame{#1}{#2}{54}{j5_tge4}{0.0}{0p0}
-\createNormTableFrame{#1}{#2}{54}{j5_tge4}{1.0}{1p0}
+\newcommand{\createNormPullplotFrameAsimovComparison}[9]{
+%#1: path/to/plots
+%#2: additional POI(s) in path form
+%#3: additional POI(s) in text form
+%#4: process scaling in path form
+%#5: process scaling in text form
+%#6: category in path form
+%#7: category in text form
+%#8: fit + injected signal strength in path form
+%#9: fit + injected signal strength in text form
 
-\createNormPullplotFrame{#1}{#2}{63}{jge6_t3}
-\createNormTableFrame{#1}{#2}{63}{jge6_t3}{0.0}{0p0}
-\createNormTableFrame{#1}{#2}{63}{jge6_t3}{1.0}{1p0}
 
-\createNormPullplotFrame{#1}{#2}{64}{jge6_tge4}
-\createNormTableFrame{#1}{#2}{64}{jge6_tge4}{0.0}{0p0}
-\createNormTableFrame{#1}{#2}{64}{jge6_tge4}{1.0}{1p0}
+\begin{frame}{#3, #5 - #7 - Norm Pull Plots for #9}
 
+\begin{minipage}{0.44\textwidth}
+\centering
+\includegraphics[width=\textwidth]{#1/asimov/#2/63445464_ttHbb_N1000_#2_#4_ljets_#6_normalisation_pullplot_#8.pdf}\\
+\vskip -0.2cm
+Asimov Pull Plot of #9 in category #7
+
+\end{minipage}
+\hfill
+\begin{minipage}{0.44\textwidth}
+\centering
+\includegraphics[width=\textwidth]{#1/PseudoData/#2/63445464_ttHbb_N1000_#2_#4_ljets_#6_normalisation_pullplot_#8.pdf}\\
+\vskip -0.2cm
+PseudoData Pull Plot of #9 in category #7
+
+\end{minipage}
+
+\end{frame}
+
+
+}
+
+
+\newcommand{\createNormFrameSet}[4]{
+
+%#1: path/to/plots
+%#2: path/to/tables
+%#3: process scaling in text form
+%#4: process scaling in path form
+
+\createPullplotFrame{#1}{#3}{#4}
+\createNormPullplotFrame{#1}{#3}{#4}{44}{j4_t4}
+\createNormTableFrame{#2}{#2}{#3}{44}{j4_t4}{0.0}{0p0}
+\createNormTableFrame{#2}{#2}{#3}{44}{j4_t4}{1.0}{1p0}
+
+\createNormPullplotFrame{#1}{#3}{#4}{54}{j5_tge4}
+\createNormTableFrame{#2}{#2}{#3}{54}{j5_tge4}{0.0}{0p0}
+\createNormTableFrame{#2}{#2}{#3}{54}{j5_tge4}{1.0}{1p0}
+
+\createNormPullplotFrame{#1}{#3}{#4}{63}{jge6_t3}
+\createNormTableFrame{#2}{#2}{#3}{63}{jge6_t3}{0.0}{0p0}
+\createNormTableFrame{#2}{#2}{#3}{63}{jge6_t3}{1.0}{1p0}
+
+\createNormPullplotFrame{#1}{#3}{#4}{64}{jge6_tge4}
+\createNormTableFrame{#2}{#2}{#3}{64}{jge6_tge4}{0.0}{0p0}
+\createNormTableFrame{#2}{#2}{#3}{64}{jge6_tge4}{1.0}{1p0}
+
+
+}
+
+
+
+
+\newcommand{\compareToAsimov}[4]{
+%#1: additional POI in path form
+%#2: additional POI in text form
+%#3: process scaling in path form
+%#4: process scaling in text form
+
+\begin{frame}
+\begin{center}
+
+\begin{huge}
+\hypertarget{#1_#3}{\textbf{#2 - #4}}
+\end{huge}
+
+\end{center}
+\end{frame}
+
+
+\createPOItables{\pathToTables/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}
+
+\createCorrelationplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{nominal_S_0p0}{r-Fit with injected $\mu = 0$}
+\createCorrelationplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{MDFnominal_S_0p0}{MDF with injected $\mu = 0$}
+\createCorrelationplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{nominal_S_1p0}{r-Fit with injected $\mu = 1$}
+\createCorrelationplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{MDFnominal_S_1p0}{MDF with injected $\mu = 1$}
+
+\createPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{nominal_S_0p0}{r-Fit with injected $\mu = 0$}
+\createPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{MDFnominal_S_0p0}{MDF with injected $\mu = 0$}
+\createPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{nominal_S_1p0}{r-Fit with injected $\mu = 1$}
+\createPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{MDFnominal_S_1p0}{MDF with injected $\mu = 1$}
+
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{j4_t4}{44}{nominal_S_0p0}{r-Fit with injected $\mu = 0$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{j4_t4}{44}{MDFnominal_S_0p0}{MDF with injected $\mu = 0$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{j4_t4}{44}{nominal_S_1p0}{r-Fit with injected $\mu = 1$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{j4_t4}{44}{MDFnominal_S_1p0}{MDF with injected $\mu = 1$}
+
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{j5_tge4}{54}{nominal_S_0p0}{r-Fit with injected $\mu = 0$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{j5_tge4}{54}{MDFnominal_S_0p0}{MDF with injected $\mu = 0$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{j5_tge4}{54}{nominal_S_1p0}{r-Fit with injected $\mu = 1$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{j5_tge4}{54}{MDFnominal_S_1p0}{MDF with injected $\mu = 1$}
+
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{jge6_t3}{63}{nominal_S_0p0}{r-Fit with injected $\mu = 0$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{jge6_t3}{63}{MDFnominal_S_0p0}{MDF with injected $\mu = 0$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{jge6_t3}{63}{nominal_S_1p0}{r-Fit with injected $\mu = 1$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{jge6_t3}{63}{MDFnominal_S_1p0}{MDF with injected $\mu = 1$}
+
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{jge6_tge4}{64}{nominal_S_0p0}{r-Fit with injected $\mu = 0$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{jge6_tge4}{64}{MDFnominal_S_0p0}{MDF with injected $\mu = 0$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{jge6_tge4}{64}{nominal_S_1p0}{r-Fit with injected $\mu = 1$}
+\createNormPullplotFrameAsimovComparison{\pathToPlots/JTBDT_Spring17v10/wo_NP}{#1}{#2}{#3}{#4}{jge6_tge4}{64}{MDFnominal_S_1p0}{MDF with injected $\mu = 1$}
 }
 
 
@@ -198,10 +415,10 @@
 % the presentation starts here
 
 \title[\ttbarH Analysis Study]{\ttbarH Fit Model Stability Studies}
-%\subtitle{Status Update}
-\author[Philip Keicher]{Karim~El~Morabit, Matthias~Schröder, \textbf{Philip Keicher}}
+\subtitle{Status Update}
+\author[Philip Keicher]{Karim~El~Morabit, Matthias~Schröder, \textbf{Philip~Keicher}}
 
-\institute{Institut für Experimentelle Kernphysik (IEKP)}
+\institute{Institut für Experimentelle Teilchenphysik (ETP)}
 
 
 \begin{document}
@@ -226,7 +443,7 @@
 
 \input{motivation.tex}
 \input{example.tex}
-\input{currentStatus.tex}
+%\input{currentStatus.tex}
 \input{outlook.tex}
 
 

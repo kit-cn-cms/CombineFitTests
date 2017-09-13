@@ -1,51 +1,27 @@
 \section{Summary}
 \begin{frame}{Summary}
-%\begin{block}{Motivation}
-%\begin{itemize}
-%\item Fit Model Stability Study to test robustness of fit
-%\item Change processes from nominal expectation to something else and see how fit reacts
-%\end{itemize}
-%\end{block}
-
-\begin{block}{Analysis Strategy}
+\begin{block}{Strategy}
 \begin{itemize}
-\item Scale BDT template histograms for specific processes
-\item Generate toys from scaled histograms
-\item Fit original BDT templates to toys from scaled histograms
+\item generated toys with input where (\ttbar + \bbbar)$\cdot \num[round-precision=1]{1.2}$\\
+\item fitted original MC templates to generated toys
+\item created distribution of fitted signal strengths\\
+\rar compared standard fit model (r-Fit) to one with additional POIs (MDF)
 \end{itemize}
 \end{block}
-
-\begin{block}{Results of MultiDimFit with additional POI}
+\begin{block}{Results}
 \begin{itemize}
-\item fitted signal strength much closer to nominal value
-\item biases are (if at all existent) much smaller
-\item dependency on scaling of process is much smaller
-\item problem: normalization collection
-
-%\item Normalizations for background processes mostly do not match with expectations
-%$\rightarrow$ further investigations necessary
+\item Injected signal strength in \\
+\rar r-Fit not inside fitted mean value $\pm$ mean error\\
+\rar MDF inside range
+\item overestimated postfit background in both cases
 \end{itemize}
 \end{block}
-
 \end{frame}
 
 \section{Outlook}
 \begin{frame}{Outlook}
-
-\begin{block}{TODO}
 \begin{itemize}
-%\item use more recent datacards\\
-%$\rightarrow$ add JES uncertainties
-%\item try MultiDimFit with multiple POIs
-\item looking for a way to collect norms, e.g. multidimensional MaxLikelihoodFit\\
-\rar still unclear what it does and if it works correctly
-\item use DNN datacards
-\item run test with 'combined' uncertainty for different processes\\
-\rar e.g. one uncertainty for all B-processes
-\item try different shape variations\\
-$\rightarrow$ use toys from different generator
-\item check correlations of parameters
+\item investigate behavior with toys from different generators
+\item compare different POI combinations
 \end{itemize}
-\end{block}
-
 \end{frame}
