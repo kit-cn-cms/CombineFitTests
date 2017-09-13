@@ -23,7 +23,7 @@
 combine -M GenerateOnly -m 125 --saveToys -t -1 -n \_-1toys\_sig1 --expectSignal 1 -s 123456 \$toyDatacard
 \end{block}
 \begin{block}{\texttt{combine} Command for Fit}
-combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 --floatAllNuisances 1 -t -1 --toysFile \$toyFile --minos all \$targetDatacard
+combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t -1 --toysFile \$toyFile --minos all \$targetDatacard
 \end{block}
 \end{frame}
 
