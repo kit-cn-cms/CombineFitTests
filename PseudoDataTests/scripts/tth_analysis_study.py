@@ -57,6 +57,7 @@ if options.asimov and options.numberOfToys:
 
 
 verbose = options.verbose
+asimov = options.asimov
 listOfMus = options.signalStrengths
 if listOfMus == None:
     listOfMus = [0.,1.]
@@ -201,11 +202,11 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
         signalStrengthFolder = os.path.abspath(signalStrengthFolder)
         os.makedirs(signalStrengthFolder)
 
+        if not asimov:
+            if not os.path.exists(signalStrengthFolder + "/asimov"):
+                os.makedirs(signalStrengthFolder + "/asimov")
 
-        if not os.path.exists(signalStrengthFolder + "/asimov"):
-            os.makedirs(signalStrengthFolder + "/asimov")
-
-        commands.append("\'" + workdir + "/"+ generatorScript +" " + pathToDatacard + " " + datacardToUse + " -1 " + str(signalStrength) + " 123456 " + pathToMSworkspace + " " + signalStrengthFolder + "/asimov\'")
+            commands.append("\'" + workdir + "/"+ generatorScript +" " + pathToDatacard + " " + datacardToUse + " -1 " + str(signalStrength) + " 123456 " + pathToMSworkspace + " " + signalStrengthFolder + "/asimov\'")
 
         for i in range(numberOfLoops):
             upperBound = (i+1)*numberOfToysPerJob

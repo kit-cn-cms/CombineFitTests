@@ -97,7 +97,7 @@ def JES_uncertainty_study(pathToDatacards):
         suffix = suffix.replace(".txt","")
         suffix = suffix.replace("datacard_","")
 
-        runScript(targetPath, suffix + "_redefineSignalPOI", datacard, pathToRoofile, key = "--asimov")
+        runScript(targetPath, suffix + "_redefineSignalPOI" , datacard, pathToRoofile, key = "--asimov")
 
 def throwToys(wildcard, inputRootFile, pathToConfig):
     #wildcard = sys.argv[1]
