@@ -124,8 +124,8 @@ double getMedian(const TH1* histo1) {
 void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const Double_t binContent, const Double_t binError = 0 )
 {
     if(histo != NULL){
-        //std::cout << "current histogram: " << histo->GetName() << std::endl;
-        //std::cout << "\tsetting label of bin " << bin << " to " << binLabel << std::endl;
+        std::cout << "current histogram: " << histo->GetName() << std::endl;
+        std::cout << "\tsetting label of bin " << bin << " to " << binLabel << std::endl;
         TString finalLabel = binLabel;
         if(finalLabel.BeginsWith("CMS_ttH_")) finalLabel.ReplaceAll("CMS_ttH_","");
         histo->GetXaxis()->SetBinLabel(bin, finalLabel);
@@ -139,6 +139,7 @@ void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const
 
         if( finalBinError == 0) finalBinError = checkValues(histo->GetMeanError());
         histo->SetBinError(bin, finalBinError);
+        std::cout << "done setting up histo bin!\n";
     }
 }
 
@@ -183,51 +184,51 @@ TLine* createLine(const TString sourceFile, const TString whichfit, const TStrin
 }
 
 void writePOILatexTable(const TH1* hMeans, const TH1* hMedians, const TH1* hMeansWithFittedError, const TString outputPath, const TString tableCaption, const TString& testName){
-    if(hMeans != NULL && hMedians != NULL && hMeansWithFittedError != NULL){
-        std::ofstream output(outputPath.Data(), std::ofstream::out);
-        //output.open();
-        if(output.is_open()){
-            int nSignalStrengths = hMeans->GetNbinsX();
-            output << "\\begin{table}\n";
-            output << "\\centering\n";
-            TString processName = testName;
-            if(processName.Contains("_")) processName.ReplaceAll("_", "\\_");
-            processName.Prepend(tableCaption + " for ");
-//             output << "\\caption{" << tableCaption.Data() << "}\n";
-            output << "\\caption{" << processName.Data() << "}\n";
+  if(hMeans != NULL && hMedians != NULL && hMeansWithFittedError != NULL){
+    std::ofstream output(outputPath.Data(), std::ofstream::out);
+    //output.open();
+    if(output.is_open()){
+      int nSignalStrengths = hMeans->GetNbinsX();
+      output << "\\begin{table}\n";
+      output << "\\centering\n";
+      TString processName = testName;
+      if(processName.Contains("_")) processName.ReplaceAll("_", "\\_");
+      processName.Prepend(tableCaption + " for ");
+      //             output << "\\caption{" << tableCaption.Data() << "}\n";
+      output << "\\caption{" << processName.Data() << "}\n";
 
-            output << "\\begin{tabular}{cc";
-            //for (int i=0; i<nSignalStrengths; i++) output << "c";
-            output << "}\n";
-            output << "\\toprule\n";
-            //output << "Process & \\multicolumn{" << nSignalStrengths << "}{c}{Mean $\\pm$ Mean Error $\\pm$ RMS $\\pm$ Fitted Error}\\\\\n";
-            output << "Pseudo Experiment & Mean $\\pm$ Mean Error $\\pm$ RMS $\\pm$ Fitted Error\\\\\n";
-            output << "\\midrule\n";
-            /*for(int i=1; i<=nSignalStrengths; i++) output << " & " << hMeans->GetXaxis()->GetBinLabel(i);
-             * output << "\\\\\n";
-             * output << "\\midrule\n";*/
-            //             TString processName = testName;
-            //             if(processName.Contains("_")) processName.ReplaceAll("_", "\\_");
-            //             output << processName.Data();
-            //             for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
-            //             {
-            //                 output << " & \\num{" << checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeans->GetBinError(bin)) << "}";
-            //                 output << " $\\pm$ \\num{"<< checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMeansWithFittedError->GetBinError(bin)) << "}";
-            //             }
-            //             output << "\\\\\n";
-            for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
-            {
-                output <<  hMeans->GetXaxis()->GetBinLabel(bin) << " & \\num{" << checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeans->GetBinError(bin)) << "}";
-                output << " $\\pm$ \\num{"<< checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMeansWithFittedError->GetBinError(bin)) << "}\\\\\n";
-            }
-            output << "\\bottomrule\n";
-            output << "\\end{tabular}\n\\end{table}";
-            output.close();
-        }
-        else std::cerr << "ERROR: could not open .tex table!\n";
-
+      output << "\\begin{tabular}{cc";
+      //for (int i=0; i<nSignalStrengths; i++) output << "c";
+      output << "}\n";
+      output << "\\toprule\n";
+      //output << "Process & \\multicolumn{" << nSignalStrengths << "}{c}{Mean $\\pm$ Mean Error $\\pm$ RMS $\\pm$ Fitted Error}\\\\\n";
+      output << "Pseudo Experiment & Mean $\\pm$ Mean Error $\\pm$ RMS $\\pm$ Fitted Error\\\\\n";
+      output << "\\midrule\n";
+      /*for(int i=1; i<=nSignalStrengths; i++) output << " & " << hMeans->GetXaxis()->GetBinLabel(i);
+      * output << "\\\\\n";
+      * output << "\\midrule\n";*/
+      //             TString processName = testName;
+      //             if(processName.Contains("_")) processName.ReplaceAll("_", "\\_");
+      //             output << processName.Data();
+      //             for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
+      //             {
+      //                 output << " & \\num{" << checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeans->GetBinError(bin)) << "}";
+      //                 output << " $\\pm$ \\num{"<< checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMeansWithFittedError->GetBinError(bin)) << "}";
+      //             }
+      //             output << "\\\\\n";
+      for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
+      {
+        output <<  hMeans->GetXaxis()->GetBinLabel(bin) << " & \\num{" << checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeans->GetBinError(bin)) << "}";
+        output << " $\\pm$ \\num{"<< checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMeansWithFittedError->GetBinError(bin)) << "}\\\\\n";
+      }
+      output << "\\bottomrule\n";
+      output << "\\end{tabular}\n\\end{table}";
+      output.close();
     }
-    else std::cerr << "ERROR: Histogram pointer(s) is(are) NULL!\n";
+    else std::cerr << "ERROR: could not open .tex table!\n";
+
+  }
+  else std::cerr << "ERROR: Histogram pointer(s) is(are) NULL!\n";
 }
 
 void writeLatexTable(TH1* hMeansB, TH1* hMediansB, TH1* hMeansSB, TH1* hMediansSB, TString outputPath, TString tableCaption, TH1* hExpectation=NULL, TH1* hMeansBwithFittedError= NULL, TH1* hMeansSBwithFittedError = NULL){
@@ -272,34 +273,13 @@ void writeLatexTable(TH1* hMeansB, TH1* hMediansB, TH1* hMeansSB, TH1* hMediansS
 }
 
 double convertTStringToDouble(const TString& tStringToConvert, double stepSize=0.1){
-    TString doubleVal;
-    TString integerVal;
-    for(double value=0.; value<=10.;){
-        doubleVal.Form("%0.1f", value);
-        integerVal.Form("%i", int(value));
-        //std::cout << "current value: " << value << "\tdoubleVal = " << doubleVal.Data() << "\tintegerVal = " << integerVal.Data() << std::endl;
-        if(tStringToConvert.EqualTo(doubleVal))
-        {
-            std::cout << "Found nominal signal strength to be " << value << std::endl;
-            return value;
-        }
-        if(tStringToConvert.EqualTo(integerVal))
-        {
-            if(value != 0)
-            {
-                std::cout << "Found nominal signal strength to be " << value - .1 << std::endl;
-                return value - .1;
-            }
-            else
-            {
-                std::cout << "Found nominal signal strength to be " << value << std::endl;
-                return value;
-            }
-        }
-        value += stepSize;
-    }
-    std::cerr << "was unable to convert nominal mu value! Aborting...\n";
-    throw std::exception();
+    //if(tStringToConvert.IsDigit()){
+      if(tStringToConvert.IsFloat()){
+        std::cout << "found nominal signal strength to be "<< tStringToConvert.Atof() << std::endl;
+        return tStringToConvert.Atof();
+      }
+    //}
+    std::cout << "WARNING:\ttrying to convert TString that is not a digit!\n";
     return -1;
 }
 
@@ -486,239 +466,249 @@ void drawPullPlots(const std::vector<TString>& listOfNPs,
                    const TString& pathToShapeExpectationRootfile="",
                    const TString& categoryName="")
 {
-    if(PostfitBvalsAndErrors.size() != 0 && PostfitSBvalsAndErrors.size() != 0 && PrefitValsAndErrors.size() != 0)
-    {
-        TString* canvasName = NULL;
-        TCanvas canvas;
+  if(PostfitBvalsAndErrors.size() != 0 && PostfitSBvalsAndErrors.size() != 0 && PrefitValsAndErrors.size() != 0)
+  {
+    TString* canvasName = NULL;
+    TCanvas canvas;
 
 
-        TH1D* hExpectation = NULL;
+    TH1D* hExpectation = NULL;
 
-        TH1D* hPostfitSBmeans = NULL;
-        TH1D* hPostfitSBmeansWithFitErrors= NULL;
+    TH1D* hPostfitSBmeans = NULL;
+    TH1D* hPostfitSBmeansWithFitErrors= NULL;
 
-        TH1D* hPostfitSBmedians = NULL;
-        TH1D* hPostfitBmeans = NULL;
-        TH1D* hPostfitBmeansWithFitErrors= NULL;
-        TH1D* hPostfitBmedians = NULL;
-        TH1D* hPrefitMeans = NULL;
-        TH1D* hPrefitMedians = NULL;
-
-
-        TLegend* legend = LabelMaker::legend("top left",3,0.1);
-        TFile* expectationFile = NULL;
-        if(!pathToShapeExpectationRootfile.EqualTo("")) expectationFile = new TFile(pathToShapeExpectationRootfile, "READ");
-        TTree* tree = NULL;
-
-        double prescaleVal = 0;
-        double postscaleVal = 0;
-        double signal_prescale = 0;
-        double signal_postscale = 0;
-        double background_prescale = 0;
-        double background_postscale = 0;
-        double ratio = 0;
-        double signalStrength = 0;
-        TString* helperString = NULL;
-
-        std::cout << "filling np histograms for " << label << std::endl;
-            helperString = new TString(label);
-            std::cout << "helperString: " << helperString->Data() << std::endl;
-
-            helperString->Remove(0,helperString->Index("=")+1);
-            std::cout << "helperString: " << helperString->Data() << std::endl;
-            signalStrength = convertTStringToDouble(*helperString);
-            if(helperString != NULL) delete helperString;
-
-            int nParameters = int(listOfNPs.size());
-            //std::cout << "Init hPostFitSBmeans with " << nParameters << "bins\n";
-            hPostfitSBmeans = new TH1D("hPostfitSBmeans", ";;Value", nParameters, 0, nParameters);
-            if(PostfitSBvalsAndErrors.front().size()>4) hPostfitSBmeansWithFitErrors = new TH1D("hPostfitSBmeansWithFitErrors", ";;Value", nParameters, 0, nParameters);
-            //std::cout << hPostfitSBmeans->GetName() << std::endl;
-            //std::cout << "Init hPostfitSBmedians with " << nParameters << "bins\n";
-
-            hPostfitSBmedians = new TH1D("hPostfitSBmedians", ";;Value", nParameters, 0, nParameters);
-            //std::cout << "Init hPostfitBmeans with " << nParameters << "bins\n";
-
-            hPostfitBmeans = new TH1D("hPostfitBmeans", ";;Value", nParameters, 0, nParameters);
-            if(PostfitBvalsAndErrors.front().size()>4) hPostfitBmeansWithFitErrors = new TH1D("hPostfitBmeansWithFitErrors", ";;Value", nParameters, 0, nParameters);
-
-            //std::cout << hPostfitBmeans->GetName() << std::endl;
-            //std::cout << "Init hPostfitBmedians with " << nParameters << "bins\n";
-
-            hPostfitBmedians = new TH1D("hPostfitBmedians", ";;Value", nParameters, 0, nParameters);
-            //std::cout << "Init hPrefitMeans with " << nParameters << "bins\n";
-
-            hPrefitMeans = new TH1D("hPrefitMeans", ";;Value", nParameters, 0, nParameters);
-            //std::cout << hPrefitMeans->GetName() <<std::endl;
-            hPrefitMedians = new TH1D("hPrefitMedians", ";;Value", nParameters, 0, nParameters);
-
-            if(expectationFile != NULL && expectationFile->IsOpen())
-            {
-                std::cout << "Init hExpectation with " << nParameters << "bins\n";
-                hExpectation = new TH1D("hExpectation", ";;Value", nParameters, 0, nParameters);
-                hExpectation->SetDirectory(0);
-                tree = (TTree*)expectationFile->Get(categoryName);
-            }
-
-            for(int np=0; np<nParameters; np++)
-            {
-                if(hExpectation != NULL)
-                {
-                    if(tree != NULL)
-                    {
-                        //std::cout << "Set Branch address for " << listOfNPs[np] << "\n";
-
-                        if(!listOfNPs[np].EqualTo("total"))
-                        {
-                            if(tree->SetBranchAddress(TString(listOfNPs[np]+"_prescale").Data(), &prescaleVal) >= 0 && tree->SetBranchAddress(TString(listOfNPs[np]+"_postscale").Data(), &postscaleVal) >= 0) tree->GetEntry(0);
-                        }
-                        else{
-                            if(tree->SetBranchAddress("total_signal_prescale", &signal_prescale) >= 0 &&
-                                tree->SetBranchAddress("total_signal_postscale", &signal_postscale) >= 0 &&
-                                tree->SetBranchAddress("total_background_prescale", &background_prescale) >= 0 &&
-                                tree->SetBranchAddress("total_background_postscale", &background_postscale) >= 0
-                            )
-                            {
-                                tree->GetEntry(0);
-                            }
-                            prescaleVal = signal_prescale + background_prescale;
-                            postscaleVal = signalStrength*signal_postscale + background_postscale;
-                        }
-                        if(listOfNPs[np].BeginsWith("ttH") || listOfNPs[np].Contains("signal"))
-                        {
-                            if(prescaleVal != 0) ratio = signalStrength*postscaleVal/prescaleVal;
-                            else ratio = 0;
-                        }
-                        else{
-                            if(prescaleVal != 0) ratio = postscaleVal/prescaleVal;
-                            else ratio = 0;
-                        }
-                        //std::cout << "fill histogram with value " << ratio << std::endl;
-                        //hExpectation->SetBinContent(np+1, ratio);
-                        setupHistogramBin(hExpectation, np+1, listOfNPs[np], ratio, 0);
-                        //vectorToSafe.push_back(ratio);
-                        //std::cout << "reset branch address\n";
-                        tree->ResetBranchAddresses();
-                        prescaleVal = 0;
-                        postscaleVal = 0;
-                        ratio = 0;
-                    }
-                    else std::cerr << "TTree " << categoryName << " could not be loaded from file " << expectationFile->GetName() << "!\n";
-                }
-
-                setupHistogramBin(hPostfitBmeans, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][0], PostfitBvalsAndErrors[np][1]);
-                setupHistogramBin(hPostfitBmedians, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][2], PostfitBvalsAndErrors[np][3]);
-                if(hPostfitBmeansWithFitErrors != NULL) setupHistogramBin(hPostfitBmeansWithFitErrors, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][0], PostfitBvalsAndErrors[np][4]);
-
-                setupHistogramBin(hPostfitSBmeans, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][0], PostfitSBvalsAndErrors[np][1]);
-                if(hPostfitSBmeansWithFitErrors != NULL) setupHistogramBin(hPostfitSBmeansWithFitErrors, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][0], PostfitSBvalsAndErrors[np][4]);
-
-                setupHistogramBin(hPostfitSBmedians, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][2], PostfitSBvalsAndErrors[np][3]);
-
-                setupHistogramBin(hPrefitMeans, np+1, listOfNPs[np], PrefitValsAndErrors[np][0], PrefitValsAndErrors[np][1]);
-                setupHistogramBin(hPrefitMedians, np+1, listOfNPs[np], PrefitValsAndErrors[np][2], PrefitValsAndErrors[np][3]);
-
-            }
-            std::cout << "done!\n";
-
-            if(hExpectation != NULL)
-            {
-                setLineStyle(hExpectation, kRed, 2);
-                legend->AddEntry(hExpectation, "Expected Norm Ratio", "l");
-            }
-            setLineStyle(hPrefitMeans, kBlack, 2);
-            setLineStyle(hPrefitMedians, kBlack, 2);
-
-            setLineStyle(hPostfitBmeans, kBlue, 1, 20);
-            if(hPostfitBmeansWithFitErrors != NULL) setLineStyle(hPostfitBmeansWithFitErrors, kBlue, 4, 1);
-            setLineStyle(hPostfitBmedians, kBlue, 2, 21);
-
-            setLineStyle(hPostfitSBmeans, kRed, 1, 20);
-            if(hPostfitSBmeansWithFitErrors != NULL) setLineStyle(hPostfitSBmeansWithFitErrors, kRed, 4, 1);
-            setLineStyle(hPostfitSBmedians, kRed, 2, 21);
-
-            std::cout << "set line style successfully\n";
-
-            hPrefitMeans->GetYaxis()->SetRangeUser(lowerBound,upperBound);
-            hPrefitMeans->GetXaxis()->SetLabelSize(0.02);
-            hPrefitMeans->Draw("HIST");
-            if(hExpectation != NULL) hExpectation->Draw("HISTsame");
-            //hPrefitMedians->Draw("PE1same");
-            std::cout << "drew prefit histo\n";
-            hPostfitBmeans->Draw("PE1same");
-            if(hPostfitBmeansWithFitErrors != NULL) hPostfitBmeansWithFitErrors->Draw("PE1same");
-            //hPostfitBmedians->Draw("PE1same");
-            std::cout << "drew postfit b\n";
-            hPostfitSBmeans->Draw("PE1same");
-            if(hPostfitSBmeansWithFitErrors != NULL) hPostfitSBmeansWithFitErrors->Draw("PE1same");
-            //hPostfitSBmedians->Draw("PE1same");
-            std::cout << "drew postfit s+b\n";
-
-            legend->AddEntry(hPrefitMeans, "Prefit Means", "l");
-            legend->AddEntry(hPostfitBmeans, "B-only fit Means + Mean Error", "lp");
-            //legend->AddEntry(hPostfitBmedians, "B-only fit Medians + RMS", "lp");
-            if(hPostfitBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitBmeansWithFitErrors, "B-only fit Means + Fitted Error", "l");
-            legend->AddEntry(hPostfitSBmeans, "S+B fit Means + Mean Error", "lp");
-            //legend->AddEntry(hPostfitSBmedians, "S+B fit Medians + RMS", "lp");
-            if(hPostfitSBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitSBmeansWithFitErrors, "S+B fit Means + Fitted Error", "l");
+    TH1D* hPostfitSBmedians = NULL;
+    TH1D* hPostfitBmeans = NULL;
+    TH1D* hPostfitBmeansWithFitErrors= NULL;
+    TH1D* hPostfitBmedians = NULL;
+    TH1D* hPrefitMeans = NULL;
+    TH1D* hPrefitMedians = NULL;
 
 
-            legend->Draw("Same");
-            std::cout << "drew legend\n";
+    TLegend* legend = LabelMaker::legend("top left",3,0.1);
+    TFile* expectationFile = NULL;
+    if(!pathToShapeExpectationRootfile.EqualTo("")) expectationFile = new TFile(pathToShapeExpectationRootfile, "READ");
+    TTree* tree = NULL;
 
-            //std::cout << "setting canvas name to " << label << std::endl;
-            canvasName = new TString(label);
-            //std::cout << "\tsuccess!\n";
-            //std::cout << "canvasName = " << canvasName->Data() << std::endl;
-            if(canvasName->Contains(" ")) canvasName->ReplaceAll(" ", "_");
-            if(canvasName->Contains("=")) canvasName->ReplaceAll("=", "_");
-            if(canvasName->Contains(".")) canvasName->ReplaceAll(".", "p");
-            //std::cout << "prepending path: " << outLabel << "pullplot_" << std::endl;
-            writeLatexTable(hPostfitBmeans, hPostfitBmedians, hPostfitSBmeans, hPostfitSBmedians, outLabel+"values_"+*canvasName+".tex", "Values for "+label, hExpectation, hPostfitBmeansWithFitErrors, hPostfitSBmeansWithFitErrors);
+    double prescaleVal = 0;
+    double postscaleVal = 0;
+    double signal_prescale = 0;
+    double signal_postscale = 0;
+    double background_prescale = 0;
+    double background_postscale = 0;
+    double ratio = 0;
+    double signalStrength = 0;
+    TString* helperString = NULL;
 
-            canvasName->Prepend(outLabel+"pullplot_");
-            //canvasName->Append(".pdf");
-            //std::cout << "canvas name: " << *canvasName << std::endl;
-            canvas.SaveAs(*canvasName+".pdf");
-            canvas.SaveAs(*canvasName+".root");
-            std::cout << "saved canvas successfully\n";
 
-            if(hPostfitSBmeans != NULL) delete hPostfitSBmeans;
-            if(hPostfitSBmeansWithFitErrors != NULL) delete hPostfitSBmeansWithFitErrors;
-            if(hPostfitSBmedians != NULL) delete hPostfitSBmedians;
+    helperString = new TString(label);
+    std::cout << "helperString: " << helperString->Data() << std::endl;
 
-            if(hPostfitBmeans != NULL) delete hPostfitBmeans;
-            if(hPostfitBmeansWithFitErrors != NULL) delete hPostfitBmeansWithFitErrors;
-            if(hPostfitBmedians != NULL)delete hPostfitBmedians;
+    helperString->Remove(0,helperString->Index("=")+1);
+    std::cout << "helperString: " << helperString->Data() << std::endl;
+    signalStrength = convertTStringToDouble(*helperString);
+    if(helperString != NULL) delete helperString;
 
-            if(hPrefitMeans != NULL) delete hPrefitMeans;
-            if(hPrefitMedians != NULL) delete hPrefitMedians;
-
-            if(hExpectation != NULL)
-            {
-                hExpectation->Reset();
-            }
-            legend->Clear();
-            canvas.Clear();
-            if(canvasName != NULL) delete canvasName;
-            std::cout << "cleared everything\n";
-        std::cout << "checking expectationFile\n";
-        if(expectationFile != NULL && expectationFile->IsOpen()){
-            std::cout << "closing expectationFile\n";
-            expectationFile->Close();
-        }
-        std::cout << "checking expectation histo\n";
-        if(hExpectation != 0){
-            std::cout << "deleting expectation histo\n";
-            delete hExpectation;
-        }
-        std::cout << "checking legend\n";
-        if(legend != NULL){
-            std::cout << "deleting legend\n";
-            delete legend;
-        }
+    int nParameters = int(listOfNPs.size());
+    std::cout << "creating pull plot for " << label << " with " << nParameters << " parameters:" << std::endl;
+    for(auto& name : listOfNPs){
+      std::cout << "\t" << name.Data() << std::endl;
     }
-    else std::cout << "WARNING! Could not load values to draw pull plot\n";
+    std::cout << "vector PostfitBvalsAndErrors contains " << PostfitBvalsAndErrors.size() << " parameters\n";
+    std::cout << "vector PostfitSBvalsAndErrors contains " << PostfitSBvalsAndErrors.size() << " parameters\n";
+    std::cout << "vector PrefitValsAndErrors contains " << PrefitValsAndErrors.size() << " parameters\n";
+    //std::cout << "Init hPostFitSBmeans with " << nParameters << "bins\n";
+    hPostfitSBmeans = new TH1D("hPostfitSBmeans", ";;Value", nParameters, 0, nParameters);
+    if(PostfitSBvalsAndErrors.front().size()>4) hPostfitSBmeansWithFitErrors = new TH1D("hPostfitSBmeansWithFitErrors", ";;Value", nParameters, 0, nParameters);
+    //std::cout << hPostfitSBmeans->GetName() << std::endl;
+    //std::cout << "Init hPostfitSBmedians with " << nParameters << "bins\n";
+
+    hPostfitSBmedians = new TH1D("hPostfitSBmedians", ";;Value", nParameters, 0, nParameters);
+    //std::cout << "Init hPostfitBmeans with " << nParameters << "bins\n";
+
+    hPostfitBmeans = new TH1D("hPostfitBmeans", ";;Value", nParameters, 0, nParameters);
+    if(PostfitBvalsAndErrors.front().size()>4) hPostfitBmeansWithFitErrors = new TH1D("hPostfitBmeansWithFitErrors", ";;Value", nParameters, 0, nParameters);
+
+    //std::cout << hPostfitBmeans->GetName() << std::endl;
+    //std::cout << "Init hPostfitBmedians with " << nParameters << "bins\n";
+
+    hPostfitBmedians = new TH1D("hPostfitBmedians", ";;Value", nParameters, 0, nParameters);
+    //std::cout << "Init hPrefitMeans with " << nParameters << "bins\n";
+
+    hPrefitMeans = new TH1D("hPrefitMeans", ";;Value", nParameters, 0, nParameters);
+    //std::cout << hPrefitMeans->GetName() <<std::endl;
+    hPrefitMedians = new TH1D("hPrefitMedians", ";;Value", nParameters, 0, nParameters);
+
+    if(expectationFile != NULL && expectationFile->IsOpen())
+    {
+      std::cout << "Init hExpectation with " << nParameters << "bins\n";
+      hExpectation = new TH1D("hExpectation", ";;Value", nParameters, 0, nParameters);
+      hExpectation->SetDirectory(0);
+      tree = (TTree*)expectationFile->Get(categoryName);
+    }
+
+    for(int np=0; np<nParameters; np++)
+    {
+      if(hExpectation != NULL){
+        if(tree != NULL)
+        {
+          //std::cout << "Set Branch address for " << listOfNPs[np] << "\n";
+
+          if(!listOfNPs[np].EqualTo("total"))
+          {
+            if(tree->SetBranchAddress(TString(listOfNPs[np]+"_prescale").Data(), &prescaleVal) >= 0 && tree->SetBranchAddress(TString(listOfNPs[np]+"_postscale").Data(), &postscaleVal) >= 0) tree->GetEntry(0);
+          }
+          else{
+            if(tree->SetBranchAddress("total_signal_prescale", &signal_prescale) >= 0 &&
+            tree->SetBranchAddress("total_signal_postscale", &signal_postscale) >= 0 &&
+            tree->SetBranchAddress("total_background_prescale", &background_prescale) >= 0 &&
+            tree->SetBranchAddress("total_background_postscale", &background_postscale) >= 0)
+            {
+              tree->GetEntry(0);
+            }
+            prescaleVal = signal_prescale + background_prescale;
+            postscaleVal = signalStrength*signal_postscale + background_postscale;
+          }
+          if(listOfNPs[np].BeginsWith("ttH") || listOfNPs[np].Contains("signal"))
+          {
+            if(prescaleVal != 0) ratio = signalStrength*postscaleVal/prescaleVal;
+            else ratio = 0;
+          }
+          else{
+            if(prescaleVal != 0) ratio = postscaleVal/prescaleVal;
+            else ratio = 0;
+          }
+          //std::cout << "fill histogram with value " << ratio << std::endl;
+          //hExpectation->SetBinContent(np+1, ratio);
+          setupHistogramBin(hExpectation, np+1, listOfNPs[np], ratio, 0);
+          //vectorToSafe.push_back(ratio);
+          //std::cout << "reset branch address\n";
+          tree->ResetBranchAddresses();
+          prescaleVal = 0;
+          postscaleVal = 0;
+          ratio = 0;
+        }
+        else std::cerr << "TTree " << categoryName << " could not be loaded from file " << expectationFile->GetName() << "!\n";
+      }
+
+      std::cout << "DEBUG:\tgoing to access std::vector hPostfitBmeansWithFitErrors\n\tcontents for parameter" << np << std::endl;
+      for(auto& val : PostfitBvalsAndErrors[np]){
+        std::cout << "\t\t" << val << std::endl;
+      }
+      setupHistogramBin(hPostfitBmeans, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][0], PostfitBvalsAndErrors[np][1]);
+      //setupHistogramBin(hPostfitBmedians, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][2], PostfitBvalsAndErrors[np][3]);
+
+      if(hPostfitBmeansWithFitErrors != NULL) setupHistogramBin(hPostfitBmeansWithFitErrors, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][0], PostfitBvalsAndErrors[np][4]);
+
+      setupHistogramBin(hPostfitSBmeans, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][0], PostfitSBvalsAndErrors[np][1]);
+      if(hPostfitSBmeansWithFitErrors != NULL) setupHistogramBin(hPostfitSBmeansWithFitErrors, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][0], PostfitSBvalsAndErrors[np][4]);
+
+      //setupHistogramBin(hPostfitSBmedians, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][2], PostfitSBvalsAndErrors[np][3]);
+
+      setupHistogramBin(hPrefitMeans, np+1, listOfNPs[np], PrefitValsAndErrors[np][0], PrefitValsAndErrors[np][1]);
+      //setupHistogramBin(hPrefitMedians, np+1, listOfNPs[np], PrefitValsAndErrors[np][2], PrefitValsAndErrors[np][3]);
+
+    }
+    std::cout << "done!\n";
+
+    if(hExpectation != NULL)
+    {
+      setLineStyle(hExpectation, kRed, 2);
+      legend->AddEntry(hExpectation, "Expected Norm Ratio", "l");
+    }
+    setLineStyle(hPrefitMeans, kBlack, 2);
+    setLineStyle(hPrefitMedians, kBlack, 2);
+
+    setLineStyle(hPostfitBmeans, kBlue, 1, 20);
+    if(hPostfitBmeansWithFitErrors != NULL) setLineStyle(hPostfitBmeansWithFitErrors, kBlue, 4, 1);
+    setLineStyle(hPostfitBmedians, kBlue, 2, 21);
+
+    setLineStyle(hPostfitSBmeans, kRed, 1, 20);
+    if(hPostfitSBmeansWithFitErrors != NULL) setLineStyle(hPostfitSBmeansWithFitErrors, kRed, 4, 1);
+    setLineStyle(hPostfitSBmedians, kRed, 2, 21);
+
+    std::cout << "set line style successfully\n";
+
+    hPrefitMeans->GetYaxis()->SetRangeUser(lowerBound,upperBound);
+    hPrefitMeans->GetXaxis()->SetLabelSize(0.02);
+    hPrefitMeans->Draw("HIST");
+    if(hExpectation != NULL) hExpectation->Draw("HISTsame");
+    //hPrefitMedians->Draw("PE1same");
+    std::cout << "drew prefit histo\n";
+    hPostfitBmeans->Draw("PE1same");
+    if(hPostfitBmeansWithFitErrors != NULL) hPostfitBmeansWithFitErrors->Draw("PE1same");
+    //hPostfitBmedians->Draw("PE1same");
+    std::cout << "drew postfit b\n";
+    hPostfitSBmeans->Draw("PE1same");
+    if(hPostfitSBmeansWithFitErrors != NULL) hPostfitSBmeansWithFitErrors->Draw("PE1same");
+    //hPostfitSBmedians->Draw("PE1same");
+    std::cout << "drew postfit s+b\n";
+
+    legend->AddEntry(hPrefitMeans, "Prefit Means", "l");
+    legend->AddEntry(hPostfitBmeans, "B-only fit Means + Mean Error", "lp");
+    //legend->AddEntry(hPostfitBmedians, "B-only fit Medians + RMS", "lp");
+    if(hPostfitBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitBmeansWithFitErrors, "B-only fit Means + Fitted Error", "l");
+    legend->AddEntry(hPostfitSBmeans, "S+B fit Means + Mean Error", "lp");
+    //legend->AddEntry(hPostfitSBmedians, "S+B fit Medians + RMS", "lp");
+    if(hPostfitSBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitSBmeansWithFitErrors, "S+B fit Means + Fitted Error", "l");
+
+
+    legend->Draw("Same");
+    std::cout << "drew legend\n";
+
+    //std::cout << "setting canvas name to " << label << std::endl;
+    canvasName = new TString(label);
+    //std::cout << "\tsuccess!\n";
+    //std::cout << "canvasName = " << canvasName->Data() << std::endl;
+    if(canvasName->Contains(" ")) canvasName->ReplaceAll(" ", "_");
+    if(canvasName->Contains("=")) canvasName->ReplaceAll("=", "_");
+    if(canvasName->Contains(".")) canvasName->ReplaceAll(".", "p");
+    //std::cout << "prepending path: " << outLabel << "pullplot_" << std::endl;
+    writeLatexTable(hPostfitBmeans, hPostfitBmedians, hPostfitSBmeans, hPostfitSBmedians, outLabel+"values_"+*canvasName+".tex", "Values for "+label, hExpectation, hPostfitBmeansWithFitErrors, hPostfitSBmeansWithFitErrors);
+
+    canvasName->Prepend(outLabel+"pullplot_");
+    //canvasName->Append(".pdf");
+    //std::cout << "canvas name: " << *canvasName << std::endl;
+    canvas.SaveAs(*canvasName+".pdf");
+    canvas.SaveAs(*canvasName+".root");
+    std::cout << "saved canvas successfully\n";
+
+    if(hPostfitSBmeans != NULL) delete hPostfitSBmeans;
+    if(hPostfitSBmeansWithFitErrors != NULL) delete hPostfitSBmeansWithFitErrors;
+    if(hPostfitSBmedians != NULL) delete hPostfitSBmedians;
+
+    if(hPostfitBmeans != NULL) delete hPostfitBmeans;
+    if(hPostfitBmeansWithFitErrors != NULL) delete hPostfitBmeansWithFitErrors;
+    if(hPostfitBmedians != NULL)delete hPostfitBmedians;
+
+    if(hPrefitMeans != NULL) delete hPrefitMeans;
+    if(hPrefitMedians != NULL) delete hPrefitMedians;
+
+    if(hExpectation != NULL)
+    {
+      hExpectation->Reset();
+    }
+    legend->Clear();
+    canvas.Clear();
+    if(canvasName != NULL) delete canvasName;
+    std::cout << "cleared everything\n";
+    std::cout << "checking expectationFile\n";
+    if(expectationFile != NULL && expectationFile->IsOpen()){
+      std::cout << "closing expectationFile\n";
+      expectationFile->Close();
+    }
+    std::cout << "checking expectation histo\n";
+    if(hExpectation != 0){
+      std::cout << "deleting expectation histo\n";
+      delete hExpectation;
+    }
+    std::cout << "checking legend\n";
+    if(legend != NULL){
+      std::cout << "deleting legend\n";
+      delete legend;
+    }
+  }
+  else std::cout << "WARNING! Could not load values to draw pull plot\n";
 }
 
 std::vector<TString> getParameterList(const std::vector<PseudoExperiments>& exps, const bool ignoreBinByBinNPs){
@@ -843,7 +833,6 @@ void analyzeNPPulls(const PseudoExperiments& exp, const std::vector<TString>& li
     std::vector<Double_t> vectorToSafe;
 
     for(auto& np : listOfParameters){
-        if( ignoreBinByBinNPs && np.Contains("BDTbin") ) continue;
 
         std::cout << "\tsaving PostfitB\n";
 
@@ -892,9 +881,10 @@ void compareNuisanceParameters(const std::vector<PseudoExperiments>& exps,
                                const TString& outLabel,
                                const bool& ignoreBinByBinNPs)
 {
-    analyzeNPDistributions(getParameterList(exps, ignoreBinByBinNPs), exps, outLabel,ignoreBinByBinNPs);
+  std::vector<TString> listOfNPs = getParameterList(exps, ignoreBinByBinNPs);
+    analyzeNPDistributions(listOfNPs, exps, outLabel,ignoreBinByBinNPs);
     for(auto& exp : exps){
-        analyzeNPPulls(exp, exp.nps(), outLabel, ignoreBinByBinNPs);
+        analyzeNPPulls(exp, listOfNPs, outLabel, ignoreBinByBinNPs);
     }
 }
 
