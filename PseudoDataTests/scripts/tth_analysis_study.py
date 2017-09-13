@@ -1,6 +1,23 @@
 import ROOT
 import sys
 import os
+<<<<<<< HEAD
+import subprocess
+import time
+from array import array
+#import glob
+ROOT.gROOT.SetBatch(True)
+
+#set up parameters for toy generation here
+numberOfToys = 1000
+numberOfToysPerJob = 10
+toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
+if toyMode == -1:
+    numberOfToys = 1
+workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
+
+POIsuffix = "bgnorm_"
+=======
 import stat
 import subprocess
 import time
@@ -85,10 +102,26 @@ if options.toysFrequentist:
     generatorScript = "generateFrequentistToysAndFits.sh"
 
 print "will use {0} to generate toys and perform fits".format(workdir + "/" + generatorScript)
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
+<<<<<<< HEAD
+outputDirectory = sys.argv[1] #path to store PseudoExperiments in
+print "input for outputDirectory:", outputDirectory
+pathToDatacard = sys.argv[2] #path to unscaled datacard with data to be fitted to scaled toys
+pathToInputRootfile = sys.argv[3] #path to corresponding root file
+
+datacardOrProcessList = None
+scaleFuncList = None
+if len(sys.argv)>4:
+    datacardOrProcessList = sys.argv[4] #either path to datacard with scaled data oder comma-separated list of Processes to be scaled
+if len(sys.argv)>5:
+    scaleFuncList = sys.argv[5] #if argument 3 is a list of processes this parameter is a comma-separated list of functions to use (TF1)
+
+pathToScaledDatacard = None
+=======
 outputDirectory = options.outputDirectory #path to store PseudoExperiments in
 print "input for outputDirectory:", outputDirectory
 pathToDatacard = options.pathToDatacard #path to unscaled datacard with data to be fitted to scaled toys
@@ -102,20 +135,42 @@ listOfProcessesString = options.listOfProcesses
 scaleFuncList = options.listOfFormulae
 
 pathToScaledDatacard = options.pathToScaledDatacard
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
 
 scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 
 
+<<<<<<< HEAD
+#check if third argument is a list of process or a datacard and act accordingly
+if datacardOrProcessList is not None:
+    if datacardOrProcessList.endswith(".txt"):
+        pathToScaledDatacard = os.path.abspath(datacardOrProcessList)
+        print "using already scaled data from", pathToScaledDatacard
+    else:
+        listOfProcesses = datacardOrProcessList.split(",")
+        listOfFormulae = scaleFuncList.split(",")
+        scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
+        print "using scaling dictionary:", scalingDic
+=======
 #check if 6th argument is a list of processes or a datacard and act accordingly
 if listOfProcessesString and scaleFuncList:
     listOfProcesses = listOfProcessesString.split(",")
     listOfFormulae = scaleFuncList.split(",")
     scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
     print "using scaling dictionary:", scalingDic
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
 
 #----------------------------------------------------------------------------------------------------------------------------------------------
 
 
+<<<<<<< HEAD
+
+
+
+def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, listOfPOIs):
+    jobids=[]
+    command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), listOfPOIs]
+=======
 def submitArrayToNAF(scripts, arrayscriptpath):
     submitclock=ROOT.TStopwatch()
     submitclock.Start()
@@ -170,6 +225,7 @@ def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, nu
     jobids=[]
     command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), pathToMSworkspace]
     print command
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
     a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
     output = a.communicate()[0]
     #print output
@@ -183,6 +239,12 @@ def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, nu
 
     return jobids
 
+<<<<<<< HEAD
+def do_qstat(jobids):
+    allfinished=False
+    while not allfinished:
+        time.sleep(60)
+=======
 
 def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus):
     numberOfLoops = numberOfToys//numberOfToysPerJob
@@ -225,6 +287,7 @@ def do_qstat(jobids):
     allfinished=False
     while not allfinished:
         time.sleep(10)
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
         a = subprocess.Popen(['qstat'], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
         qstat=a.communicate()[0]
         lines=qstat.split('\n')
@@ -250,6 +313,20 @@ def checkCopy(original, copy):
     for currentBin in range(1, original.GetNbinsX()+1):
         print "values in bin", currentBin, ": original =", original.GetBinContent(currentBin), "\tcopy =", copy.GetBinContent(currentBin)
 
+<<<<<<< HEAD
+def collectNorms(listOfNorms, histo):
+    histoName = histo.GetName()
+    processName, trunk = histoName.split("_finaldiscr_")
+    groups = trunk.split("_")
+    if not (groups[len(groups)-1].endswith("Up") or groups[len(groups)-1].endswith("Down")):
+        print "saving norm for histogram", histo.GetName()
+
+        categoryName = "_".join(groups[:3])
+        indexCategory = -1
+        integral = histo.Integral()
+        for entry in range(len(listOfNorms)):
+            if listOfNorms[entry][0] == categoryName:
+=======
 def collectNorms(listOfNorms, histo, category):
     histoName = histo.GetName()
 
@@ -265,6 +342,7 @@ def collectNorms(listOfNorms, histo, category):
         integral = histo.Integral()
         for entry in range(len(listOfNorms)):
             if listOfNorms[entry][0] == category:
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
                 indexCategory = entry
         indexProcess = -1
         if not indexCategory == -1:
@@ -276,7 +354,11 @@ def collectNorms(listOfNorms, histo, category):
             else:
                 listOfNorms[indexCategory][1].append([processName, integral])
         else:
+<<<<<<< HEAD
+            listOfNorms.append([categoryName,[[processName, integral]]])
+=======
             listOfNorms.append([category,[[processName, integral]]])
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
     #else:
         #print "skipping normalisation for histo", histo.GetName()
 
@@ -284,12 +366,19 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
     outfile = ROOT.TFile(outputFileName, "RECREATE")
     print "number of collected categories:", len(listOfNormsPrescale), "\tpostscale:", len(listOfNormsPostscale)
     for category in range(len(listOfNormsPrescale)):
+<<<<<<< HEAD
+        print "Creating TTree for category", listOfNormsPrescale[category][0]
+
+        tree = ROOT.TTree(listOfNormsPrescale[category][0], listOfNormsPrescale[category][0])
+        print "\tsuccess"
+=======
         if verbose:
             print "Creating TTree for category", listOfNormsPrescale[category][0]
 
         tree = ROOT.TTree(listOfNormsPrescale[category][0], listOfNormsPrescale[category][0])
         if verbose:
             print "\tsuccess"
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
         prescaleVals = []
         postscaleVals = []
         total_background_prescale = array("d", [0.])
@@ -304,6 +393,16 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
             postscaleProcesses = listOfNormsPostscale[category][1][process]
 
             processName = prescaleProcesses[0]
+<<<<<<< HEAD
+            #print "\tcreating branch for process", processName
+            tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[{1}]/D".format(processName, process))
+            tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[{1}]/D".format(processName, process))
+
+            #print "\t\tsuccess"
+            prescaleVals[process][0] = prescaleProcesses[1]
+            postscaleVals[process][0] = postscaleProcesses[1]
+            #print "\tfill branch", processName, "with value", ratios[process][0]
+=======
             print "\tcreating branchs for process", processName
             tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[{1}]/D".format(processName, process))
             tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[{1}]/D".format(processName, process))
@@ -311,6 +410,7 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
             print "\t\tsuccess"
             prescaleVals[process][0] = prescaleProcesses[1]
             postscaleVals[process][0] = postscaleProcesses[1]
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
 
             print "adding process", processName, "\n\tprescale:", prescaleProcesses[1], "\tpostscale", postscaleProcesses[1]
             if processName.startswith("ttH_"):
@@ -337,15 +437,24 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
         del tree
     outfile.Close()
 
+<<<<<<< HEAD
+def scaleHistogram(key, inputRootFile, funcFormula, currentOutputDir, listOfNormsPrescale, listOfNormsPostscale):
+=======
 def scaleHistogram(key, category, inputRootFile, funcFormula, currentOutputDir, listOfNormsPrescale, listOfNormsPostscale):
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
     histo = inputRootFile.Get(key.GetName())
     histo.SetDirectory(currentOutputDir)
     #for usage depending on x values:
     #lowerBound = histo.GetXaxis().GetBinLowerEdge(1)
     #upperBound = histo.GetXaxis().GetBinLowerEdge(histo.GetNbinsX()) + histo.GetXaxis().GetBinWidth(histo.GetNbinsX())/2
+<<<<<<< HEAD
+    collectNorms(listOfNormsPrescale, histo)
+    print "\tScaling", key.GetName(),"with function", funcFormula
+=======
     collectNorms(listOfNormsPrescale, histo, category)
     if verbose:
         print "\tScaling", key.GetName(),"with function", funcFormula
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
 
     scaleFunc = ROOT.TF1("scaleFunc",funcFormula,0, histo.GetNbinsX() )
     if scaleFunc is not None:
@@ -354,6 +463,13 @@ def scaleHistogram(key, category, inputRootFile, funcFormula, currentOutputDir, 
             scaleFactor = scaleFunc.Eval(currentBin)
             histo.SetBinContent(currentBin, histo.GetBinContent(currentBin)*scaleFactor)
             #print "\t\tAfter scaling bin", currentBin,":\t", histo.GetBinContent(currentBin)
+<<<<<<< HEAD
+    collectNorms(listOfNormsPostscale, histo)
+    return histo
+
+def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys, listOfNormsPrescale, listOfNormsPostscale):
+    tempObject = None
+=======
     collectNorms(listOfNormsPostscale, histo, category)
     return histo
 
@@ -390,6 +506,7 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
     tempObject = None
     data_obs = {}
 
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
     for key in listOfKeys:
         path=ROOT.gDirectory.GetPathStatic()
         if key.IsFolder():
@@ -403,6 +520,32 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
             outputFile.cd(path)
             inputRootFile.cd(path)
         else:
+<<<<<<< HEAD
+            #index = next((entryNum for entryNum, sublist in enumerate(processScalingDic) if (key.GetName().startswith(sublist[entryNum]) and not (key.GetName().endswith("Up") or key.GetName().endswith("Down")) )),-1)
+            #print "current key name:", key.GetName()
+            index = -1
+            for entry in range(len(processScalingDic)):
+                if key.GetName().startswith(processScalingDic[entry][0]+"_"):
+                    #print "Found match for process #{0}: {1}".format(entry, processScalingDic[entry][0])
+                    index = entry
+            if index is not -1:
+                #print "found match at index", index
+
+                tempObject = scaleHistogram(key,inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path), listOfNormsPrescale, listOfNormsPostscale)
+            else:
+                tempObject = inputRootFile.Get(key.GetName())
+                collectNorms(listOfNormsPrescale, tempObject)
+                collectNorms(listOfNormsPostscale, tempObject)
+
+                tempObject.SetDirectory(outputFile.GetDirectory(path))
+                #print "\tCopied", key.GetName(),"to new root file"
+            if tempObject is not None:
+                #checkCopy(inputRootFile.Get(key.GetName()), tempObject)
+                tempObject.Write()
+                del tempObject
+    print "\tdone with copying/scaling"
+
+=======
             keyName = key.GetName()
             saved=False
             for cat in config.categories:
@@ -463,6 +606,7 @@ def checkForMSworkspace(pathToDatacard, POImap):
 
     return returnString
 
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
 def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath):
     print "outputPath in generateToysAndFit:", outputPath
     if not os.path.exists("temp"):
@@ -499,6 +643,20 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
 
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
+<<<<<<< HEAD
+
+        listOfPOIs = "r"
+        for processPair in processScalingDic:
+            listOfPOIs = listOfPOIs+","+POIsuffix+processPair[0]
+        jobids = submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, listOfPOIs)
+        print "waiting for toy generation to finish"
+        do_qstat(jobids)
+        os.chdir(workdir)
+        print "calling plotResults with arguments:"
+        print "\toutputPath =", outputPath
+        print "\tshapeExpectation =", shapeExpectation
+        subprocess.check_call([workdir+"/submitScript.sh", outputPath, shapeExpectation])
+=======
         pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
         jobids = submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus = listOfMus)
         print "waiting for toy generation to finish"
@@ -508,10 +666,13 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
         # print "\toutputPath =", outputPath
         # print "\tshapeExpectation =", shapeExpectation
         # subprocess.check_call([workdir+"/submitScript.sh", outputPath, shapeExpectation])
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
 
     else:
         print "Couldn't find datacard", datacardToUse
 
+<<<<<<< HEAD
+=======
 def skipParameter(param):
     if not config.ignoreUncertainties == None:
         for np in config.ignoreUncertainties:
@@ -530,6 +691,7 @@ def skipParameter(param):
     return False
 
 
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
 def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     print "creating new datacard from input", pathToDatacard
     datacard = open(pathToDatacard)
@@ -539,6 +701,11 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     print listOfProcesses
     for line in datacard:
         entries = line.split()
+<<<<<<< HEAD
+        for i, entry in enumerate(entries):
+            #print "\t", i, "\t", entry
+
+=======
         if entries[0].startswith("#"): #skip lines that start with '#', as those are not considered in combine anyway
             continue
         if skipParameter(entries[0]): #skip line if parameter is to be ignored (as per definition in config file)
@@ -549,6 +716,7 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
             #print "\t", i, "\t", entry
             if entries[0] == "observation" and not i == 0:
                 entry = "-1"
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
             if entries[0]=="process":
                 #print "first entry of line is process!"
                 if entry in listOfProcesses:

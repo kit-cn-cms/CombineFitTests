@@ -1,4 +1,49 @@
 #!/bin/bash
+<<<<<<< HEAD
+
+CMSSW_BASE=/nfs/dust/cms/user/pkeicher/CMSSW_7_4_7
+export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch
+source $VO_CMS_SW_DIR/cmsset_default.sh
+cd $CMSSW_BASE
+eval `scram runtime -sh`
+cd -
+
+targetDatacard=$1
+toyDatacard=$2
+numberOfToysPerExperiment=$3
+signalStrength=$4
+randomseed=$5
+listOfPOIs=$6
+
+pathToConvertMDFtoMLF="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/convertMDFtoMLF.py"
+
+
+if [[ -f $toyDatacard ]]; then
+  combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $randomseed $toyDatacard"
+  echo "$combineCmd"
+  eval $combineCmd
+  if [[ -f *.root.dot ]]; then
+    rm *.root.dot
+  fi
+
+  toyFile="higgsCombine_$((numberOfToysPerExperiment))toys_sig$((signalStrength)).GenerateOnly.mH125.$((randomseed)).root"
+  echo "$toyFile"
+
+  if [[ -f $toyFile ]]; then
+    combineCmd="combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 --floatAllNuisances 1 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard"
+    echo "$combineCmd"
+    eval $combineCmd
+    # combineCmd='combine -M MultiDimFit '$targetDatacard' --algo=none --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _full_fit --saveWorkspace -m 125 --redefineSignalPOIs '$listOfPOIs' -t 1 --toysFile '$toyFile' --saveFitResult'
+    # echo "$combineCmd"
+    # eval $combineCmd
+    # python $pathToConvertMDFtoMLF
+  else
+    echo "Could not find toyFile, skipping the fit"
+  fi
+
+else
+  echo "Could not find datacard for toy generation! Aborting..."
+=======
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW.txt"
 pathToNLLscanner="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/plotting/nllscan.py"
 if [[ -f "$pathToCMSSWsetup" ]]; then
@@ -79,4 +124,5 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
   fi
 else
   echo "Could not find file to setup CMSSW! Aborting"
+>>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
 fi

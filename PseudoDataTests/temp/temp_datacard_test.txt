@@ -1,0 +1,50 @@
+imax * # number of channels 
+jmax * # number of backgrounds 
+kmax * # number of nuisance parameters 
+--------------- 
+bin ljets_jge6_tge4 
+observation 2352.000000 
+--------------- 
+shapes * * temp_limits_Spring17v2p2_ttbarincl_limitInput.root $PROCESS_finaldiscr_ljets_jge6_tge4 $PROCESS_finaldiscr_ljets_jge6_tge4_$SYSTEMATIC 
+shapes data_obs * higgsCombine_sig1_frequentist.MaxLikelihoodFit.mH125.123456.root toys/toy_1
+shapes ttH_hbb * temp_limits_Spring17v2p2_ttbarincl_limitInput.root ttH_hbb_finaldiscr_ljets_jge6_tge4 ttH_hbb_finaldiscr_ljets_jge6_tge4_$SYSTEMATIC 
+shapes ttH_hcc * temp_limits_Spring17v2p2_ttbarincl_limitInput.root ttH_hcc_finaldiscr_ljets_jge6_tge4 ttH_hcc_finaldiscr_ljets_jge6_tge4_$SYSTEMATIC 
+shapes ttH_hww * temp_limits_Spring17v2p2_ttbarincl_limitInput.root ttH_hww_finaldiscr_ljets_jge6_tge4 ttH_hww_finaldiscr_ljets_jge6_tge4_$SYSTEMATIC 
+shapes ttH_hzz * temp_limits_Spring17v2p2_ttbarincl_limitInput.root ttH_hzz_finaldiscr_ljets_jge6_tge4 ttH_hzz_finaldiscr_ljets_jge6_tge4_$SYSTEMATIC 
+shapes ttH_htt * temp_limits_Spring17v2p2_ttbarincl_limitInput.root ttH_htt_finaldiscr_ljets_jge6_tge4 ttH_htt_finaldiscr_ljets_jge6_tge4_$SYSTEMATIC 
+shapes ttH_hgg * temp_limits_Spring17v2p2_ttbarincl_limitInput.root ttH_hgg_finaldiscr_ljets_jge6_tge4 ttH_hgg_finaldiscr_ljets_jge6_tge4_$SYSTEMATIC 
+shapes ttH_hgluglu * temp_limits_Spring17v2p2_ttbarincl_limitInput.root ttH_hgluglu_finaldiscr_ljets_jge6_tge4 ttH_hgluglu_finaldiscr_ljets_jge6_tge4_$SYSTEMATIC 
+shapes ttH_hzg * temp_limits_Spring17v2p2_ttbarincl_limitInput.root ttH_hzg_finaldiscr_ljets_jge6_tge4 ttH_hzg_finaldiscr_ljets_jge6_tge4_$SYSTEMATIC 
+--------------- 
+bin ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 ljets_jge6_tge4 
+process ttH_hbb ttH_hcc ttH_hww ttH_hzz ttH_htt ttH_hgg ttH_hgluglu ttH_hzg ttbarOther ttbarPlusB ttbarPlus2B ttbarPlusBBbar ttbarPlusCCbar 
+process 0 -1 -2 -3 -4 -5 -6 -7 1 2 3 4 5 
+rate -1 -1 -1 -1 -1 -1 -1 -1 199.372 166.888 127.164 -1 281.916 
+--------------- 
+lumi_13TeV lnN 1.062 1.062 1.062 1.062 1.062 1.062 1.062 1.062 1.062 1.062 1.062 1.062 1.062 
+QCDscale_ttH lnN 0.908/1.058 0.908/1.058 0.908/1.058 0.908/1.058 0.908/1.058 0.908/1.058 0.908/1.058 0.908/1.058 - - - - - 
+QCDscale_ttbar lnN - - - - - - - - 0.96/1.02 0.96/1.02 0.96/1.02 0.96/1.02 0.96/1.02 
+QCDscale_singlet lnN - - - - - - - - - - - - - 
+pdf_gg_ttH lnN 1.036 1.036 1.036 1.036 1.036 1.036 1.036 1.036 - - - - - 
+pdf_gg lnN - - - - - - - - 1.04 1.04 1.04 1.04 1.04 
+pdf_qqbar lnN - - - - - - - - - - - - - 
+pdf_qg lnN - - - - - - - - - - - - - 
+QCDscale_V lnN - - - - - - - - - - - - - 
+QCDscale_VV lnN - - - - - - - - - - - - - 
+CMS_ttH_CSVLF shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_CSVHF shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_CSVHFStats1 shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_CSVLFStats1 shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_CSVHFStats2 shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_CSVLFStats2 shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_CSVCErr1 shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_CSVCErr2 shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_QCDscale_ttbarPlusB lnN - - - - - - - - - 1.5 - - - 
+CMS_ttH_QCDscale_ttbarPlus2B lnN - - - - - - - - - - 1.5 - - 
+CMS_ttH_QCDscale_ttbarPlusBBbar lnN - - - - - - - - - - - 1.5 - 
+CMS_ttH_QCDscale_ttbarPlusCCbar lnN - - - - - - - - - - - - 1.5 
+CMS_ttH_eff_mu shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_eff_el shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_ljets_Trig_mu shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+CMS_ttH_ljets_Trig_el shape 1 1 1 1 1 1 1 1 1 1 1 1 1 
+--------------- 
