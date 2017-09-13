@@ -1,5 +1,4 @@
 #!/bin/bash
-<<<<<<< HEAD
 
 CMSSW_BASE=/nfs/dust/cms/user/pkeicher/CMSSW_7_4_7
 export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch
@@ -43,7 +42,7 @@ if [[ -f $toyDatacard ]]; then
 
 else
   echo "Could not find datacard for toy generation! Aborting..."
-=======
+
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW.txt"
 pathToNLLscanner="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/plotting/nllscan.py"
 if [[ -f "$pathToCMSSWsetup" ]]; then
@@ -124,5 +123,5 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
   fi
 else
   echo "Could not find file to setup CMSSW! Aborting"
->>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
+
 fi
