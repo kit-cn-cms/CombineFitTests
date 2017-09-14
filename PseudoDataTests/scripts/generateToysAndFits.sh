@@ -50,25 +50,25 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
           echo "could not produce mlfit.root file!"
         fi
 
-        # if [[ -f $pathToMSworkspace ]]; then
-        #   echo "starting multiSignal analysis"
-        #   combineCmd="combine -M MaxLikelihoodFit -m 125 -n _MS_mlfit --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $pathToMSworkspace"
-        #   echo "$combineCmd"
-        #   eval $combineCmd
-        #
-        #   if [[ -f "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root" ]]; then
-        #     rm "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root"
-        #   fi
-        #
-        #   if ! [[ -f "mlfit_MS_mlfit.root" ]]; then
-        #     echo "could not produce mlfit_MS_mlfit.root file!"
-        #   fi
-        #
-        #   combineCmd='combine -M MultiDimFit '$pathToMSworkspace'  --algo=grid --points=400 --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _MS_multidim --saveWorkspace -m 125 -t '$numberOfToysPerExperiment' --toysFile '$toyFile' --saveFitResult'
-        #   echo "$combineCmd"
-        #   eval $combineCmd
-        # fi
-        #
+        if [[ -f $pathToMSworkspace ]]; then
+          echo "starting multiSignal analysis"
+          combineCmd="combine -M MaxLikelihoodFit -m 125 -n _MS_mlfit --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $pathToMSworkspace"
+          echo "$combineCmd"
+          eval $combineCmd
+
+          if [[ -f "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root" ]]; then
+            rm "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root"
+          fi
+
+          if ! [[ -f "mlfit_MS_mlfit.root" ]]; then
+            echo "could not produce mlfit_MS_mlfit.root file!"
+          fi
+
+          combineCmd='combine -M MultiDimFit '$pathToMSworkspace'  --algo=grid --points=400 --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _MS_multidim --saveWorkspace -m 125 -t '$numberOfToysPerExperiment' --toysFile '$toyFile' --saveFitResult'
+          echo "$combineCmd"
+          eval $combineCmd
+        fi
+        
 
       else
         echo "Could not find toyFile, skipping the fit"
