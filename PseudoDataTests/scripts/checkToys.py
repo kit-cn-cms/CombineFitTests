@@ -44,13 +44,13 @@ def compareVals(val1, error1, val2, error2, errormessage):
         print "\tCOMBINE FUCKED UP!"
         print "\tval1 = {0} +- {1}\n\tval2 = {2} +- {3}".format(val1, error1, val2, error2)
 
-def compareMus():
-    path1 = sys.argv[1]
-    path2 = None
-    if len(sys.argv) == 1:
-        path2 = sys.argv[2]
-    else:
-        path2 = path1
+def compareMus(path1, path2, pdfOutputPath):
+    # path1 = sys.argv[1]
+    # path2 = None
+    # if len(sys.argv) == 1:
+    #     path2 = sys.argv[2]
+    # else:
+    #     path2 = path1
 
 
 
@@ -138,6 +138,9 @@ def compareMus():
     for infile in mu1:
         print "computed signal strength for {5} in path {0}: mu = {1} +- {2} +- {3} +- {4}".format(path1, mu1[infile].GetMean(), mu1[infile].GetMeanError(), mu1[infile].GetRMS(), muError1[infile].GetMean(), infile)
         print "computed signal strength for {5} in path {0}: mu = {1} +- {2} +- {3} +- {4}".format(path2, mu2[infile].GetMean(), mu2[infile].GetMeanError(), mu2[infile].GetRMS(), muError2[infile].GetMean(), infile)
+        c = ROOT.TCanvas()
+        mu1[infile].Draw()
+        c.SaveAs(pdfOutputPath + "/mu1_" + infile.replace(".root","") + ".pdf" )
 
 def getDataObs(pathToPseudoExps, rootfile, pdfOutputPath = "./"):
     if os.path.exists(os.path.abspath(pathToPseudoExps)):
@@ -229,3 +232,4 @@ def getDataObs(pathToPseudoExps, rootfile, pdfOutputPath = "./"):
     origFile.Close()
 
 getDataObs(sys.argv[1], sys.argv[2], sys.argv[3])
+compareMus(sys.argv[1], sys.argv[1], sys.argv[3])
