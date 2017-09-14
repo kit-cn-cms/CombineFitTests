@@ -101,7 +101,7 @@ POImap = options.POIs
 listOfProcessesString = options.listOfProcesses
 scaleFuncList = options.listOfFormulae
 
-pathToScaledDatacard = options.pathToScaledDatacard
+pathToScaledDatacard = os.path.abspath(options.pathToScaledDatacard)
 
 scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 
