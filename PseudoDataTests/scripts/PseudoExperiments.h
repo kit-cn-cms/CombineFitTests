@@ -639,6 +639,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
 
 
 TH1* PseudoExperiments::getHist(const std::map<TString,TH1*>& hists, const TString& key) const {
+  if(debug_) std::cout << "entering 'PseudoExperiments::getHist()'\n";
   TH1* returnPointer = NULL;
   std::map<TString,TH1*>::const_iterator it = hists.find(key);
   if( it == hists.end() ) {
@@ -646,12 +647,15 @@ TH1* PseudoExperiments::getHist(const std::map<TString,TH1*>& hists, const TStri
     //throw std::exception();
   }
   else returnPointer = it->second;
+  if(debug_) std::cout << "leaving getHist()\n";
   return returnPointer;
 }
 
 
 TH1* PseudoExperiments::getClone(const TH1* h)const {
+  if(debug_) std::cout << "entering PseudoExperiments::getClone()\n";
   if(h!=NULL){
+    if(debug_) std::cout << "h exists!\n";
     const TUUID id;
     const TString name = h->GetName();
     return static_cast<TH1*>(h->Clone(name+":"+id.AsString()));
