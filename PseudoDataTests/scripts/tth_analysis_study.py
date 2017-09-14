@@ -164,7 +164,9 @@ POImap = options.POIs
 listOfProcessesString = options.listOfProcesses
 scaleFuncList = options.listOfFormulae
 
-pathToScaledDatacard = os.path.abspath(options.pathToScaledDatacard)
+pathToScaledDatacard = options.pathToScaledDatacard
+if pathToScaledDatacard is not None:
+    pathToScaledDatacard = os.path.abspath(pathToScaledDatacard)
 
 scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 
@@ -280,7 +282,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
         shellscript.append('\t\t\t\tif [[ -f $pathToMSworkspace ]]; then')
         shellscript.append('\t\t\t\t\techo "starting multiSignal analysis"')
 
-        shellscript.append('\t\t\t\t\tcombineCmd="' + mlfitCmd + '$pathToMSworkspace"')
+        shellscript.append('\t\t\t\t\tcombineCmd="' + mlfitCmd + '-n _MS_mlfit $pathToMSworkspace"')
         shellscript.append('\t\t\t\t\techo "$combineCmd"')
         shellscript.append('\t\t\t\t\teval $combineCmd\n')
 
