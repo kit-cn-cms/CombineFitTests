@@ -12,27 +12,94 @@ from optparse import OptionGroup
 ROOT.gROOT.SetBatch(True)
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
+pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW.txt"
 
 
 parser = OptionParser()
 group_required = OptionGroup(parser, "Required Options")
 group_globalOptions = OptionGroup(parser, "Options Valid for All Option Groups")
 group_scalingOptions = OptionGroup(parser, "Scaling Related Options")
-group_required.add_option("-o", "--outputDirectory", dest="outputDirectory", help="save signal strength folders with PseudoExperiments here", metavar = "PATH")
-group_globalOptions.add_option("-n", "--numberOfToys", dest="numberOfToys", help="generate this many toys per signal strength (default = 1000)", default = 1000, type="int")
-group_globalOptions.add_option("--nToysPerJob", dest = "nPerJob", help="process this many toys at once on bird system (default = 30)", default = 30 , type="int")
-group_globalOptions.add_option("--asimov", action="store_true", dest="asimov", default=False, help="only generate asimov toys. If this flag is activated input for '-n' is ignored and is set to 1")
-group_globalOptions.add_option("-s", "--injectSignalStrength", dest = "signalStrengths", help="use this signal strength for toy generation", action = "append", type="float")
-group_required.add_option("-d", "--datacard", dest="pathToDatacard", help="path to datacard with original MC templates", metavar="path/to/orignal/datacard")
-group_required.add_option("-r", "--rootfile", dest="pathToRoofile", help="path to root file specified in the datacard for option '-d'", metavar = "path/to/root/file")
-group_globalOptions.add_option("-p", "--additionalPOI", action="append", dest="POIs",
-                    help="add an additional POI to the fit.\nSyntax: (PROCESSNAME):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE]\n In order to map multiple process to one POI, use\n(PROCESSNAME1|PROCESSNAME2|...):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE].\nUses combine physics model 'multiSignalModel'. DANGER! This requires an additional datacard of the form 'path/to/original/datacard_POINAME1_POINAME2_....txt'")
-group_globalOptions.add_option("--toysFrequentist", dest="toysFrequentist", help = "generate frequentist toys", action="store_true", default = False)
-group_scalingOptions.add_option("--scaledDatacard", dest="pathToScaledDatacard", help="use this datacard to throw toys from", metavar="path/to/toy/datacard")
-group_scalingOptions.add_option("--scaleProcesses", dest="listOfProcesses", help="comma-separated list of processes to be scaled. Names have to match names in datacard", metavar="PROCESS1,PROCESS2,...")
-group_scalingOptions.add_option("--scaleFuncs", dest = "listOfFormulae", help="comma-separated list of functions to scale processes with.\nBased on TF1 functionality. Requires same order as in option '--scaleProcesses'", metavar="FUNC1,FUNC2,...")
-group_required.add_option("-c", "--config", dest = "config", default = "config.py", help="path to config.py file specifying lists of signal processes, background processes and keys for templates in root file", metavar="path/to/config")
-parser.add_option("-v", "--verbose", dest="verbose", help="increase output", action="store_true", default=False)
+group_required.add_option("-o", "--outputDirectory",
+dest="outputDirectory",
+help="save signal strength folders with PseudoExperiments here",
+metavar = "PATH"
+)
+group_globalOptions.add_option(
+"-n", "--numberOfToys",
+dest="numberOfToys",
+help="generate this many toys per signal strength (default = 1000)",
+default = 1000,
+type="int"
+)
+group_globalOptions.add_option("--nToysPerJob",
+dest = "nPerJob",
+help="process this many toys at once on bird system (default = 30)",
+default = 30 ,
+type="int"
+)
+group_globalOptions.add_option("--asimov",
+action="store_true",
+dest="asimov",
+default=False,
+help="only generate asimov toys. If this flag is activated input for '-n' is ignored and is set to 1"
+)
+group_globalOptions.add_option("-s", "--injectSignalStrength",
+dest = "signalStrengths",
+help="use this signal strength for toy generation",
+action = "append",
+type="float"
+)
+group_required.add_option("-d", "--datacard",
+dest="pathToDatacard",
+help="path to datacard with original MC templates",
+metavar="path/to/orignal/datacard"
+)
+group_required.add_option("-r", "--rootfile",
+dest="pathToRoofile",
+help="path to root file specified in the datacard for option '-d'",
+metavar = "path/to/root/file"
+)
+group_globalOptions.add_option("-p", "--additionalPOI",
+action="append",
+dest="POIs",
+help="add an additional POI to the fit.\nSyntax: (PROCESSNAME):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE]\n In order to map multiple process to one POI, use\n(PROCESSNAME1|PROCESSNAME2|...):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE].\nUses combine physics model 'multiSignalModel'. DANGER! This requires an additional datacard of the form 'path/to/original/datacard_POINAME1_POINAME2_....txt'"
+)
+group_globalOptions.add_option("--addToyCommand",
+dest="additionalToyCmds",
+help = "add combine command for toy generation (-M GenerateOnly)(can be used multiple times)",
+action="append",
+)
+group_globalOptions.add_option("--addFitCommand",
+dest="additionalFitCmds",
+help = "add combine command for fit (-M MaxLikelihoodFit)(can be used multiple times)",
+action="append",
+)
+group_scalingOptions.add_option("--scaledDatacard",
+dest="pathToScaledDatacard",
+help="use this datacard to throw toys from",
+metavar="path/to/toy/datacard"
+)
+group_scalingOptions.add_option("--scaleProcesses",
+dest="listOfProcesses",
+help="comma-separated list of processes to be scaled. Names have to match names in datacard",
+metavar="PROCESS1,PROCESS2,..."
+)
+group_scalingOptions.add_option("--scaleFuncs",
+dest = "listOfFormulae",
+help="comma-separated list of functions to scale processes with.\nBased on TF1 functionality. Requires same order as in option '--scaleProcesses'",
+metavar="FUNC1,FUNC2,..."
+)
+group_required.add_option("-c", "--config",
+dest = "config",
+default = "config.py",
+help="path to config.py file specifying lists of signal processes, background processes and keys for templates in root file",
+metavar="path/to/config")
+parser.add_option("-v", "--verbose",
+dest="verbose",
+help="increase output",
+action="store_true",
+default=False
+)
 parser.add_option_group(group_required)
 parser.add_option_group(group_globalOptions)
 parser.add_option_group(group_scalingOptions)
@@ -80,12 +147,8 @@ if os.path.exists(pathToConfig) and os.path.basename(pathToConfig) == "config.py
 else:
     sys.exit("Unable to find config.py file in %s" % pathToConfig)
 
-generatorScript = "generateToysAndFits.sh"
-if options.toysFrequentist:
-    generatorScript = "generateFrequentistToysAndFits.sh"
-
-print "will use {0} to generate toys and perform fits".format(workdir + "/" + generatorScript)
-
+additionalToyCmds = options.additionalToyCmds
+additionalFitCmds = options.additionalFitCmds
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
@@ -115,8 +178,177 @@ if listOfProcessesString and scaleFuncList:
 
 #----------------------------------------------------------------------------------------------------------------------------------------------
 
+def generateShellScript(targetDatacard, toyDatacard, numberOfToysPerExperiment,
+pathToMSworkspace, additionalToyCmds, additionalFitCmds):
+    """
+    generate bash script to generate toys and perform maximum likelihood fits.
+
+    Command for toy generation:
+    combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard
+
+    Command for MaxLikelihoodFit (both for simple fit and multi signal model):
+    combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
+
+    Keyword arguments:
+
+    targetDatacard              --  path to datacard to use for performing MaxLikelihoodFit
+    toyDatacard                 --  path to datacard to use for toy generation
+    numberOfToysPerExperiment   --  number of toys to throw per pseudo experiment
+    pathToMSworkspace           --  path to multi signal work space
+    additionalToyCmds           --  additional combine commands to use for toy generation
+    additionalFitCmds           --  additional combine command to use for MaxLikelihoodFit
+    """
+    #create combine command for toy generation
+    generateToysCmd = "combine -M GenerateOnly -m 125 "
+    generateToysCmd += "--saveToys -t $numberOfToysPerExperiment "
+    generateToysCmd += "-n _$((numberOfToysPerExperiment))toys_sig$signalStrength "
+    generateToysCmd += "--expectSignal $signalStrength -s $((randomseed)) "
+    if additionalToyCmds is not None:
+        for cmd in additionalToyCmds:
+            generateToysCmd += cmd + " "
+
+    #create combine MaxLikelihoodFit command
+
+    mlfitCmd = "combine -M MaxLikelihoodFit "
+    mlfitCmd += "-m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 "
+    mlfitCmd += "--saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 "
+    mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile --minos all "
+    if additionalFitCmds is not None:
+        for cmd in additionalFitCmds:
+            mlfitCmd += cmd + " "
+
+
+
+    mswExists = pathToMSworkspace is not None and not pathToMSworkspace == ""
+    shellscript = []
+    shellscript.append('#!/bin/bash')
+    shellscript.append('pathToCMSSWsetup='+pathToCMSSWsetup)
+    shellscript.append('if [[ -f "$pathToCMSSWsetup" ]]; then\n')
+
+    shellscript.append('\teval "source $pathToCMSSWsetup"')
+    shellscript.append('\ttargetDatacard='+targetDatacard)
+    shellscript.append('\ttoyDatacard='+toyDatacard)
+    shellscript.append('\tnumberOfToysPerExperiment='+str(numberOfToysPerExperiment))
+    if mswExists:
+        shellscript.append('\tpathToMSworkspace=' + pathToMSworkspace)
+
+    shellscript.append('\tsignalStrength=$1')
+    shellscript.append('\trandomseed=$2')
+    shellscript.append('\toutputPath=$3')
+
+    shellscript.append('#___________________________________________________')
+    shellscript.append('\techo "input variables:"')
+    shellscript.append('\techo "targetDatacard = $targetDatacard"')
+    shellscript.append('\techo "toyDatacard = $toyDatacard"')
+    shellscript.append('\techo "#Toys/Experiment = $numberOfToysPerExperiment"')
+    shellscript.append('\techo "mu = $signalStrength"')
+    shellscript.append('\techo "randomseed = $randomseed"')
+    shellscript.append('\techo "pathToMSworkspace = $pathToMSworkspace"')
+    shellscript.append('\techo "outputPath = $outputPath"\n')
+
+    shellscript.append('\techo "changing directory to $outputPath"')
+    shellscript.append('\tif [[ -d "$outputPath" ]]; then')
+    shellscript.append('\t\tcd $outputPath\n')
+
+    shellscript.append('\t\tif [[ -f $toyDatacard ]]; then')
+
+    shellscript.append('\t\t\tcombineCmd="' + generateToysCmd + '$toyDatacard"')
+    shellscript.append('\t\t\techo "$combineCmd"')
+    shellscript.append('\t\t\teval $combineCmd\n')
+    shellscript.append('\t\t\tif [[ -f *.root.dot ]]; then')
+    shellscript.append('\t\t\t\trm *.root.dot')
+    shellscript.append('\t\t\tfi\n')
+
+    shellscript.append('\t\t\ttoyFile="higgsCombine_$((numberOfToysPerExperiment))toys_sig$signalStrength.GenerateOnly.mH125.$((randomseed)).root"')
+    shellscript.append('\t\t\techo "$toyFile"')
+
+    shellscript.append('\t\t\tif [[ -f $toyFile ]]; then')
+
+    shellscript.append('\t\t\t\tcombineCmd="' + mlfitCmd + '$targetDatacard"')
+    shellscript.append('\t\t\t\techo "$combineCmd"')
+    shellscript.append('\t\t\t\teval $combineCmd\n')
+
+    shellscript.append('\t\t\t\tif [[ -f "higgsCombineTest.MaxLikelihoodFit.mH125.123456.root" ]]; then')
+    shellscript.append('\t\t\t\t\trm "higgsCombineTest.MaxLikelihoodFit.mH125.123456.root"')
+    shellscript.append('\t\t\t\tfi\n')
+
+    shellscript.append('\t\t\t\tif ! [[ -f "mlfit.root" ]]; then')
+    shellscript.append('\t\t\t\t\techo "could not produce mlfit.root file!"')
+    shellscript.append('\t\t\t\tfi')
+
+    if mswExists:
+        shellscript.append('\t\t\t\tif [[ -f $pathToMSworkspace ]]; then')
+        shellscript.append('\t\t\t\t\techo "starting multiSignal analysis"')
+
+        shellscript.append('\t\t\t\t\tcombineCmd="' + mlfitCmd + '$pathToMSworkspace"')
+        shellscript.append('\t\t\t\t\techo "$combineCmd"')
+        shellscript.append('\t\t\t\t\teval $combineCmd\n')
+
+        shellscript.append('\t\t\t\t\tif [[ -f "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root" ]]; then')
+        shellscript.append('\t\t\t\t\t\trm "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root"')
+        shellscript.append('\t\t\t\t\tfi\n')
+
+        shellscript.append('\t\t\t\t\tif ! [[ -f "mlfit_MS_mlfit.root" ]]; then')
+        shellscript.append('\t\t\t\t\t\techo "could not produce mlfit_MS_mlfit.root file!"')
+        shellscript.append('\t\t\t\t\tfi')
+
+        shellscript.append('\t\t\t\tfi\n')
+
+    shellscript.append('\t\t\telse')
+    shellscript.append('\t\t\t\techo "Could not find toyFile, skipping the fit"')
+    shellscript.append('\t\t\tfi\n')
+
+    shellscript.append('\t\telse')
+    shellscript.append('\t\t\techo "Could not find datacard for toy generation! Aborting..."')
+    shellscript.append('\t\tfi\n')
+    shellscript.append('\telse')
+    shellscript.append('\t\techo "$outputPath is not a directory! Aborting"')
+    shellscript.append('\tfi\n')
+    shellscript.append('else')
+    shellscript.append('\techo "Could not find file to setup CMSSW! Aborting"')
+    shellscript.append('fi')
+
+    return shellscript
+
+def generateFolderGeneratorScript(generatorScriptPath):
+    shellscript = []
+    shellscript.append('#!/bin/bash\n')
+
+    shellscript.append('signalStrength=$1')
+    shellscript.append('lowerBound=$2')
+    shellscript.append('upperBound=$3')
+    shellscript.append('outputPath=$4\n')
+
+    shellscript.append('if [[ -d $outputPath ]]; then')
+    shellscript.append('\tcd $outputPath\n')
+
+    shellscript.append('\techo "starting PseudoExperiment generation"')
+    shellscript.append('\tfor (( i = $lowerBound; i < $upperBound; i++ )); do')
+    shellscript.append('\t\tmkdir -p PseudoExperiment$i')
+    shellscript.append('\t\tif [[ -d PseudoExperiment$i ]]; then')
+    shellscript.append('\t\t\tcd PseudoExperiment$i\n')
+
+    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i"\n')
+
+    shellscript.append('\t\t\tcd ../\n')
+    shellscript.append('\t\telse')
+    shellscript.append('\t\t\t echo "Could not generate folder PseudoExperiment$i in $outputPath"')
+    shellscript.append('\t\tfi\n')
+    shellscript.append('\tdone')
+    shellscript.append('else')
+    shellscript.append('\techo "$outputPath is not a directory! Aborting"')
+    shellscript.append('fi')
+    return shellscript
 
 def submitArrayToNAF(scripts, arrayscriptpath):
+    """
+    generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
+
+    Keyword arguments:
+
+    scripts         -- list of scripts to be submitted
+    arrayscriptpath -- path to safe script array in
+    """
     submitclock=ROOT.TStopwatch()
     submitclock.Start()
     logdir = os.getcwd()+"/logs"
@@ -165,7 +397,6 @@ def submitArrayToNAF(scripts, arrayscriptpath):
     print "submitted job", jobidint, " in ", submittime
     return [jobidint]
 
-
 def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
     jobids=[]
     command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), pathToMSworkspace]
@@ -183,42 +414,69 @@ def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, nu
 
     return jobids
 
-
 def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus):
-    numberOfLoops = numberOfToys//numberOfToysPerJob
-    rest = numberOfToys%numberOfToysPerJob
-    commands = []
-    if pathToMSworkspace is None or pathToMSworkspace == "":
-        pathToMSworkspace = "\'\'\"\"\'\'"
-    for signalStrength in listOfMus:
-        if not outputDirectory.endswith("/"):
-            outputDirectory = outputDirectory + "/"
-        signalStrengthFolder = outputDirectory + "sig" + str(signalStrength)
-        if os.path.exists(signalStrengthFolder):
-            print "resetting folder", signalStrengthFolder
-            shutil.rmtree(signalStrengthFolder)
+
+    generatorScript = os.path.abspath(outputDirectory + "/temp/generateToysAndFits.sh")
+    folderGeneratorScript = os.path.abspath(outputDirectory + "/temp/generateFolders.sh")
+
+    genScript = open(generatorScript, "w")
+    genScript.write("\n".join(generateShellScript(
+    targetDatacard = pathToDatacard,
+    toyDatacard = datacardToUse,
+    numberOfToysPerExperiment = numberOfToys,
+    pathToMSworkspace = pathToMSworkspace,
+    additionalFitCmds = additionalFitCmds,
+    additionalToyCmds = additionalToyCmds ) ) )
+    genScript.close()
+
+    if os.path.exists(generatorScript):
+
+        subprocess.call("chmod 755 "+generatorScript, shell = True)
+        genFolderScript = open(folderGeneratorScript,"w")
+        genFolderScript.write("\n".join(generateFolderGeneratorScript(generatorScript)))
+        genFolderScript.close()
+
+        if os.path.exists(folderGeneratorScript):
+
+            subprocess.call("chmod 755 "+folderGeneratorScript, shell = True)
+
+            numberOfLoops = numberOfToys//numberOfToysPerJob
+            rest = numberOfToys%numberOfToysPerJob
+            commands = []
+
+            for signalStrength in listOfMus:
+                if not outputDirectory.endswith("/"):
+                    outputDirectory = outputDirectory + "/"
+                signalStrengthFolder = outputDirectory + "sig" + str(signalStrength)
+                if os.path.exists(signalStrengthFolder):
+                    print "resetting folder", signalStrengthFolder
+                    shutil.rmtree(signalStrengthFolder)
 
 
-        signalStrengthFolder = os.path.abspath(signalStrengthFolder)
-        os.makedirs(signalStrengthFolder)
+                signalStrengthFolder = os.path.abspath(signalStrengthFolder)
+                os.makedirs(signalStrengthFolder)
 
-        if not asimov:
-            if not os.path.exists(signalStrengthFolder + "/asimov"):
-                os.makedirs(signalStrengthFolder + "/asimov")
+                if not asimov:
+                    if not os.path.exists(signalStrengthFolder + "/asimov"):
+                        os.makedirs(signalStrengthFolder + "/asimov")
 
-            commands.append("\'" + workdir + "/"+ generatorScript +" " + pathToDatacard + " " + datacardToUse + " -1 " + str(signalStrength) + " 123456 " + pathToMSworkspace + " " + signalStrengthFolder + "/asimov\'")
+                    commands.append("\'" + generatorScript +" " + str(signalStrength) + " 123456 " + signalStrengthFolder + "/asimov\'")
 
-        for i in range(numberOfLoops):
-            upperBound = (i+1)*numberOfToysPerJob
-            lowerBound = i*numberOfToysPerJob
-            commands.append("\'" + workdir + "/createFoldersAndDoToyFits.sh " + pathToDatacard + " " + datacardToUse + " " + str(toyMode) + " " + str(signalStrength) + " " + str(lowerBound) + " " + str(upperBound) + " " + pathToMSworkspace + " " + signalStrengthFolder + "\'")
+                for i in range(numberOfLoops):
+                    upperBound = (i+1)*numberOfToysPerJob
+                    lowerBound = i*numberOfToysPerJob
+                    commands.append("\'" + folderGeneratorScript + " " + str(signalStrength) + " " + str(lowerBound) + " " + str(upperBound) + " " + signalStrengthFolder + "\'")
 
-        commands.append("\'" + workdir + "/createFoldersAndDoToyFits.sh " + pathToDatacard + " " + datacardToUse + " " + str(toyMode) + " " + str(signalStrength) + " " + str(int(numberOfToys - rest)) + " " + str(numberOfToys) + " " + pathToMSworkspace + " " + signalStrengthFolder + "\'" )
+                commands.append("\'" + folderGeneratorScript + " " + str(signalStrength) + " " + str(int(numberOfToys - rest)) + " " + str(numberOfToys) + " " + signalStrengthFolder + "\'")
 
-    for command in commands:
-        print command
+            for command in commands:
+                print command
 
-    return submitArrayToNAF(commands, outputDirectory+"temp/arrayJobs.sh")
+            return submitArrayToNAF(commands, outputDirectory+"temp/arrayJobs.sh")
+        else:
+            print "Could not write folder generator!"
+    else:
+        print "Could not write toy and fit generator!"
 
 
 def do_qstat(jobids):
