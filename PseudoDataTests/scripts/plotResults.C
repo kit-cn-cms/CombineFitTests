@@ -52,7 +52,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
                           const std::vector<TString>& labels,
                           const TString& outLabel,
                           const bool superimposeNorm = false) {
-    gStyle->SetOptStat(000110000);
+    gStyle->SetOptStat("e");
     TCanvas* can = new TCanvas("can","",900,500);
     can->cd();
     std::vector<TLine*> lines;

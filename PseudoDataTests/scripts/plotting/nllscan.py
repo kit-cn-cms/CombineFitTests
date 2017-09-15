@@ -76,7 +76,7 @@ if directDrawPath is None:
     multidimfitcmd = 'combine -M MultiDimFit ' + datacard
     multidimfitcmd = multidimfitcmd + ' --algo=grid --points=' + str(nPoints) + ' --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 '
     multidimfitcmd = multidimfitcmd + '--cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 '
-    multidimfitcmd = multidimfitcmd + '-m 125 -t ' + str(nToys) + ' --toysFile ' + toysFile + ' --rMin = -10 --rMax = 10 --saveFitResult --saveInactivePOI 1'
+    multidimfitcmd = multidimfitcmd + '-m 125 -t ' + str(nToys) + ' --toysFile ' + toysFile + ' --rMin -10 --rMax 10 --saveFitResult --saveInactivePOI 1'
     if not suffix == "":
         multidimfitcmd = multidimfitcmd + ' -n ' + suffix
         fitresFile = fitresFile + suffix

@@ -3,6 +3,7 @@
 
 #include "TH1.h"
 #include "TString.h"
+#include "helperFuncs.h"
 
 namespace createLatexOutput{
   void writePOILatexTable(const TH1* hMeans, const TH1* hMedians, const TH1* hMeansWithFittedError, const TString outputPath, const TString tableCaption, const TString& testName){
@@ -34,14 +35,14 @@ namespace createLatexOutput{
         //             output << processName.Data();
         //             for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
         //             {
-        //                 output << " & \\num{" << checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeans->GetBinError(bin)) << "}";
-        //                 output << " $\\pm$ \\num{"<< checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMeansWithFittedError->GetBinError(bin)) << "}";
+        //                 output << " & \\num{" << helperFuncs::checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeans->GetBinError(bin)) << "}";
+        //                 output << " $\\pm$ \\num{"<< helperFuncs::checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << helperFuncs::checkValues(hMeansWithFittedError->GetBinError(bin)) << "}";
         //             }
         //             output << "\\\\\n";
         for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
         {
-          output <<  hMeans->GetXaxis()->GetBinLabel(bin) << " & \\num{" << checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeans->GetBinError(bin)) << "}";
-          output << " $\\pm$ \\num{"<< checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMeansWithFittedError->GetBinError(bin)) << "}\\\\\n";
+          output <<  hMeans->GetXaxis()->GetBinLabel(bin) << " & \\num{" << helperFuncs::checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeans->GetBinError(bin)) << "}";
+          output << " $\\pm$ \\num{"<< helperFuncs::checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << helperFuncs::checkValues(hMeansWithFittedError->GetBinError(bin)) << "}\\\\\n";
         }
         output << "\\bottomrule\n";
         output << "\\end{tabular}\n\\end{table}";
@@ -79,12 +80,12 @@ namespace createLatexOutput{
       {
         processName = hMeansB->GetXaxis()->GetBinLabel(bin);
         if(processName.Contains("_")) processName.ReplaceAll("_", "\\_");
-        output << processName << " & \\num{" << checkValues(hMeansB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeansB->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMediansB->GetBinError(bin)) << "}";
-        if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL) output << " $\\pm$ \\num{"<< checkValues(hMeansBwithFittedError->GetBinError(bin)) << "}";
-        output << " & \\num{" << checkValues(hMeansSB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< checkValues(hMeansSB->GetBinError(bin)) << "} $\\pm$ \\num{" << checkValues(hMediansSB->GetBinError(bin)) << "}";
-        if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL)output << " $\\pm$ \\num{"<< checkValues(hMeansSBwithFittedError->GetBinError(bin)) << "}";
+        output << processName << " & \\num{" << helperFuncs::checkValues(hMeansB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansB->GetBinError(bin)) << "} $\\pm$ \\num{" << helperFuncs::checkValues(hMediansB->GetBinError(bin)) << "}";
+        if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL) output << " $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansBwithFittedError->GetBinError(bin)) << "}";
+        output << " & \\num{" << helperFuncs::checkValues(hMeansSB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansSB->GetBinError(bin)) << "} $\\pm$ \\num{" << helperFuncs::checkValues(hMediansSB->GetBinError(bin)) << "}";
+        if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL)output << " $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansSBwithFittedError->GetBinError(bin)) << "}";
 
-        if(hExpectation != NULL) output << " & \\num{" << checkValues(hExpectation->GetBinContent(bin)) << "}";
+        if(hExpectation != NULL) output << " & \\num{" << helperFuncs::checkValues(hExpectation->GetBinContent(bin)) << "}";
         output << "\\\\\n";
       }
       output << "\\bottomrule\n";

@@ -90,8 +90,8 @@ def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/nuisanceImpact/nuisanceImpact_limitInput.root"
 
     for datacard in glob.glob(pathToDatacards):
-        # if "reduced" in datacard:
-        #     continue
+        if "reduced" in datacard:
+            continue
         suffix = datacard.split("/")[-1]
         suffix = suffix.replace(".txt","")
         suffix = suffix.replace("datacard_","")
@@ -137,4 +137,4 @@ listOfPoisCombis = [
 # for pois in listOfPoisCombis:
 #     tth_fit_stability(pois)
 
-JES_uncertainty_study(sys.argv[1], sys.argv[2], sys.argv[3])
+JES_uncertainty_study(pathToDatacards = sys.argv[1], folderSuffix = sys.argv[2], additionalCmds = sys.argv[3])
