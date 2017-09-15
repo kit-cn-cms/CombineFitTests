@@ -91,9 +91,10 @@ metavar="FUNC1,FUNC2,..."
 )
 group_required.add_option("-c", "--config",
 dest = "config",
-default = "config.py",
+#default = "config.py",
 help="path to config.py file specifying lists of signal processes, background processes and keys for templates in root file",
 metavar="path/to/config")
+
 parser.add_option("-v", "--verbose",
 dest="verbose",
 help="increase output",
@@ -111,14 +112,20 @@ if options.outputDirectory == None:
     parser.error("output directory has to be specified!")
 if options.pathToDatacard == None:
     parser.error("Path to original MC template datacard has to be specified!")
-if options.pathToRoofile == None:
-    parser.error("Path to root file with MC templates has to be specified!")
-if options.config == None:
-    parser.error("Path to config file has to be specified!")
 if options.pathToScaledDatacard and (options.listOfProcesses or options.listOfFormulae):
     parser.error("Cannot specify both path to datacard to throw toys from and list of processes to scale/ scaling functions!")
 if (not options.listOfProcesses and options.listOfFormulae) or (options.listOfProcesses and not options.listOfFormulae):
     parser.error("Need to specify both processes to scale and corresponding scaling functions!")
+elif options.listOfProcesses and options.listOfFormulae:
+    if options.pathToRoofile == None:
+        parser.error("Path to root file with MC templates has to be specified - cannot scale without source file!")
+    elif not os.path.exists(os.path.abspath(options.pathToRoofile)):
+        parser.error("Could not find file {0}, aborting".format(os.path.abspath(options.pathToRoofile)))
+    elif options.config == None:
+        parser.error("Path to config file needs to be specified!")
+    elif os.path.exists(os.path.abspath(options.config)):
+        parser.error("Unable to find config.py file in {0}".format(os.path.abspath(options.config)))
+
 if options.asimov and options.numberOfToys:
     print "WARNGING:\twill ignore input for option '-n' and throw one toy!"
 
@@ -140,12 +147,14 @@ if options.asimov:
         print "Will only generate one asimov toy"
     numberOfToys = 1
 
-pathToConfig = os.path.abspath(options.config)
-if os.path.exists(pathToConfig) and os.path.basename(pathToConfig) == "config.py":
-    sys.path.append(pathToConfig)
-    import config
-else:
-    sys.exit("Unable to find config.py file in %s" % pathToConfig)
+if options.config is not None:
+    pathToConfig = os.path.abspath(options.config)
+    if os.path.exists(pathToConfig):
+        sys.path.append(pathToConfig)
+        import config
+    else:
+        parser.error("Unable to find config.py file in {0}".format(os.path.abspath(pathToConfig)))
+
 
 additionalToyCmds = options.additionalToyCmds
 additionalFitCmds = options.additionalFitCmds
@@ -209,6 +218,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
         for cmd in additionalToyCmds:
             generateToysCmd += cmd + " "
 
+    print "will use this command for toy generation:\n", generateToysCmd
     #create combine MaxLikelihoodFit command
 
     mlfitCmd = "combine -M MaxLikelihoodFit "
@@ -219,7 +229,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
         for cmd in additionalFitCmds:
             mlfitCmd += cmd + " "
 
-
+    print "will use this command for fit:\n", mlfitCmd
 
     mswExists = pathToMSworkspace is not None and not pathToMSworkspace == ""
     shellscript = []
@@ -325,7 +335,7 @@ def generateFolderGeneratorScript(generatorScriptPath):
     shellscript.append('\tcd $outputPath\n')
 
     shellscript.append('\techo "starting PseudoExperiment generation"')
-    shellscript.append('\tfor (( i = $lowerBound; i < $upperBound; i++ )); do')
+    shellscript.append('\tfor (( i = $((lowerBound+1)); i <= $upperBound; i++ )); do')
     shellscript.append('\t\tmkdir -p PseudoExperiment$i')
     shellscript.append('\t\tif [[ -d PseudoExperiment$i ]]; then')
     shellscript.append('\t\t\tcd PseudoExperiment$i\n')
@@ -480,7 +490,6 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
     else:
         print "Could not write toy and fit generator!"
 
-
 def do_qstat(jobids):
     allfinished=False
     while not allfinished:
@@ -617,7 +626,6 @@ def scaleHistogram(key, category, inputRootFile, funcFormula, currentOutputDir, 
     collectNorms(listOfNormsPostscale, histo, category)
     return histo
 
-
 def saveHistos(category, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs, bkg=False):
     index = -1
     for entry in range(len(processScalingDic)):
@@ -644,7 +652,6 @@ def saveHistos(category, key, processScalingDic, inputRootFile, outputFile, path
         if bkg:
             data_obs[category].Add(tempObject)
         tempObject.Write()
-
 
 def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys, listOfNormsPrescale, listOfNormsPostscale):
     tempObject = None
@@ -732,6 +739,8 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     listOfNormsPostscale = []
     shapeExpectation = ""
     if len(processScalingDic) is not 0:
+        if inputRootFile == None:
+            sys.exit("Tried to scale processes but no input root file is open! Aborting...")
         suffix = ""
         for processPair in processScalingDic:
             suffix = suffix+processPair[0].replace("*","")+"_"+processPair[1].replace("*","")+"_"
@@ -789,7 +798,6 @@ def skipParameter(param):
                     return True
     return False
 
-
 def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     print "creating new datacard from input", pathToDatacard
     datacard = open(pathToDatacard)
@@ -832,17 +840,22 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     return newDatacardName
 
 
-if os.path.exists(pathToDatacard) and os.path.exists(pathToInputRootfile):
+if os.path.exists(pathToDatacard):
     pathToDatacard=os.path.abspath(pathToDatacard)
-    pathToInputRootfile = os.path.abspath(pathToInputRootfile)
-    inputRootFile = ROOT.TFile(pathToInputRootfile, "READ")
-    if not os.path.exists(outputDirectory):
-        os.makedirs(outputDirectory)
-    #print "outputDirectory after directory was created:", outputDirectory
+    inputRootFile = None
+    if pathToInputRootfile is not None:
+        pathToInputRootfile = os.path.abspath(pathToInputRootfile)
+        inputRootFile = ROOT.TFile(pathToInputRootfile, "READ")
     outputDirectory = os.path.abspath(outputDirectory)
+    if os.path.exists(outputDirectory):
+        print "resetting folder", outputDirectory
+        shutil.rmtree(outputDirectory)
+
+    os.makedirs(outputDirectory)
+    #print "outputDirectory after directory was created:", outputDirectory
     #print "outputDir after calling abspath:", outputDirectory
     os.chdir(outputDirectory)
     #print "outputDirectory after changing dirs:", outputDirectory
     generateToysAndFit(inputRootFile, scalingDic, pathToScaledDatacard, outputDirectory)
 else:
-    print "Incorrect paths to input data. Please make sure path to datacard is correct!"
+    print "Incorrect paths to input datacard. Please make sure path to datacard is correct!"

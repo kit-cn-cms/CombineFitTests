@@ -74,7 +74,7 @@ def tth_fit_stability(pois):
                 process = "_".join(process)
 
             suffix_noscale = base_suffix
-            
+
             suffix = base_suffix+process+"_"+temp_factor
 
             if "_" in temp_factor:
@@ -84,19 +84,19 @@ def tth_fit_stability(pois):
             runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois, "--scaleProcesses " + key, "--scaleFuncs " + factor)
 
 
-def JES_uncertainty_study(pathToDatacards):
+def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
     targetPath = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/tests/CMS_nominal_CSV/"
     #pathToDatacards = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/datacard_63445463_CMS_scale_*j_*.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/nuisanceImpact/nuisanceImpact_limitInput.root"
 
     for datacard in glob.glob(pathToDatacards):
-        if "reduced" in datacard:
-            continue
+        # if "reduced" in datacard:
+        #     continue
         suffix = datacard.split("/")[-1]
         suffix = suffix.replace(".txt","")
         suffix = suffix.replace("datacard_","")
 
-        runScript(targetPath, suffix + "_redefineSignalPOI" , datacard, pathToRoofile, key = "--asimov")
+        runScript(targetPath, suffix + folderSuffix , datacard, pathToRoofile, key = additionalCmds)
 
 def throwToys(wildcard, inputRootFile, pathToConfig):
     #wildcard = sys.argv[1]
@@ -134,7 +134,7 @@ listOfPoisCombis = [
         #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         ]
 
-for pois in listOfPoisCombis:
-    tth_fit_stability(pois)
+# for pois in listOfPoisCombis:
+#     tth_fit_stability(pois)
 
-#JES_uncertainty_study(sys.argv[1])
+JES_uncertainty_study(sys.argv[1], sys.argv[2], sys.argv[3])
