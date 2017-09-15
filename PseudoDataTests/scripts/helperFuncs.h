@@ -13,6 +13,11 @@
 
 namespace helperFuncs{
 
+  Double_t checkValues(Double_t x, Double_t cut = 100000000){
+      if(std::isnan(x) || std::isinf(x) || x>cut) return 0;
+      else return x;
+  }
+
   double findMaxValue(const std::vector<TH1*> histos, const TString mode = "y")
   {
     double maxVal = -999;
@@ -113,7 +118,7 @@ namespace helperFuncs{
       double finalBinError = binError;
       //std::cout << "\tsetting error of bin " << bin << " to " << finalBinError << std::endl;
 
-      if( finalBinError == 0) finalBinError = checkValues(histo->GetMeanError());
+      if( finalBinError == 0) finalBinError = checkValues(histo->GetMeanError(), 1);
       histo->SetBinError(bin, finalBinError);
       std::cout << "done setting up histo bin!\n";
     }

@@ -28,11 +28,7 @@
 #include "RooAbsCollection.h"
 
 #include "ShapeContainer.h"
-
-Double_t checkValues(Double_t x){
-    if(std::isnan(x) || std::isinf(x)) return 0;
-    else return x;
-}
+#include "helperFuncs.h"
 
 class PseudoExperiments {
 public:
@@ -721,9 +717,9 @@ TH2D* PseudoExperiments::getCorrelationPlot(const std::map<TString, std::map<TSt
       if(tempHisto){
         if (debug_) std::cout << "setting bin content: (" << i << ", " << j << ") = " << tempHisto->GetMean() << std::endl;
         correlationPlot->SetBinContent(i,j, tempHisto->GetMean());
-        correlationPlot->SetBinError(i,j, checkValues(tempHisto->GetMeanError()));
+        correlationPlot->SetBinError(i,j, helperFuncs::checkValues(tempHisto->GetMeanError()));
         correlationPlot->SetBinContent(j,i, tempHisto->GetMean());
-        correlationPlot->SetBinError(j,i, checkValues(tempHisto->GetMeanError()));
+        correlationPlot->SetBinError(j,i, helperFuncs::checkValues(tempHisto->GetMeanError()));
         tempHisto = NULL;
       }
       else{

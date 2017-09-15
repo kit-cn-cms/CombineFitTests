@@ -435,7 +435,7 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
     genScript.write("\n".join(generateShellScript(
     targetDatacard = pathToDatacard,
     toyDatacard = datacardToUse,
-    numberOfToysPerExperiment = numberOfToys,
+    numberOfToysPerExperiment = toyMode,
     pathToMSworkspace = pathToMSworkspace,
     additionalFitCmds = additionalFitCmds,
     additionalToyCmds = additionalToyCmds ) ) )
