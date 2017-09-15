@@ -59,9 +59,9 @@ def tth_fit_stability(pois):
         targetPath = targetPath + poi
 
     base_suffix = "63445464_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
-    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pathToRoofile, pois, key = "--toysFrequentist ")
-    runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa+ " --toysFrequentist")
-    runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC + " --toysFrequentist")
+    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pathToRoofile, pois, )
+    runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa)
+    runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
         for factor in processDic[key]:
             process = key
@@ -74,7 +74,6 @@ def tth_fit_stability(pois):
                 process = "_".join(process)
 
             suffix_noscale = base_suffix
-            #produce unscaled toys
 
             suffix = base_suffix+process+"_"+temp_factor
 
@@ -82,22 +81,22 @@ def tth_fit_stability(pois):
                 factor = temp_factor.replace("_",",")
 
 
-            runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois, "--scaleProcesses " + key+ " --toysFrequentist", "--scaleFuncs " + factor)
+            runScript(targetPath, suffix, pathToDatacard, pathToRoofile, pois, "--scaleProcesses " + key, "--scaleFuncs " + factor)
 
 
-def JES_uncertainty_study(pathToDatacards):
+def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
     targetPath = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/tests/CMS_nominal_CSV/"
     #pathToDatacards = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/datacard_63445463_CMS_scale_*j_*.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/nuisanceImpact/nuisanceImpact_limitInput.root"
 
     for datacard in glob.glob(pathToDatacards):
-        if "reduced" in datacard:
-            continue
+        # if "reduced" in datacard:
+        #     continue
         suffix = datacard.split("/")[-1]
         suffix = suffix.replace(".txt","")
         suffix = suffix.replace("datacard_","")
 
-        runScript(targetPath, suffix + "_redefineSignalPOI", datacard, pathToRoofile, key = "--asimov")
+        runScript(targetPath, suffix + folderSuffix , datacard, pathToRoofile, key = additionalCmds)
 
 def throwToys(wildcard, inputRootFile, pathToConfig):
     #wildcard = sys.argv[1]
@@ -135,7 +134,7 @@ listOfPoisCombis = [
         #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         ]
 
-for pois in listOfPoisCombis:
-    tth_fit_stability(pois)
+# for pois in listOfPoisCombis:
+#     tth_fit_stability(pois)
 
-#JES_uncertainty_study(sys.argv[1])
+JES_uncertainty_study(sys.argv[1], sys.argv[2], sys.argv[3])
