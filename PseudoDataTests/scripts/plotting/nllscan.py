@@ -36,7 +36,7 @@ nPoints = options.points
 
 if directDrawPath == None:
     if toysFile == None:
-        parser.error("toysFile needs to be specified!")
+        print "will generate toys on the fly"
     else:
         toysFile = os.path.abspath(toysFile)
         if not os.path.exists(toysFile):
@@ -69,27 +69,34 @@ if scan2D and (xVar == None or yVar == None):
 
 if directDrawPath is None:
     basepath = os.getcwd()
-    print "changing into directory", os.path.dirname(toysFile)
-    os.chdir(os.path.dirname(toysFile))
-    fitresFile = os.path.dirname(toysFile) + "/higgsCombine"
+    fitresFile = "higgsCombine"
+    if toysFile:
+        fitresFile = os.path.dirname(toysFile) + "/" + fitresFile
+        print "changing into directory", os.path.dirname(toysFile)
+        os.chdir(os.path.dirname(toysFile))
 
     multidimfitcmd = 'combine -M MultiDimFit ' + datacard
-    multidimfitcmd = multidimfitcmd + ' --algo=grid --points=' + str(nPoints) + ' --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 '
-    multidimfitcmd = multidimfitcmd + '--cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 '
-    multidimfitcmd = multidimfitcmd + '-m 125 -t ' + str(nToys) + ' --toysFile ' + toysFile + ' --rMin -10 --rMax 10 --saveFitResult --saveInactivePOI 1'
+    multidimfitcmd += ' --algo=grid --points=' + str(nPoints) + ' --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 '
+    multidimfitcmd += '--cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 '
+    multidimfitcmd += '-m 125 -t ' + str(nToys)
+    if toysFile:
+        multidimfitcmd += ' --toysFile ' + toysFile
+    multidimfitcmd += ' --rMin -10 --rMax 10 --saveFitResult --saveInactivePOI 1'
     if not suffix == "":
-        multidimfitcmd = multidimfitcmd + ' -n ' + suffix
-        fitresFile = fitresFile + suffix
+        multidimfitcmd += ' -n ' + suffix
+        fitresFile += suffix
     else:
-        fitresFile = fitresFile + "Test"
-    for cmd in additionalCmds:
-        multidimfitcmd = multidimfitcmd + " " + cmd
+        fitresFile += "Test"
+    if additionalCmds:
+        for cmd in additionalCmds:
+            multidimfitcmd += " " + cmd
 
     print multidimfitcmd
     subprocess.call([multidimfitcmd], shell=True)
     for workspace in glob.glob("roostat*.root"):
         os.remove(workspace)
-
+    if os.path.exists(fitresFile + ".MultiDimFit.mH125.123456.root"):
+        os.remove(fitresFile + ".MultiDimFit.mH125.123456.root")
     fitresFile = os.path.abspath(fitresFile + ".MultiDimFit.mH125.root")
     os.chdir(basepath)
 else:
@@ -179,5 +186,6 @@ if os.path.exists(fitresFile):
 
         else:
             print "Could not load limit tree!"
+        infile.Close()
 else:
     print "Could not find multidim fit output", fitresFile
