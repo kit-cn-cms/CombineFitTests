@@ -123,7 +123,7 @@ elif options.listOfProcesses and options.listOfFormulae:
         parser.error("Could not find file {0}, aborting".format(os.path.abspath(options.pathToRoofile)))
     elif options.config == None:
         parser.error("Path to config file needs to be specified!")
-    elif os.path.exists(os.path.abspath(options.config)):
+    elif not os.path.exists(os.path.abspath(options.config)):
         parser.error("Unable to find config.py file in {0}".format(os.path.abspath(options.config)))
 
 if options.asimov and options.numberOfToys:
@@ -149,11 +149,12 @@ if options.asimov:
 
 if options.config is not None:
     pathToConfig = os.path.abspath(options.config)
+    print "checking config file in", pathToConfig
     if os.path.exists(pathToConfig):
         sys.path.append(pathToConfig)
         import config
     else:
-        parser.error("Unable to find config.py file in {0}".format(os.path.abspath(pathToConfig)))
+        parser.error("Unable to find config.py file in {0}".format(pathToConfig))
 
 
 additionalToyCmds = options.additionalToyCmds
