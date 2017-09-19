@@ -41,7 +41,7 @@ namespace createLatexOutput{
         //             output << "\\\\\n";
         for(int bin=1; bin <= int(hMeans->GetNbinsX()); bin++)
         {
-          output <<  hMeans->GetXaxis()->GetBinLabel(bin) << " & \\num{" << helperFuncs::checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeans->GetBinError(bin)) << "}";
+          output <<  hMeans->GetXaxis()->GetBinLabel(bin) << "\t & \\num{" << helperFuncs::checkValues(hMeans->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeans->GetBinError(bin)) << "}";
           output << " $\\pm$ \\num{"<< helperFuncs::checkValues(hMedians->GetBinError(bin)) << "} $\\pm$ \\num{" << helperFuncs::checkValues(hMeansWithFittedError->GetBinError(bin)) << "}\\\\\n";
         }
         output << "\\bottomrule\n";
@@ -65,12 +65,12 @@ namespace createLatexOutput{
       if(hExpectation != NULL) output << "c";
       output << "}\n";
       output << "\\toprule\n";
-      output << "Parameter & \\multicolumn{2}{c}{Mean $\\pm$ Mean Error $\\pm$ RMS";
+      output << "Parameter \t& \\multicolumn{2}{c}{Mean $\\pm$ Mean Error $\\pm$ RMS";
       if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL) output << " $\\pm$ Fitted Error";
       output << "}";
-      if(hExpectation != NULL) output << " & Expectation";
+      if(hExpectation != NULL) output << " \t& Expectation";
       output << "\\\\\n";
-      output << " & B-Only Fit & S+B Fit";
+      output << " \t& B-Only Fit & S+B Fit";
       if(hExpectation != NULL) output << " & ";
       output << "\\\\\n";
 
@@ -80,9 +80,9 @@ namespace createLatexOutput{
       {
         processName = hMeansB->GetXaxis()->GetBinLabel(bin);
         if(processName.Contains("_")) processName.ReplaceAll("_", "\\_");
-        output << processName << " & \\num{" << helperFuncs::checkValues(hMeansB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansB->GetBinError(bin)) << "} $\\pm$ \\num{" << helperFuncs::checkValues(hMediansB->GetBinError(bin)) << "}";
+        output << processName << " \t& \\num{" << helperFuncs::checkValues(hMeansB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansB->GetBinError(bin)) << "} $\\pm$ \\num{" << helperFuncs::checkValues(hMediansB->GetBinError(bin)) << "}";
         if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL) output << " $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansBwithFittedError->GetBinError(bin)) << "}";
-        output << " & \\num{" << helperFuncs::checkValues(hMeansSB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansSB->GetBinError(bin)) << "} $\\pm$ \\num{" << helperFuncs::checkValues(hMediansSB->GetBinError(bin)) << "}";
+        output << " \t& \\num{" << helperFuncs::checkValues(hMeansSB->GetBinContent(bin)) << "} $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansSB->GetBinError(bin)) << "} $\\pm$ \\num{" << helperFuncs::checkValues(hMediansSB->GetBinError(bin)) << "}";
         if(hMeansBwithFittedError != NULL && hMeansSBwithFittedError != NULL)output << " $\\pm$ \\num{"<< helperFuncs::checkValues(hMeansSBwithFittedError->GetBinError(bin)) << "}";
 
         if(hExpectation != NULL) output << " & \\num{" << helperFuncs::checkValues(hExpectation->GetBinContent(bin)) << "}";
