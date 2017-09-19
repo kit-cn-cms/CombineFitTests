@@ -105,7 +105,7 @@ namespace helperFuncs{
     }
   }
 
-  void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const Double_t binContent, const Double_t binError = 0 )
+  void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const Double_t binContent, const Double_t binError = -99999 )
   {
     if(histo != NULL){
       std::cout << "current histogram: " << histo->GetName() << std::endl;
@@ -115,13 +115,13 @@ namespace helperFuncs{
       histo->GetXaxis()->SetBinLabel(bin, finalLabel);
       histo->GetXaxis()->LabelsOption("v");
       histo->GetXaxis()->SetLabelSize(0.04);
-      //std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
+      std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
 
       histo->SetBinContent(bin, binContent);
       double finalBinError = binError;
-      //std::cout << "\tsetting error of bin " << bin << " to " << finalBinError << std::endl;
 
-      if( finalBinError == 0) finalBinError = checkValues(histo->GetMeanError(), 1);
+      if( finalBinError == -99999) finalBinError = checkValues(histo->GetMeanError());
+      std::cout << "\tsetting error of bin " << bin << " to " << finalBinError << std::endl;
       histo->SetBinError(bin, finalBinError);
       std::cout << "done setting up histo bin!\n";
     }
