@@ -508,14 +508,15 @@ void normVals(std::vector<std::vector<Double_t> >* toNorm, std::vector<std::vect
                 double preFitRMS = norm[nExp][i][3];
                 if(norm[nExp][i][0] != 0 && norm[nExp][i][2] != 0)
                 {
-                    toNorm[nExp][i][0] = postFitMeanVal/preFitMeanVal;
+                    toNorm[nExp][i][0] = helperFuncs::checkValues(postFitMeanVal/preFitMeanVal);
                     //std::cout << "\t\t\tnew mean val = " << toNorm[nExp][i][0] << std::endl;
-                    toNorm[nExp][i][1] = toNorm[nExp][i][0]*TMath::Sqrt(TMath::Power(postFitMeanErr/postFitMeanVal,2) + TMath::Power(preFitMeanErr/preFitMeanVal,2));
+                    //std::cout << "postFitMeanErr = " << postFitMeanErr << "\tpreFitMeanErr = " << preFitMeanErr << std::endl;
+                    toNorm[nExp][i][1] = helperFuncs::checkValues(toNorm[nExp][i][0]*TMath::Sqrt(TMath::Power(postFitMeanErr/postFitMeanVal,2) + TMath::Power(preFitMeanErr/preFitMeanVal,2)));
                     //std::cout << "\t\t\tnew mean err = " << toNorm[nExp][i][1] << std::endl;
                     toNorm[nExp][i][2] = postFitMedian/preFitMedian;
                     //std::cout << "\t\t\tnew median val = " << toNorm[nExp][i][2] << std::endl;
 
-                    toNorm[nExp][i][3] = toNorm[nExp][i][2]*TMath::Sqrt(TMath::Power(postFitRMS/postFitMedian,2) + TMath::Power(preFitRMS/preFitMedian,2));
+                    toNorm[nExp][i][3] = helperFuncs::checkValues(toNorm[nExp][i][2]*TMath::Sqrt(TMath::Power(postFitRMS/postFitMedian,2) + TMath::Power(preFitRMS/preFitMedian,2)));
                     //std::cout << "\t\t\tnew RMS = " << toNorm[nExp][i][3] << std::endl;
                 }
                 else
@@ -677,7 +678,7 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
         std::cout << "drawing norm pullplots\n";
         if(listOfProcesses.size() != 0){
             for(int i = 0; i<int(exps.size()); i++){
-                drawPullPlots::drawPullPlots(listOfProcesses, labels[i], PostfitBvalsAndErrors[i], PostfitSBvalsAndErrors[i], PrefitValsAndErrors[i], outLabel+categoryName +"_normalisation_", -1, 3, pathToShapeExpectationRootfile, categoryName);
+              drawPullPlots::drawPullPlots(listOfProcesses, labels[i], PostfitBvalsAndErrors[i], PostfitSBvalsAndErrors[i], PrefitValsAndErrors[i], outLabel+categoryName +"_normalisation_", -1, 3, pathToShapeExpectationRootfile, categoryName);
             }
 
         }
