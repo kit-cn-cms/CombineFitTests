@@ -63,7 +63,10 @@ def tth_fit_stability(pois, additionalCmds = None):
         targetPath = targetPath + poi
 
     base_suffix = "63445464_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
-    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pathToRoofile, pois, )
+    string = ""
+    if additionalCmds:
+        string = additionalCmds
+    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pathToRoofile, pois, key = string)
     #runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa)
     #runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
@@ -100,7 +103,7 @@ def tth_fit_stability(pois, additionalCmds = None):
 
 
 def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
-    targetPath = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/tests/CMS_nominal_CSV/additionalCheck/"
+    targetPath = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/tests/CMS_nominal_CSV/"
     #pathToDatacards = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/datacard_63445463_CMS_scale_*j_*.txt"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/nuisanceImpact/nuisanceImpact_limitInput.root"
 
@@ -149,7 +152,7 @@ listOfPoisCombis = [
         #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         ]
 
-for pois in listOfPoisCombis:
-    tth_fit_stability(pois, sys.argv[1])
+# for pois in listOfPoisCombis:
+#     tth_fit_stability(pois, sys.argv[1])
 
-#JES_uncertainty_study(pathToDatacards = sys.argv[1], folderSuffix = sys.argv[2], additionalCmds = sys.argv[3])
+JES_uncertainty_study(pathToDatacards = sys.argv[1], folderSuffix = sys.argv[2], additionalCmds = sys.argv[3])
