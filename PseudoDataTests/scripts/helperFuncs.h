@@ -14,7 +14,10 @@
 namespace helperFuncs{
 
   Double_t checkValues(Double_t x, Double_t cut = 100000000){
-      if(std::isnan(x) || std::isinf(x) || x>cut) return 0;
+      if(std::isnan(x) || std::isinf(x) || x>cut) {
+        std::cout << "WARNING:\tchecked value is either nan, inf or > "<< cut;
+        std::cout << "! Setting it to 0\n";
+        return 0;}
       else return x;
   }
 
