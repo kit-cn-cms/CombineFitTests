@@ -101,6 +101,11 @@ help="increase output",
 action="store_true",
 default=False
 )
+group_globalOptions.add_option("-f", "--noFolderReset",
+dest = "folderReset",
+help = "reset only signal strength folders, not entire folder for this pseudo experiment (default = false)",
+action = "store_true",
+default = False)
 parser.add_option_group(group_required)
 parser.add_option_group(group_globalOptions)
 parser.add_option_group(group_scalingOptions)
@@ -159,6 +164,8 @@ if options.config is not None:
 
 additionalToyCmds = options.additionalToyCmds
 additionalFitCmds = options.additionalFitCmds
+
+resetFolders = not options.folderReset
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
@@ -185,6 +192,7 @@ scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 if listOfProcessesString and scaleFuncList:
     listOfProcesses = listOfProcessesString.split(",")
     listOfFormulae = scaleFuncList.split(",")
+    assert len(listOfProcesses) == len(listOfFormulae), "# of processes does not match # of formulae!"
     scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
     print "using scaling dictionary:", scalingDic
 
@@ -207,8 +215,8 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     toyDatacard                 --  path to datacard to use for toy generation
     numberOfToysPerExperiment   --  number of toys to throw per pseudo experiment
     pathToMSworkspace           --  path to multi signal work space
-    additionalToyCmds           --  additional combine commands to use for toy generation
-    additionalFitCmds           --  additional combine command to use for MaxLikelihoodFit
+    additionalToyCmds           --  list of additional combine commands to use for toy generation
+    additionalFitCmds           --  list of additional combine command to use for MaxLikelihoodFit
     """
     #create combine command for toy generation
     generateToysCmd = "combine -M GenerateOnly -m 125 "
@@ -575,8 +583,10 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
 
             processName = prescaleProcesses[0]
             print "\tcreating branchs for process", processName
-            tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[{1}]/D".format(processName, process))
-            tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[{1}]/D".format(processName, process))
+            #tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[{1}]/D".format(processName, process))
+            tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[1]/D".format(processName))
+            #tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[{1}]/D".format(processName, process))
+            tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[1]/D".format(processName))
 
             print "\t\tsuccess"
             prescaleVals[process][0] = prescaleProcesses[1]
@@ -848,11 +858,12 @@ if os.path.exists(pathToDatacard):
         pathToInputRootfile = os.path.abspath(pathToInputRootfile)
         inputRootFile = ROOT.TFile(pathToInputRootfile, "READ")
     outputDirectory = os.path.abspath(outputDirectory)
-    if os.path.exists(outputDirectory):
+    if os.path.exists(outputDirectory) and resetFolders:
         print "resetting folder", outputDirectory
         shutil.rmtree(outputDirectory)
 
-    os.makedirs(outputDirectory)
+    if not os.path.exists(outputDirectory):
+        os.makedirs(outputDirectory)
     #print "outputDirectory after directory was created:", outputDirectory
     #print "outputDir after calling abspath:", outputDirectory
     os.chdir(outputDirectory)
