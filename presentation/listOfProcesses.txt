@@ -1,7 +1,0 @@
-ttH_hbb
-
-ttbarOther
-ttbarPlusB
-ttbarPlus2B
-ttbarPlusBBbar
-ttbarPlusCCbar
