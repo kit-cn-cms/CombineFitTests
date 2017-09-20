@@ -29,6 +29,7 @@ namespace drawPullPlots{
     {
       if(PostfitBvalsAndErrors.size() != 0 && PostfitSBvalsAndErrors.size() != 0 && PrefitValsAndErrors.size() != 0)
       {
+
         TString* canvasName = NULL;
         TCanvas canvas;
 

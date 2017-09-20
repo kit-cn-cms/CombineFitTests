@@ -28,11 +28,7 @@
 #include "RooAbsCollection.h"
 
 #include "ShapeContainer.h"
-
-Double_t checkValues(Double_t x){
-    if(std::isnan(x) || std::isinf(x)) return 0;
-    else return x;
-}
+#include "helperFuncs.h"
 
 class PseudoExperiments {
 public:
@@ -84,6 +80,12 @@ public:
     if(tempPointer != NULL) returnVal = tempPointer->GetMean();
     return returnVal;
   }
+  Double_t npPrefitMeanError(const TString& np) const{
+    Double_t returnVal = -9999;
+    TH1* tempPointer = getHist(npValuesPrefit_,np);
+    if(tempPointer != NULL) returnVal = tempPointer->GetMeanError();
+    return returnVal;
+  }
   Double_t npPrefitRMS(const TString& np) const {
     return getHist(npValuesPrefit_,np)->GetRMS();
   }
@@ -101,6 +103,9 @@ public:
   }
   Double_t npPostfitBMean(const TString& np) const {
     return getHist(npValuesPostfitB_,np)->GetMean();
+  }
+  Double_t npPostfitBMeanError(const TString& np) const {
+    return getHist(npValuesPostfitB_,np)->GetMeanError();
   }
   Double_t npPostfitBRMS(const TString& np) const {
     return getHist(npValuesPostfitB_,np)->GetRMS();
@@ -131,6 +136,9 @@ public:
   }
   Double_t npPostfitSMean(const TString& np) const {
     return getHist(npValuesPostfitS_,np)->GetMean();
+  }
+  Double_t npPostfitSMeanError(const TString& np) const {
+    return getHist(npValuesPostfitS_,np)->GetMeanError();
   }
   Double_t npPostfitSRMS(const TString& np) const {
     return getHist(npValuesPostfitS_,np)->GetRMS();
@@ -721,9 +729,9 @@ TH2D* PseudoExperiments::getCorrelationPlot(const std::map<TString, std::map<TSt
       if(tempHisto){
         if (debug_) std::cout << "setting bin content: (" << i << ", " << j << ") = " << tempHisto->GetMean() << std::endl;
         correlationPlot->SetBinContent(i,j, tempHisto->GetMean());
-        correlationPlot->SetBinError(i,j, checkValues(tempHisto->GetMeanError()));
+        correlationPlot->SetBinError(i,j, helperFuncs::checkValues(tempHisto->GetMeanError()));
         correlationPlot->SetBinContent(j,i, tempHisto->GetMean());
-        correlationPlot->SetBinError(j,i, checkValues(tempHisto->GetMeanError()));
+        correlationPlot->SetBinError(j,i, helperFuncs::checkValues(tempHisto->GetMeanError()));
         tempHisto = NULL;
       }
       else{
