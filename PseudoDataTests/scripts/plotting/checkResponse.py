@@ -1,30 +1,39 @@
-import ROOT as r
+import ROOT
 import os
 import sys
 import glob
 import subprocess
 import numpy as np
 
-r.gROOT.SetBatch(True)
+ROOT.gROOT.SetBatch(True)
+
+workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/"
+pathToHelper = workdir + "plotting/helpfulFuncs.py"
+if os.path.exists(pathToHelper):
+    sys.path.append(pathToHelper)
+else:
+    sys.exit("unable to find "+ pathToHelper)
+
+from helpfulFuncs import getLegend
 
 datacards = sys.argv[1]
 stepSize = float(sys.argv[2])
 upperBound = 2
 lowerBound = 0
 
-colors  = [r.kRed   ,r.kBlue    ,r.kOrange  ,r.kMagenta  ]
-markers = [20       ,21         ,22         ,23          ]
+colors  = [ROOT.kRed   ]#,ROOT.kBlue    ,ROOT.kOrange  ,ROOT.kMagenta  ]
+markers = [20           ]#,21         ,22         ,23          ]
 #dic with commands to check. Form: {label: command}
 
 cmds = {
 "minimizerStrategy1, minimizerTolerance 0.0001" :
 "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
-"minimizerStrategy1, minimizerTolerance 0.001" :
-"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
-"minimizerStrategy0, minimizerTolerance 0.0001" :
-"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
-"minimizerStrategy0, minimizerTolerance 0.001" :
-"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+# "minimizerStrategy1, minimizerTolerance 0.001" :
+# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+# "minimizerStrategy0, minimizerTolerance 0.0001" :
+# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+# "minimizerStrategy0, minimizerTolerance 0.001" :
+# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
 
 }
 combineOutputName = "mlfit.root"
@@ -59,13 +68,13 @@ def getNLLvals(datacard, commandString, up, low):
         subprocess.call([command], shell = True)
 
         if os.path.exists(combineOutputName):
-            infile = r.TFile(combineOutputName)
-            if infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(r.TFile.kRecovered):
+            infile = ROOT.TFile(combineOutputName)
+            if infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(ROOT.TFile.kRecovered):
                 fit_s = infile.Get("fit_s")
-                if isinstance(fit_s, r.RooFitResult):
+                if isinstance(fit_s, ROOT.RooFitResult):
                     if fit_s.status() == 0 and didConverge(fit_s):
                         mu = fit_s.floatParsFinal().find("r")
-                        if isinstance(mu, r.RooRealVar):
+                        if isinstance(mu, ROOT.RooRealVar):
                             print "saving {0} {1} +{2}".format(mu.getVal(), mu.getErrorLo(), mu.getErrorHi())
                             vals = [signal, mu.getVal(), mu.getErrorLo(), mu.getErrorHi()]
                             allVals.append(vals)
@@ -89,8 +98,8 @@ def getNLLvals(datacard, commandString, up, low):
     return allVals
 
 def createGraph(datacard, commandString, color, marker, up, low):
-    graph = r.TGraphAsymmErrors()
-    uid = r.TUUID()
+    graph = ROOT.TGraphAsymmErrors()
+    uid = ROOT.TUUID()
     graph.SetName(uid.AsString())
     graph.SetLineColor(color)
     graph.SetMarkerColor(color)
@@ -105,13 +114,13 @@ def createGraph(datacard, commandString, color, marker, up, low):
         subprocess.call([command], shell = True)
 
         if os.path.exists(combineOutputName):
-            infile = r.TFile(combineOutputName)
-            if infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(r.TFile.kRecovered):
+            infile = ROOT.TFile(combineOutputName)
+            if infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(ROOT.TFile.kRecovered):
                 fit_s = infile.Get("fit_s")
-                if isinstance(fit_s, r.RooFitResult):
+                if isinstance(fit_s, ROOT.RooFitResult):
                     if fit_s.status() == 0 and didConverge(fit_s):
                         mu = fit_s.floatParsFinal().find("r")
-                        if isinstance(mu, r.RooRealVar):
+                        if isinstance(mu, ROOT.RooRealVar):
                             print "saving {0} {1} +{2}".format(mu.getVal(), mu.getErrorLo(), mu.getErrorHi())
                             graph.SetPoint(i, signal, mu.getVal())
                             graph.SetPointEYhigh(i, mu.getErrorHi())
@@ -143,7 +152,7 @@ for datacard in glob.glob(datacards):
     if os.path.exists(datacard):
         assert len(cmds) == len(colors) and len(cmds) == len(markers), "lists have different numbers of entries!"
         graphs = []
-        legend = r.TLegend()
+        legend = getLegend()
         datacard = os.path.abspath(datacard)
         print "creating response plot for datacard", datacard
 
@@ -158,33 +167,34 @@ for datacard in glob.glob(datacards):
                                         up = upperBound,
                                         low = lowerBound)
 
-        c = r.TCanvas()
+        c = ROOT.TCanvas()
         canvasName = "responsePlot"
         if datacard.endswith(".txt"):
             canvasName += "_" + os.path.basename(datacard).replace(".txt","")
         elif datacard.endswith(".root"):
             canvasName += "_" + os.path.basename(datacard).replace(".root","")
 
-        graphOutput = r.TFile("graphs_"+canvasName+".root", "RECREATE")
-        ideal = r.TF1("ideal", "x", lowerBound, upperBound)
+        graphOutput = ROOT.TFile("graphs_"+canvasName+".root", "RECREATE")
+        ideal = ROOT.TF1("ideal", "x", lowerBound, upperBound)
         ideal.SetLineStyle(2)
-        ideal.SetLineColor(r.kBlack)
+        ideal.SetLineColor(ROOT.kBlack)
         first = True
         for cmd, color, marker in zip(values, colors, markers):
             if len(values[cmd]) is not 0:
-                graph = r.TGraphAsymmErrors(len(values[cmd]))
+                graph = ROOT.TGraphAsymmErrors(len(values[cmd]))
                 for npoint, valSet in enumerate(values[cmd]):
                     graph.SetPoint(npoint, valSet[0], valSet[1])
-                    graph.SetPointEYlow(npoint, valSet[2])
-                    graph.SetPointEYhigh(npoint, valSet[3])
-                    print "Set point {0} to x={1}\ty={2}\t{3}\t+{4}".format(npoint,graph.GetX()[npoint], graph.GetY()[npoint],graph.GetEYlow()[npoint], graph.GetEYhigh()[npoint])
+                    graph.SetPointEYlow(npoint, ROOT.TMath.Abs(valSet[2]))
+                    graph.SetPointEYhigh(npoint, ROOT.TMath.Abs(valSet[3]))
+                    print "Set point {0} to x={1}\ty={2}\t-{3}\t+{4}".format(npoint,graph.GetX()[npoint], graph.GetY()[npoint],graph.GetEYlow()[npoint], graph.GetEYhigh()[npoint])
 
                 graph.SetLineColor(color)
                 graph.SetMarkerColor(color)
                 graph.SetMarkerStyle(marker)
 
-                localLeg = r.TLegend()
+                localLeg = getLegend()
                 localLeg.AddEntry(graph, cmd, "lp")
+                localLeg.AddEntry(ideal, "Ideal Response Behavior", "l")
 
                 graphName = cmd.replace(",", "")
                 graphName = graphName.replace(" ", "_")
@@ -197,6 +207,7 @@ for datacard in glob.glob(datacards):
                 graph.GetHistogram().GetXaxis().SetTitle('injected #mu')
                 graph.GetHistogram().GetYaxis().SetTitle('fitted #mu')
                 graph.Draw("AP")
+                ideal.Draw("Same")
                 localLeg.Draw("Same")
                 if first:
                     first = False
@@ -214,6 +225,8 @@ for datacard in glob.glob(datacards):
             else:
                 print "drawing graph {0} in same canvas".format(graph.GetName())
                 graph.Draw("PSame")
+        legend.AddEntry(ideal, "Ideal Response Behavior", "l")
+        ideal.Draw("Same")
         legend.Draw("Same")
         c.Print(canvasName + ".pdf)","pdf")
         graphOutput.Close()

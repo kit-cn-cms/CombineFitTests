@@ -249,13 +249,13 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     shellscript.append('\teval "source $pathToCMSSWsetup"')
     shellscript.append('\ttargetDatacard='+targetDatacard)
     shellscript.append('\ttoyDatacard='+toyDatacard)
-    shellscript.append('\tnumberOfToysPerExperiment='+str(numberOfToysPerExperiment))
     if mswExists:
         shellscript.append('\tpathToMSworkspace=' + pathToMSworkspace)
 
     shellscript.append('\tsignalStrength=$1')
     shellscript.append('\trandomseed=$2')
     shellscript.append('\toutputPath=$3')
+    shellscript.append('\tnumberOfToysPerExperiment=$4\n')
 
     shellscript.append('#___________________________________________________')
     shellscript.append('\techo "input variables:"')
@@ -331,14 +331,15 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
 
     return shellscript
 
-def generateFolderGeneratorScript(generatorScriptPath):
+def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript = []
     shellscript.append('#!/bin/bash\n')
 
     shellscript.append('signalStrength=$1')
     shellscript.append('lowerBound=$2')
     shellscript.append('upperBound=$3')
-    shellscript.append('outputPath=$4\n')
+    shellscript.append('outputPath=$4')
+    shellscript.append('numberOfToysPerExperiment='+str(toyMode)+'\n')
 
     shellscript.append('if [[ -d $outputPath ]]; then')
     shellscript.append('\tcd $outputPath\n')
@@ -349,7 +350,7 @@ def generateFolderGeneratorScript(generatorScriptPath):
     shellscript.append('\t\tif [[ -d PseudoExperiment$i ]]; then')
     shellscript.append('\t\t\tcd PseudoExperiment$i\n')
 
-    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i"\n')
+    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
 
     shellscript.append('\t\t\tcd ../\n')
     shellscript.append('\t\telse')
@@ -454,7 +455,7 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
 
         subprocess.call("chmod 755 "+generatorScript, shell = True)
         genFolderScript = open(folderGeneratorScript,"w")
-        genFolderScript.write("\n".join(generateFolderGeneratorScript(generatorScript)))
+        genFolderScript.write("\n".join(generateFolderGeneratorScript(generatorScript, toyMode = toyMode)))
         genFolderScript.close()
 
         if os.path.exists(folderGeneratorScript):
@@ -481,7 +482,7 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
                     if not os.path.exists(signalStrengthFolder + "/asimov"):
                         os.makedirs(signalStrengthFolder + "/asimov")
 
-                    commands.append("\'" + generatorScript +" " + str(signalStrength) + " 123456 " + signalStrengthFolder + "/asimov\'")
+                    commands.append("\'" + generatorScript +" " + str(signalStrength) + " 123456 " + signalStrengthFolder + "/asimov -1\'")
 
                 for i in range(numberOfLoops):
                     upperBound = (i+1)*numberOfToysPerJob
