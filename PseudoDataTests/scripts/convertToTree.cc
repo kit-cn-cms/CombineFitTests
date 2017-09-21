@@ -1,145 +1,159 @@
-#inlcude "TROOT.h"
+#include "TROOT.h"
 #include "TChain.h"
 #include "TH1F.h"
 #include "TF1.h"
 #include "TFile.h"
 #include "iostream"
 #include "iomanip"
+#include "RooFitResult.h"
+#include "RooRealVar.h"
+#include "TString.h"
+#include "TFolder.h"
+#include "TTree.h"
 
 using namespace std;
 
-TFolder TConvert(char **filename)
+TFolder* shapes(TFile* file, int mode =0)
 {
-	// Veryfying filename
-	if(double(filename) == 0)
+	TDirectoryFile* Ddirect;
+	TFolder* folder;
+	if(mode==0){file->GetObject("shapes_prefit",Ddirect);
+		folder = new TFolder("shapes_prefit","shapes_prefit");}
+	else if(mode == 1){file->GetObject("shapes_fit_b",Ddirect);
+		folder = new TFolder("shapes_fit_b","shapes_fit_b");}
+        else if(mode == 2){file->GetObject("shapes_fit_s",Ddirect);
+		folder = new TFolder("shapes_fit_s","shapes_fit_s");}
+
+	TDirectory* Dirsub;
+
+	TList* List = (TList*) Ddirect->GetListOfKeys();
+
+	while(List->GetSize()!=0)
 	{
-	cout << "There is no file to read, nothing will be done!" << endl;
-	}
+		Dirsub = (TDirectoryFile*)Ddirect->Get(List->Last()->GetName());
+		TList* Listsub = Dirsub->GetListOfKeys();
+		TTree* Ttemp= new TTree(Dirsub->GetName(),Dirsub->GetName());
+		double temp[Listsub->GetSize()];
+		int count =0;
 
-	//Readng in file
-	char pathnam = ""; //<-FIX ME!!
-	pathname += filename[1];
-	TFile * file = new TFile(pathname);
-
-	// Seting output variables
-	TFolder * background("background", ttHb);
-	TFolder * signal("signal",ttHsb);
-
-	// Seting folders for correlation matrixes
-	TFolder * fb_cor("fb_cor");
-	TFolder * fs_cor("fs_cor");
-
-	// Seting folders for shapes
-	TFolder * fb_shape("fb_shape");
-	TFolder * fs_shape("fs_shape");
-
-	// Seting Trees for fit values
-	TTree * tpreb("tpreb");
-	TTree * tpres("tpres";
-
-	TTree * tpostb("tpostb");
-	TTree * tposts("tposts");
-
-	//Iterators
-	/// Iterator prefit
-	TIter  itpre = nuisances_prefit_res->floatParsInit().CreateIterator(); 
-
-	/// Iterators postfit
-	TIter  itpostb = fit_b->floatParsInit().CreateIterator();
-	TIter  itposts = fit_s->floatParsInit().CreateIterator();
-
-	/// Second set of Iterators for correlation matrix
-	TIter  itpostb_cor = fit_b->floatParsInit().createIterator();
-	TIter  itposts_cor = fit_s->floatParsInit().createIterator();
-
-	/// Iterator for shapes
-	TIter * itshapesb = shapes_fit_b->GetListOfKeys();
-	TIter * itshapess = shapes_fit_s->GetListOfKeys();
-
-
-	// Variables for nuisances
-	RooRealVar varpre; 
-	RooRealVar varb, varb_cor;
-	RooRealVar vars, vars_cor;
-
-	// Keys for shapes
-	TKey * lshapeb;
-	TKey * lshapes;
-
-	// Iterate for prefit values
-	
-	while(varpre =(RooRealVar*) itpre.Next())
-	{
-		RooRealVar * Ttempb(varpre.GetName(),varpre.GetName(),varpre.GetVal(),varpre.GetLow(),varpre.GetHigh()); // NOT DONE!!!
-		RooRealVar * Rtemps(varpre.GetName(),varpre.GetName(),varpre.GetVal(),varpre.GetLow(),varpre.GetHigh()); // NOT DONE!!!
-		tpreb->SetBranch(varpre.GetName(),varb); //<-NOT DONE!!!
-		tpres->SetBranch(varpre.GetName(),vars); //<-NOT DONE!!!
-		tpreb->Fill();
-		tpres->Fill();
-	}
-
-	// Iterate for postfit values
-
-	while(varb =(RooRealVar*) itpostb.Next())
-	{
-		// Filling TTree for new nuisances values
-		RooRealVar * var(varb.GetName(), varb.GetName(), varb.GetVal(), varb.GetLow(), varb.GetHigh()) // NOT DONE!!!
-		tpostb->SetBranch(varb.GetName(),var); //<-NOT DONE!!!
-		tpostb->Fill();
-		// Generating TTrees for correlation Matrix
-		TTree * ttemp  = new TTree(varb.GetName(),varb.GetName()); //<- NOT DONE!!!
-	
-	// Filling TTrees of correlation Matrix
-		while(varb_cor = itpostb_cor.Next())
+		while(Listsub->GetSize()!=0)
 		{
-			Double_t val = correlation(varb,varb_cor); //<- NOT DONE!!!
-			ttemp->SetBranch(varb.GetName(),val); // NOT DONE!!!
-			ttemp->Fill();
-		}
-		// Adding TTrees to TFolders
-		fb_cor->Add(temp); // <-NOT DONE!!!
-	}
 
-	while(vars = itposts.Next())
-	{
-		while(vars_cor = itposts_cor.Next())
-		{
-		}
-	}
+			if(TString(Dirsub->Get(Listsub->Last()->GetName())->ClassName()).Contains("TH1F"))
+			{
 
-	// Integrate over shapes and save
+				temp[count] = ((TH1D*) Dirsub->Get(Listsub->Last()->GetName()))->Integral();
+				Ttemp->Branch(Listsub->Last()->GetName(), &temp[count], "Integral/D");
+				++count;
+
+			}
+			Listsub->RemoveLast();
+
+		}
+		Ttemp->Fill();
+		folder->Add(Ttemp);
+		List->RemoveLast();
+	}
+	return folder;
+}
+
+
+int TConvert(TString filename= "mlfit.root",int mod = 0)
+{
+	// Reading file in
+	TFile* file = new TFile(filename.Data());
+	std::cout << "Opened file!\n";
+
+	// Only execute programm if there's data to read
 	
-	while(lshapeb =  itshapesb.Next()) // NOT DONE!!!
-	{
-		TTree * ttemp(lshapeb.GetName(),lshapeb.GetName());
-		TIter ittemp = lshapeb.floatInitPars().createIterator();
-		RooRealVar vartempb;
-		while(vartempb = ittemp.Next())
-		{
-			ttemp->SetBranch(vartempb.GetName(),vartempb.Integrate());
-		}
-		fb_shape -> Add(ttemp);
-	}
+if(file->IsOpen() && !file->IsZombie() && !file->TestBit(TFile::kRecovered))
+{
+	// Initilazing fitb
+	RooFitResult* fitb;
+	if(mod == 0){ file->GetObject("nuisances_prefit_res",fitb);}
+	else if(mod == 1){file->GetObject("fit_b",fitb);}
+	else if(mod == 2){file->GetObject("fit_s",fitb);}
+	std::cout << "Filled fitb\n";
+	
+	// Creating Iterator for fitb
+	TIter Ifitb = fitb->floatParsFinal().createIterator();
+	std::cout << "Created iterator for fitb\n";
 
-	while(lshapes = itshapess.Next())
+	// Outputfile
+	TFile * output = new TFile("test.root","RECREATE"); // <- Vielleicht Name als TString einlesen lassen, damit von aussen kontinuierlich namen vergeben werden koennen
+
+	// TFolder for fitb and for correlation
+	TFolder* Fpostb;
+	TFolder* Fcorr;
+	if(mod == 0){	Fpostb= new TFolder("prefit","Nuisances prefit");
+			Fcorr = new TFolder("prefit","Correaltions prefit");}
+	else if(mod==1){Fpostb= new TFolder("fitb","Nuisances background");
+			Fcorr = new TFolder("Correlatons","Correlations background");}
+	else if(mod==2){Fpostb= new TFolder("fits","Nuisances signal");
+			Fcorr = new TFolder("Correlations","Correlations signal");}
+
+	// Initilazing temp save
+	RooRealVar* Vartemp1;
+	RooRealVar* Vartemp2;
+
+	// Initilazing Tree for correlations
+	TTree* Tcorr;
+
+	while((Vartemp1 = (RooRealVar*) Ifitb.Next()))
 	{
+		// creating variables for branches
+		double val = -999;
+		double err = -999;
+		double hie = -999;
+		double loe = -999;
 		
+		// Creating Tree to save values
+		TTree * Tnuisances = new TTree(Vartemp1->GetName(),Vartemp1->GetName());
+		// Assigning Branches with corresponding values to tree
+		Tnuisances->Branch("Value", &val, "value/D");
+		Tnuisances->Branch("Error", &err, "error/D");
+		Tnuisances->Branch("High Error", &hie, "high error/D");
+		Tnuisances->Branch("Low Error", &loe, "low error/D");
+
+		val = Vartemp1->getVal();
+		err = Vartemp1->getError();
+		hie = Vartemp1->getErrorHi();
+		loe = Vartemp1->getErrorLo();
+
+		Tnuisances->Fill();
+
+		Fpostb->Add(Tnuisances);
+		
+		// creating second iterator for correlations
+		TIter Ifit2 = fitb->floatParsFinal().createIterator();
+
+		// Counter to correctly ascribe values
+		int count =0;
+
+		// Initializing array to save values
+		Double_t* values = new Double_t[fitb->floatParsFinal().getSize()];
+
+		// Creating Tree to save values
+		Tcorr = new TTree(Vartemp1->GetName(),Vartemp1->GetName());
+
+		while((Vartemp2 = (RooRealVar*) Ifit2.Next()))
+		{
+			values[count] = fitb->correlation(Vartemp1->GetName(),Vartemp2->GetName());
+			Tcorr->Branch(Vartemp2->GetName(),&values[count],"correlation/D");
+			count++;
+		}
+		Tcorr->Fill();
+		Fcorr->Add(Tcorr);
+		delete[] values;
+
 	}
-
-
-	// Combining all Objects into the two TFolders
+	// Folders for shapes
+	TFolder* Fshapes = (TFolder*) shapes(file,mod);
 	
-	background -> Add(tpreb);
-	background -> Add(tpostb);
-	background -> Add(fb_cor);
-	background -> Add(fb_shape);
+	Fshapes->Write();
+	Fpostb->Write();
+	Fcorr->Write();
+	output->Close();
+}
 
-	signal -> Add(tpres);
-	signal -> Add(tposts);
-	signal -> Add(fs_cor);
-	signal -> Add(fs_shape);
-
-	// returning TFolders
-
-	return background, signal;
 }
