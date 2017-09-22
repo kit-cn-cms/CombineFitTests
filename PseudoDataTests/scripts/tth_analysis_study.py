@@ -101,6 +101,11 @@ help="increase output",
 action="store_true",
 default=False
 )
+group_globalOptions.add_option("-f", "--noFolderReset",
+dest = "folderReset",
+help = "reset only signal strength folders, not entire folder for this pseudo experiment (default = false)",
+action = "store_true",
+default = False)
 parser.add_option_group(group_required)
 parser.add_option_group(group_globalOptions)
 parser.add_option_group(group_scalingOptions)
@@ -123,7 +128,7 @@ elif options.listOfProcesses and options.listOfFormulae:
         parser.error("Could not find file {0}, aborting".format(os.path.abspath(options.pathToRoofile)))
     elif options.config == None:
         parser.error("Path to config file needs to be specified!")
-    elif os.path.exists(os.path.abspath(options.config)):
+    elif not os.path.exists(os.path.abspath(options.config)):
         parser.error("Unable to find config.py file in {0}".format(os.path.abspath(options.config)))
 
 if options.asimov and options.numberOfToys:
@@ -149,15 +154,18 @@ if options.asimov:
 
 if options.config is not None:
     pathToConfig = os.path.abspath(options.config)
+    print "checking config file in", pathToConfig
     if os.path.exists(pathToConfig):
         sys.path.append(pathToConfig)
         import config
     else:
-        parser.error("Unable to find config.py file in {0}".format(os.path.abspath(pathToConfig)))
+        parser.error("Unable to find config.py file in {0}".format(pathToConfig))
 
 
 additionalToyCmds = options.additionalToyCmds
 additionalFitCmds = options.additionalFitCmds
+
+resetFolders = not options.folderReset
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
@@ -184,6 +192,7 @@ scalingDic = [] #2D list of form [(Process, Func to scale with),(...),...]
 if listOfProcessesString and scaleFuncList:
     listOfProcesses = listOfProcessesString.split(",")
     listOfFormulae = scaleFuncList.split(",")
+    assert len(listOfProcesses) == len(listOfFormulae), "# of processes does not match # of formulae!"
     scalingDic = [entry for entry in zip(listOfProcesses, listOfFormulae)]
     print "using scaling dictionary:", scalingDic
 
@@ -206,8 +215,8 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     toyDatacard                 --  path to datacard to use for toy generation
     numberOfToysPerExperiment   --  number of toys to throw per pseudo experiment
     pathToMSworkspace           --  path to multi signal work space
-    additionalToyCmds           --  additional combine commands to use for toy generation
-    additionalFitCmds           --  additional combine command to use for MaxLikelihoodFit
+    additionalToyCmds           --  list of additional combine commands to use for toy generation
+    additionalFitCmds           --  list of additional combine command to use for MaxLikelihoodFit
     """
     #create combine command for toy generation
     generateToysCmd = "combine -M GenerateOnly -m 125 "
@@ -240,13 +249,13 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     shellscript.append('\teval "source $pathToCMSSWsetup"')
     shellscript.append('\ttargetDatacard='+targetDatacard)
     shellscript.append('\ttoyDatacard='+toyDatacard)
-    shellscript.append('\tnumberOfToysPerExperiment='+str(numberOfToysPerExperiment))
     if mswExists:
         shellscript.append('\tpathToMSworkspace=' + pathToMSworkspace)
 
     shellscript.append('\tsignalStrength=$1')
     shellscript.append('\trandomseed=$2')
     shellscript.append('\toutputPath=$3')
+    shellscript.append('\tnumberOfToysPerExperiment=$4\n')
 
     shellscript.append('#___________________________________________________')
     shellscript.append('\techo "input variables:"')
@@ -322,14 +331,15 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
 
     return shellscript
 
-def generateFolderGeneratorScript(generatorScriptPath):
+def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript = []
     shellscript.append('#!/bin/bash\n')
 
     shellscript.append('signalStrength=$1')
     shellscript.append('lowerBound=$2')
     shellscript.append('upperBound=$3')
-    shellscript.append('outputPath=$4\n')
+    shellscript.append('outputPath=$4')
+    shellscript.append('numberOfToysPerExperiment='+str(toyMode)+'\n')
 
     shellscript.append('if [[ -d $outputPath ]]; then')
     shellscript.append('\tcd $outputPath\n')
@@ -340,7 +350,7 @@ def generateFolderGeneratorScript(generatorScriptPath):
     shellscript.append('\t\tif [[ -d PseudoExperiment$i ]]; then')
     shellscript.append('\t\t\tcd PseudoExperiment$i\n')
 
-    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i"\n')
+    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
 
     shellscript.append('\t\t\tcd ../\n')
     shellscript.append('\t\telse')
@@ -445,7 +455,7 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
 
         subprocess.call("chmod 755 "+generatorScript, shell = True)
         genFolderScript = open(folderGeneratorScript,"w")
-        genFolderScript.write("\n".join(generateFolderGeneratorScript(generatorScript)))
+        genFolderScript.write("\n".join(generateFolderGeneratorScript(generatorScript, toyMode = toyMode)))
         genFolderScript.close()
 
         if os.path.exists(folderGeneratorScript):
@@ -472,7 +482,7 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
                     if not os.path.exists(signalStrengthFolder + "/asimov"):
                         os.makedirs(signalStrengthFolder + "/asimov")
 
-                    commands.append("\'" + generatorScript +" " + str(signalStrength) + " 123456 " + signalStrengthFolder + "/asimov\'")
+                    commands.append("\'" + generatorScript +" " + str(signalStrength) + " 123456 " + signalStrengthFolder + "/asimov -1\'")
 
                 for i in range(numberOfLoops):
                     upperBound = (i+1)*numberOfToysPerJob
@@ -574,8 +584,10 @@ def saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, outputFileName):
 
             processName = prescaleProcesses[0]
             print "\tcreating branchs for process", processName
-            tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[{1}]/D".format(processName, process))
-            tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[{1}]/D".format(processName, process))
+            #tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[{1}]/D".format(processName, process))
+            tree.Branch(processName+"_prescale", prescaleVals[process], "{0}_prescale[1]/D".format(processName))
+            #tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[{1}]/D".format(processName, process))
+            tree.Branch(processName+"_postscale", postscaleVals[process], "{0}_postscale[1]/D".format(processName))
 
             print "\t\tsuccess"
             prescaleVals[process][0] = prescaleProcesses[1]
@@ -847,11 +859,12 @@ if os.path.exists(pathToDatacard):
         pathToInputRootfile = os.path.abspath(pathToInputRootfile)
         inputRootFile = ROOT.TFile(pathToInputRootfile, "READ")
     outputDirectory = os.path.abspath(outputDirectory)
-    if os.path.exists(outputDirectory):
+    if os.path.exists(outputDirectory) and resetFolders:
         print "resetting folder", outputDirectory
         shutil.rmtree(outputDirectory)
 
-    os.makedirs(outputDirectory)
+    if not os.path.exists(outputDirectory):
+        os.makedirs(outputDirectory)
     #print "outputDirectory after directory was created:", outputDirectory
     #print "outputDir after calling abspath:", outputDirectory
     os.chdir(outputDirectory)

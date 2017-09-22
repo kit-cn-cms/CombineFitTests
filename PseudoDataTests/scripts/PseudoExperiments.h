@@ -80,6 +80,12 @@ public:
     if(tempPointer != NULL) returnVal = tempPointer->GetMean();
     return returnVal;
   }
+  Double_t npPrefitMeanError(const TString& np) const{
+    Double_t returnVal = -9999;
+    TH1* tempPointer = getHist(npValuesPrefit_,np);
+    if(tempPointer != NULL) returnVal = tempPointer->GetMeanError();
+    return returnVal;
+  }
   Double_t npPrefitRMS(const TString& np) const {
     return getHist(npValuesPrefit_,np)->GetRMS();
   }
@@ -97,6 +103,9 @@ public:
   }
   Double_t npPostfitBMean(const TString& np) const {
     return getHist(npValuesPostfitB_,np)->GetMean();
+  }
+  Double_t npPostfitBMeanError(const TString& np) const {
+    return getHist(npValuesPostfitB_,np)->GetMeanError();
   }
   Double_t npPostfitBRMS(const TString& np) const {
     return getHist(npValuesPostfitB_,np)->GetRMS();
@@ -127,6 +136,9 @@ public:
   }
   Double_t npPostfitSMean(const TString& np) const {
     return getHist(npValuesPostfitS_,np)->GetMean();
+  }
+  Double_t npPostfitSMeanError(const TString& np) const {
+    return getHist(npValuesPostfitS_,np)->GetMeanError();
   }
   Double_t npPostfitSRMS(const TString& np) const {
     return getHist(npValuesPostfitS_,np)->GetRMS();
