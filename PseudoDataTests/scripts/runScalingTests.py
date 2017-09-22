@@ -31,13 +31,19 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile = None, pois = N
     subprocess.call([commandString], shell=True)
 
 def tth_fit_stability(pois, additionalCmds = None):
-    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/PseudoData_FSP/noFrequentist/"
+    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/asimov_FSP/noFrequentist/"
+    #pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_ttHbb_allCats.txt"
     pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
+    #pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput_majorBkgDataObs.root"
     pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
+    #pathToConfig = "config_ttHbb_allCats.py"
+    pathToConfig = "config.py"
 
     pathToSherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_sherpa_ol/limits_BDT_sherpa_ol_datacard_63445464_ttHbb.txt"
     pathToAMC = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_amc/limits_BDT_amc_datacard_63445464_ttHbb.txt"
 
+    print pois
+    base_suffix = "63445464_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
 
     processDic = {
     #"ttbarOther": ["0.99", "0.9", "1.01", "1.1"],
@@ -56,13 +62,11 @@ def tth_fit_stability(pois, additionalCmds = None):
     #     arglist = arg.split(";")
     #     pois[arglist[0]] = arglist[1]
 
-    print pois
     for poi in sorted(pois):
         if not targetPath.endswith('/'):
             targetPath = targetPath + "_"
         targetPath = targetPath + poi
 
-    base_suffix = "63445464_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
     string = ""
     if additionalCmds:
         string = additionalCmds
@@ -99,7 +103,7 @@ def tth_fit_stability(pois, additionalCmds = None):
                         pois = pois,
                         key = string,
                         factor = "--scaleFuncs " + factor,
-                        pathToConfig = "config.py")
+                        pathToConfig = pathToConfig)
 
 
 def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
@@ -142,8 +146,8 @@ def throwToys(wildcard, inputRootFile, pathToConfig):
 listOfPoisCombis = [
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        {"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
-        {"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
+        #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
         {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},

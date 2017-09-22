@@ -744,8 +744,8 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   if(pathname.Contains("PseudoExperiment")){
     loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
     ncolor++;
-    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-    ncolor++;
+    // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+    // ncolor++;
   }
   else{
     TList *folders = dir.GetListOfFiles();
@@ -760,14 +760,14 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
         if (folder->IsDirectory() && folderName.Contains("sig")) {
           loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
           ncolor++;
-          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-          ncolor++;
+          // loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          // ncolor++;
         }
         if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
           loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
           ncolor++;
-          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-          ncolor++;
+          // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          // ncolor++;
           break;
         }
       }
