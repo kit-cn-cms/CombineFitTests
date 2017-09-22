@@ -7,7 +7,7 @@ ROOT.gROOT.SetBatch(True)
 inpath = os.path.abspath(sys.argv[1])
 
 listOfProcesses = ["ttbarOther", "ttbarPlusB", "ttbarPlus2B", "ttbarPlusBBbar", "ttbarPlusCCbar"]
-categories = ["ljets_j4_t4", "ljets_j5_tge4", "ljets_jge6_t3", "ljets_jge6_tge4"]
+categories = ["ljets_j4_t2", "ljets_j4_t3", "ljets_j4_t4", "ljets_j5_t2", "ljets_j5_t3", "ljets_j5_tge4", "ljets_jge6_t2", "ljets_jge6_t3", "ljets_jge6_tge4"]
 suffix = "all_Bkg_"
 key = "$PROCESS_finaldiscr_$CHANNEL"
 
