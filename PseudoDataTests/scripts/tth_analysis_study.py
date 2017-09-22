@@ -289,10 +289,6 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     shellscript.append('\t\t\t\techo "$combineCmd"')
     shellscript.append('\t\t\t\teval $combineCmd\n')
 
-    shellscript.append('\t\t\t\tif [[ -f "higgsCombineTest.MaxLikelihoodFit.mH125.123456.root" ]]; then')
-    shellscript.append('\t\t\t\t\trm "higgsCombineTest.MaxLikelihoodFit.mH125.123456.root"')
-    shellscript.append('\t\t\t\tfi\n')
-
     shellscript.append('\t\t\t\tif ! [[ -f "mlfit.root" ]]; then')
     shellscript.append('\t\t\t\t\techo "could not produce mlfit.root file!"')
     shellscript.append('\t\t\t\tfi')
@@ -305,15 +301,17 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
         shellscript.append('\t\t\t\t\techo "$combineCmd"')
         shellscript.append('\t\t\t\t\teval $combineCmd\n')
 
-        shellscript.append('\t\t\t\t\tif [[ -f "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root" ]]; then')
-        shellscript.append('\t\t\t\t\t\trm "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root"')
-        shellscript.append('\t\t\t\t\tfi\n')
-
         shellscript.append('\t\t\t\t\tif ! [[ -f "mlfit_MS_mlfit.root" ]]; then')
         shellscript.append('\t\t\t\t\t\techo "could not produce mlfit_MS_mlfit.root file!"')
         shellscript.append('\t\t\t\t\tfi')
 
         shellscript.append('\t\t\t\tfi\n')
+
+    shellscript.append('\t\t\t\tfor f in higgsCombine*.root ]]; do')
+    shellscript.append('\t\t\t\t\tif [[ -f "$f" ]]; then')
+    shellscript.append('\t\t\t\t\t\trm "$f"')
+    shellscript.append('\t\t\t\t\tfi\n')
+    shellscript.append('\t\t\t\tdone')
 
     shellscript.append('\t\t\telse')
     shellscript.append('\t\t\t\techo "Could not find toyFile, skipping the fit"')
