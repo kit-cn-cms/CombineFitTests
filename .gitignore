@@ -59,3 +59,9 @@ CVS
 # Test Files#
 #############
 test*
+
+# Manual Ignores#
+#################
+PseudoDataTests/scripts/createNewDataObs.py
+PseudoDataTests/scripts/runScalingTests.py
+PseudoDataTests/scripts/plotResults.C
