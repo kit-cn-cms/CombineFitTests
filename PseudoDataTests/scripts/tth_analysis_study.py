@@ -307,7 +307,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
 
         shellscript.append('\t\t\t\tfi\n')
 
-    shellscript.append('\t\t\t\tfor f in higgsCombine*.root ]]; do')
+    shellscript.append('\t\t\t\tfor f in higgsCombine*MaxLikelihoodFit*.root; do')
     shellscript.append('\t\t\t\t\tif [[ -f "$f" ]]; then')
     shellscript.append('\t\t\t\t\t\trm "$f"')
     shellscript.append('\t\t\t\t\tfi\n')
