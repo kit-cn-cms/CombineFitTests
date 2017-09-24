@@ -14,24 +14,16 @@ def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
     outfile = ROOT.TFile(outputSuffix+"_stackplots.root", "RECREATE")
 
     hStack = ROOT.THStack()
-<<<<<<< HEAD
-    hStack_normed = ROOT.THStack()
-=======
-
-
     hStack_normed = ROOT.THStack()
 
-
->>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
     legend = ROOT.TLegend(0.72,0.5,0.95,0.99)
     color = None
     for i in range(len(listOfHistos)):
         color = colors[i%len(colors)]
-<<<<<<< HEAD
-=======
+
         listOfHistos[i].GetXaxis().SetTitle("final discriminator")
         listOfHistos[i].GetYaxis().SetTitle("#Events")
->>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
+
         listOfHistos[i].SetLineColor(color)
         listOfHistos[i].SetLineWidth(4)
         listOfHistos[i].SetFillColor(color)
@@ -47,37 +39,30 @@ def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
         listOfHistos[i].Scale(1./listOfHistos[i].Integral())
         hStack_normed.Add(listOfHistos[i].Clone())
     c = ROOT.TCanvas()
-<<<<<<< HEAD
-    hStack.Write()
-    hStack_normed.Write()
-    legend.Write()
+
     hStack.Draw("HIST")
     legend.Draw("Same")
-=======
+
     print hStack
 
     hStack.Write("stackplot")
 
 
     hStack_normed.Write("normed_stackplot")
-    legend.Write()
+    legend.Write("legend")
     hStack.Draw("HIST")
     legend.Draw("Same")
     hStack.GetXaxis().SetTitle("final discriminator")
     hStack.GetYaxis().SetTitle("#Events")
     c.Modified()
->>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
     c.Write("canvas_hStack")
     c.SaveAs(outputSuffix+"_stackplot.pdf")
     c.Clear()
     hStack_normed.Draw("nostack")
     legend.Draw("Same")
-<<<<<<< HEAD
-=======
     hStack_normed.GetXaxis().SetTitle("final discriminator")
     hStack_normed.GetYaxis().SetTitle("normed #Events")
     c.Modified()
->>>>>>> 81509c8b530b5f11e714f8f281f434aa1387a365
     c.Write("canvas_hStack_normed")
     c.SaveAs(outputSuffix+"_normed_stackplot.pdf")
     outfile.Close()
