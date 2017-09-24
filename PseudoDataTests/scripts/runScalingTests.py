@@ -31,7 +31,7 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile = None, pois = N
     subprocess.call([commandString], shell=True)
 
 def tth_fit_stability(pois, additionalCmds = None):
-    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/asimov_FSP/noFrequentist/"
+    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/JTBDT_Spring17v10/wo_NP/PseudoData_FSP/noFrequentist/"
     #pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_ttHbb_allCats.txt"
     pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
     #pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput_majorBkgDataObs.root"
