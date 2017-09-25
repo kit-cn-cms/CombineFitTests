@@ -33,21 +33,21 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile = None, pois = N
 def tth_fit_stability(pois, additionalCmds = None):
     targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/new_powheg/wo_NP/PseudoData/noFrequentist/"
     #pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_ttHbb_allCats.txt"
-    #pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
-    pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_allProcs_63445464.txt"
-    #pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput_majorBkgDataObs.root"
+    pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
+    #pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_allProcs_63445464.txt"
+    pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput_majorBkgDataObs.root"
     #pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
-    pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput.root"
-    #pathToConfig = "config_ttHbb_allCats.py"
+    #pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput.root"
+    pathToConfig = "config_ttHbb_allCats.py"
     #pathToConfig = "config.py"
     #pathToConfig = "config_allProcs_allCats.py"
-    pathToConfig = "config_allProcs_63445464.py"
+    #pathToConfig = "config_allProcs_63445464.py"
 
     pathToSherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_sherpa_ol/limits_BDT_sherpa_ol_datacard_63445464_ttHbb.txt"
     pathToAMC = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_BDT_amc/limits_BDT_amc_datacard_63445464_ttHbb.txt"
 
     print pois
-    base_suffix = "63445464_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
+    base_suffix = "allCats_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
 
     processDic = {
     #"ttbarOther": ["0.99", "0.9", "1.01", "1.1"],

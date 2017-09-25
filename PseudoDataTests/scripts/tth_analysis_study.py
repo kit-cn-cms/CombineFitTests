@@ -5,6 +5,8 @@ import stat
 import subprocess
 import time
 import shutil
+import imp
+
 from array import array
 from optparse import OptionParser
 from optparse import OptionGroup
@@ -156,8 +158,20 @@ if options.config is not None:
     pathToConfig = os.path.abspath(options.config)
     print "checking config file in", pathToConfig
     if os.path.exists(pathToConfig):
-        sys.path.append(pathToConfig)
-        import config
+        #sys.path.append(os.path.dirname(pathToConfig))
+        config = imp.load_source('config', pathToConfig)
+#        import os.path.basename(pathToConfig)
+        if verbose:
+            print "imported from config:"
+            for cat in config.categories:
+                print cat
+                print "\tsignal processes:"
+                for proc in config.signalHistos[cat]:
+                    print "\t ", proc
+                print "\tbkg processes"
+                for proc in config.backgroundHistos[cat]:
+                    print "\t ", proc
+
     else:
         parser.error("Unable to find config.py file in {0}".format(pathToConfig))
 
