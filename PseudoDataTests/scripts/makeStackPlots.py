@@ -6,9 +6,26 @@ ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 inputRootFile = sys.argv[1]
 outputSuffix = sys.argv[2]
-listOfProcesses = sys.argv[3:]
+listOfProcesses = [	"ttH_hbb", 
+					"ttbarOther", 
+					"ttbarPlusCCbar", 
+					"ttbarPlusB", 
+					"ttbarPlus2B", 
+					"ttbarPlusBBbar"
+					]
 
-categoryEndings = ["ljets_j4_t4", "ljets_j5_tge4","ljets_jge6_t3", "ljets_jge6_tge4"]
+categoryEndings = [	"ljets_j4_t4", 
+					"ljets_j5_tge4",
+					"ljets_jge6_t3", 
+					"ljets_jge6_tge4"
+					]
+
+colors = [	ROOT.kBlack,	ROOT.kRed,		ROOT.kMagenta+2, 
+			ROOT.kBlue,		ROOT.kCyan+2,	ROOT.kGreen+1, 
+			ROOT.kYellow+1,	ROOT.kPink-3,	ROOT.kViolet-8, 
+			ROOT.kAzure+3,	ROOT.kTeal-7,	ROOT.kSpring-9
+			]
+
 
 titleSize = 0.065
 titleX = "final discriminator"
@@ -20,12 +37,12 @@ def setupHistoStyle(hist, color):
     hist.GetXaxis().SetTitle(titleX)
     hist.GetXaxis().SetTitleOffset(titleOffsetX)
     hist.GetXaxis().SetTitleSize(titleSize)
-    print "xlabel:", hist.GetXaxis().GetTitle()
+    #print "xlabel:", hist.GetXaxis().GetTitle()
 
     hist.GetYaxis().SetTitle(titleY)
     hist.GetYaxis().SetTitleOffset(titleOffsetY)
     hist.GetYaxis().SetTitleSize(titleSize)
-    print "ylabel:", hist.GetYaxis().GetTitle()
+    #print "ylabel:", hist.GetYaxis().GetTitle()
     hist.SetTitle("")
 
     hist.SetLineColor(color)
@@ -36,7 +53,6 @@ def setupHistoStyle(hist, color):
 
 
 def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
-    colors = [ROOT.kBlack, ROOT.kRed, ROOT.kMagenta+2, ROOT.kBlue, ROOT.kCyan+2, ROOT.kGreen+1, ROOT.kYellow+1, ROOT.kPink-3, ROOT.kViolet-8, ROOT.kAzure+3, ROOT.kTeal-7, ROOT.kSpring-9]
     outfile = ROOT.TFile(outputSuffix+"_stackplots.root", "RECREATE")
     if len(listOfHistos) > 0:
         hStack = listOfHistos[0].Clone()
@@ -84,15 +100,17 @@ def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
         c.Write("canvas_hStack")
         c.SaveAs(outputSuffix+"_stackplot.pdf")
         hStack.Write("stackplot")
-        listOfHistos.sort(key = lambda h: h.GetBinContent(h.GetMaximumBin()))
+        #print listOfHistos
+        listOfHistos.sort(key = lambda h: h.GetBinContent(h.GetMaximumBin()),reverse=True)
+        #print listOfHistos
         first = True
 
         for hist in listOfHistos:
 
-            hist.Write(histoName+"_normed")
+            hist.Write(hist.GetName()+"_normed")
             if first:
                 first = False
-                hist.GetYaxis().SetRangeUser(0, 1.3*hist.GetBinContent(hist.GetMaximumBin()))
+                hist.GetYaxis().SetRangeUser(0, 1.1*hist.GetBinContent(hist.GetMaximumBin()))
 
                 hist.Draw()
             else:
