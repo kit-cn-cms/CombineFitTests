@@ -10,21 +10,23 @@
 #include "TString.h"
 #include "TFolder.h"
 #include "TTree.h"
+#include "TDirectory.h"
+#include "TDirectoryFile.h"
 
 using namespace std;
 
-TFolder* shapes(TFile* file, int mode =0)
+TDirectoryFile* shapes(TFile* file, int mode =0)
 {
 	TDirectoryFile* Ddirect;
-	TFolder* folder;
+	TDirectoryFile* folder;
 	if(mode==0){file->GetObject("shapes_prefit",Ddirect);
-		folder = new TFolder("shapes_prefit","shapes_prefit");}
+		folder = new TDirectoryFile("shapes_prefit","shapes_prefit");}
 	else if(mode == 1){file->GetObject("shapes_fit_b",Ddirect);
-		folder = new TFolder("shapes_fit_b","shapes_fit_b");}
+		folder = new TDirectoryFile("shapes_fit_b","shapes_fit_b");}
         else if(mode == 2){file->GetObject("shapes_fit_s",Ddirect);
-		folder = new TFolder("shapes_fit_s","shapes_fit_s");}
+		folder = new TDirectoryFile("shapes_fit_s","shapes_fit_s");}
 
-	TDirectory* Dirsub;
+	TDirectoryFile* Dirsub;
 
 	TList* List = (TList*) Ddirect->GetListOfKeys();
 
@@ -57,19 +59,19 @@ TFolder* shapes(TFile* file, int mode =0)
 }
 
 
-void change(TFile* file, int mod = 0, TFolder* Fpostb = NULL, TFolder* Fcorr = NULL)
+void change(TFile* file, int mod = 0, TDirectoryFile* Fpostb = NULL, TDirectoryFile* Fcorr = NULL)
 {
 	// Initilazing fitb and setting the names of the folders
 	RooFitResult* fitb;
 	if(mod == 0){		file->GetObject("nuisances_prefit_res",fitb);
-				Fpostb= new TFolder("Prefit","Prefit Nuisances");
-				Fcorr = new TFolder("Correlation_pre","Correlation_pre");}
+				Fpostb= new TDirectoryFile("Prefit","Prefit Nuisances");
+				Fcorr = new TDirectoryFile("Correlation_pre","Correlation_pre");}
 	else if(mod == 1){	file->GetObject("fit_b",fitb);
-				Fpostb= new TFolder("background","background Nuisances");
-				Fcorr = new TFolder("Correlation_bac","Correaltion_bac");}
+				Fpostb= new TDirectoryFile("background","background Nuisances");
+				Fcorr = new TDirectoryFile("Correlation_bac","Correaltion_bac");}
 	else if(mod == 2){	file->GetObject("fit_s",fitb);
-				Fpostb= new TFolder("signal","signal Nuisances");
-				Fcorr = new TFolder("Correlation_sig","Correlation_sig");}
+				Fpostb= new TDirectoryFile("signal","signal Nuisances");
+				Fcorr = new TDirectoryFile("Correlation_sig","Correlation_sig");}
 	
 	// Creating Iterator for fitb
 	TIter Ifitb = fitb->floatParsFinal().createIterator();
@@ -142,15 +144,15 @@ int TConvert(TString filename = "mlfit")
 
 	filename.Append("_test.root");
 	TFile* output = new TFile(filename.Data(),"RECREATE");
-	TFolder* Ffitpre;
-	TFolder* Ffitbac;
-	TFolder* Ffitsig;
-	TFolder* Fcorpre;
-	TFolder* Fcorbac;
-	TFolder* Fcorsig;
-	TFolder* Fshapepre = (TFolder*) shapes(read,0);
-	TFolder* Fshapebac = (TFolder*) shapes(read,1);
-	TFolder* Fshapesig = (TFolder*) shapes(read,2);
+	TDirectoryFile* Ffitpre;
+	TDirectoryFile* Ffitbac;
+	TDirectoryFile* Ffitsig;
+	TDirectoryFile* Fcorpre;
+	TDirectoryFile* Fcorbac;
+	TDirectoryFile* Fcorsig;
+	TDirectoryFile* Fshapepre = shapes(read,0);
+	TDirectoryFile* Fshapebac = shapes(read,1);
+	TDirectoryFile* Fshapesig = shapes(read,2);
 	change(read,0,Ffitpre,Fcorpre);
 	change(read,1,Ffitbac,Fcorbac);
 	change(read,2,Ffitsig,Fcorsig);
