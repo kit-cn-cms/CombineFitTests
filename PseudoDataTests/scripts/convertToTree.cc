@@ -45,7 +45,6 @@ TFolder* shapes(TFile* file, int mode =0)
 				temp[count] = ((TH1D*) Dirsub->Get(Listsub->Last()->GetName()))->Integral();
 				Ttemp->Branch(Listsub->Last()->GetName(), &temp[count], "Integral/D");
 				++count;
-
 			}
 			Listsub->RemoveLast();
 
@@ -58,40 +57,23 @@ TFolder* shapes(TFile* file, int mode =0)
 }
 
 
-int TConvert(TString filename= "mlfit.root",int mod = 0)
+void change(TFile* file, int mod = 0, TFolder* Fpostb = NULL, TFolder* Fcorr = NULL)
 {
-	// Reading file in
-	TFile* file = new TFile(filename.Data());
-	std::cout << "Opened file!\n";
-
-	// Only execute programm if there's data to read
-	
-if(file->IsOpen() && !file->IsZombie() && !file->TestBit(TFile::kRecovered))
-{
-	// Initilazing fitb
+	// Initilazing fitb and setting the names of the folders
 	RooFitResult* fitb;
-	if(mod == 0){ file->GetObject("nuisances_prefit_res",fitb);}
-	else if(mod == 1){file->GetObject("fit_b",fitb);}
-	else if(mod == 2){file->GetObject("fit_s",fitb);}
-	std::cout << "Filled fitb\n";
+	if(mod == 0){		file->GetObject("nuisances_prefit_res",fitb);
+				Fpostb= new TFolder("Prefit","Prefit Nuisances");
+				Fcorr = new TFolder("Correlation_pre","Correlation_pre");}
+	else if(mod == 1){	file->GetObject("fit_b",fitb);
+				Fpostb= new TFolder("background","background Nuisances");
+				Fcorr = new TFolder("Correlation_bac","Correaltion_bac");}
+	else if(mod == 2){	file->GetObject("fit_s",fitb);
+				Fpostb= new TFolder("signal","signal Nuisances");
+				Fcorr = new TFolder("Correlation_sig","Correlation_sig");}
 	
 	// Creating Iterator for fitb
 	TIter Ifitb = fitb->floatParsFinal().createIterator();
-	std::cout << "Created iterator for fitb\n";
-
-	// Outputfile
-	TFile * output = new TFile("test.root","RECREATE"); // <- Vielleicht Name als TString einlesen lassen, damit von aussen kontinuierlich namen vergeben werden koennen
-
-	// TFolder for fitb and for correlation
-	TFolder* Fpostb;
-	TFolder* Fcorr;
-	if(mod == 0){	Fpostb= new TFolder("prefit","Nuisances prefit");
-			Fcorr = new TFolder("prefit","Correaltions prefit");}
-	else if(mod==1){Fpostb= new TFolder("fitb","Nuisances background");
-			Fcorr = new TFolder("Correlatons","Correlations background");}
-	else if(mod==2){Fpostb= new TFolder("fits","Nuisances signal");
-			Fcorr = new TFolder("Correlations","Correlations signal");}
-
+	
 	// Initilazing temp save
 	RooRealVar* Vartemp1;
 	RooRealVar* Vartemp2;
@@ -145,15 +127,38 @@ if(file->IsOpen() && !file->IsZombie() && !file->TestBit(TFile::kRecovered))
 		Tcorr->Fill();
 		Fcorr->Add(Tcorr);
 		delete[] values;
-
 	}
-	// Folders for shapes
-	TFolder* Fshapes = (TFolder*) shapes(file,mod);
-	
-	Fshapes->Write();
 	Fpostb->Write();
 	Fcorr->Write();
-	output->Close();
 }
 
+
+
+int TConvert(TString filename = "mlfit")
+{
+	TString* readfile = new TString(filename);
+	readfile->Append(".root");
+	TFile* read = new TFile(readfile->Data());
+
+	filename.Append("_test.root");
+	TFile* output = new TFile(filename.Data(),"RECREATE");
+	TFolder* Ffitpre;
+	TFolder* Ffitbac;
+	TFolder* Ffitsig;
+	TFolder* Fcorpre;
+	TFolder* Fcorbac;
+	TFolder* Fcorsig;
+	TFolder* Fshapepre = (TFolder*) shapes(read,0);
+	TFolder* Fshapebac = (TFolder*) shapes(read,1);
+	TFolder* Fshapesig = (TFolder*) shapes(read,2);
+	change(read,0,Ffitpre,Fcorpre);
+	change(read,1,Ffitbac,Fcorbac);
+	change(read,2,Ffitsig,Fcorsig);
+
+	Fshapepre->Write();
+	Fshapebac->Write();
+	Fshapesig->Write();
+	
+	output->Close();
+	return 0;
 }
