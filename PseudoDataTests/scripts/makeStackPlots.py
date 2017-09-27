@@ -26,14 +26,16 @@ colors = [	ROOT.kBlack,	ROOT.kRed,		ROOT.kMagenta+2,
 			ROOT.kAzure+3,	ROOT.kTeal-7,	ROOT.kSpring-9
 			]
 
+histoKey = "$PROCESS_finaldiscr_$CHANNEL"
 
 titleSize = 0.065
 titleX = "final discriminator"
 titleOffsetX = 0.65
-titleY = "#Events"
+titleYstack = "#Events"
+titleYnormed = "Normalized Events"
 titleOffsetY = 0.75
 
-def setupHistoStyle(hist, color):
+def setupHistoStyle(hist, color, titleY):
     hist.GetXaxis().SetTitle(titleX)
     hist.GetXaxis().SetTitleOffset(titleOffsetX)
     hist.GetXaxis().SetTitleSize(titleSize)
@@ -67,10 +69,10 @@ def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
 
             hStack.Add(listOfHistos[i].Clone())
             hStack.SetName(listOfHistos[i].GetName() + "_{0}".format(i))
-            setupHistoStyle(hStack, color)
+            setupHistoStyle(hStack, color, titleY = titleYstack)
 
             stackStages.append(hStack.Clone())
-            setupHistoStyle(listOfHistos[i], color)
+            setupHistoStyle(listOfHistos[i], color, titleY = titleYnormed)
 
             listOfHistos[i].Scale(1./listOfHistos[i].Integral())
 
@@ -141,14 +143,11 @@ def loadHisto(key, process, listOfHistos):
         end = process
 
     histoName = key.GetName()
+    #print "comparing {0} with process input {1}".format(histoName, process)
     if histoName.startswith(start) and histoName.endswith(end):
         print "adding histo", histoName
         histo = infile.Get(histoName)
         listOfHistos.append(histo)
-
-
-if len(listOfProcesses) == 0:
-    listOfProcesses.append("t*")
 
 
 listOfHistos = []
@@ -158,8 +157,12 @@ if os.path.exists(inputRootFile):
     listOfKeys = infile.GetListOfKeys()
     for catEnding in categoryEndings:
         for process in listOfProcesses:
-            for key in listOfKeys:
-                loadHisto(key, process+"_finaldiscr_"+catEnding, listOfHistos)
+            processKey = histoKey.replace("$CHANNEL", catEnding)
+            processKey = processKey.replace("$PROCESS", process)
+            if processKey in listOfKeys:
+                print "adding histo", processKey
+                histo = infile.Get(processKey)
+                listOfHistos.append(histo)
 
         makeStackPlots(listOfHistos, catEnding+"_"+outputSuffix)
         listOfHistos[:] = []
