@@ -3,10 +3,64 @@ import os
 import sys
 import glob
 import math
+from optparse import OptionParser
 
 ROOT.gROOT.SetBatch(True)
 
 filesToCheck = ["mlfit.root"]#, "mlfit_MS_mlfit.root"]
+
+
+parser = OptionParser()
+
+parser.add_option(  "-m", "--mainPath",
+                    help = "first path to get toys and mus from",
+                    dest = "main",
+                    metavar = "main/path/to/fit/results"
+                )
+parser.add_option(  "-s", "--secondPath",
+                    help = "path to toys which are to be compared to main path",
+                    dest = "second",
+                    metavar = "second/path/to/compare"
+                    )
+parser.add_option(  "-r", "--rootfile",
+                    help = "path to root file with original data_obs",
+                    dest = "rootfile",
+                    metavar = "path/to/data_obs/file")
+parser.add_option(  "-o", "--outputPDFpath",
+                    help = "path in which pdf output should be printed",
+                    dest = "outputPath",
+                    metavar = "path/for/pdf/output")
+
+(options, args) = parser.parse_args()
+
+path1           = options.main
+path2           = options.second
+pathToRootfile  = options.rootfile
+pdfOutputPath   = options.outputPath
+
+if not path1 or not os.path.exists(os.path.abspath(path1)):
+    parser.error('Path "{0}" does not exist!'.format(path1))
+else:
+    path1 = os.path.abspath(path1)
+
+
+def getDataObs(data_obs_dic):
+    for cat in data_obs_dic:
+        if not cat in data_obs_dic:
+            print "creating data_obs_distr for cat", cat
+            data_obs_dic[cat] = {}
+            
+        data_obs = ROOT.gDirectory.Get(cat+"/data")
+        if isinstance(data_obs, ROOT.TGraphAsymmErrors):
+            print "looping over entries"
+            #~ s = 0.
+            for i in range(data_obs.GetN()):
+                val = data_obs.GetY()[i]
+                if not i in data_obs_dic[cat]:
+                    data_obs_dic[cat][i] = ROOT.TH1D("data_obs_distr_"+cat+"_"+str(i), ";integral;frequency", 400, val-10*(val)**(1./2.),val+30*(val)**(1./2.))
+                    data_obs_dic[cat][i].SetDirectory(0)
+                    
+                data_obs_dic[cat][i].Fill(val)
 
 def loadVariable(pathToLoad, takeTree = False):
     val = -9999
@@ -44,13 +98,31 @@ def compareVals(val1, error1, val2, error2, errormessage):
         print "\tCOMBINE FUCKED UP!"
         print "\tval1 = {0} +- {1}\n\tval2 = {2} +- {3}".format(val1, error1, val2, error2)
 
+def compareHistos(dic1, dic2):
+    for cat in dic1:
+        if cat in dic2:
+            for i in dic1[cat]:
+                if i in dic2[cat]:
+                    hist1 = dic1[cat][i]
+                    hist2 = dic2[cat][i]
+                    if hist1.GetNbinsX() == hist2.GetNbinsX():
+                       for xbin in range(1, hist1.GetNbinsX()+1):
+                           compareVals( hist1.GetBinCenter(xbin), 0,
+                                        hist2.GetBinCenter(xbin), 0,
+                                        errormessage = "different bin centers detected!")
+                           compareVals( hist1.GetBinContent(xbin), 0,
+                                        hist2.GetBinContent(xbin), 0,
+                                        errormessage = "different bin contents detected!")
+                    else:
+                        print "WARNING\tdifferent amount of bins detected!"
+
 def compareMus(path1, path2, pdfOutputPath):
-    # path1 = sys.argv[1]
-    # path2 = None
-    # if len(sys.argv) == 1:
-    #     path2 = sys.argv[2]
-    # else:
-    #     path2 = path1
+     #path1 = sys.argv[1]
+     #path2 = None
+     #if len(sys.argv) == 1:
+         #path2 = sys.argv[2]
+     #else:
+         #path2 = path1
 
 
 
@@ -65,7 +137,8 @@ def compareMus(path1, path2, pdfOutputPath):
     else:
         sys.exit("%s does not exist!" % path2)
 
-
+    print path1
+    print path2
 
     if path1.endswith("/"):
         path1 = path1 + "*"
@@ -142,7 +215,7 @@ def compareMus(path1, path2, pdfOutputPath):
         mu1[infile].Draw()
         c.SaveAs(pdfOutputPath + "/mu1_" + infile.replace(".root","") + ".pdf" )
 
-def getDataObs(pathToPseudoExps, rootfile, pdfOutputPath = "./"):
+def getDataObss(pathToPseudoExps, rootfile, pdfOutputPath = "./", suffix = None):
     if os.path.exists(os.path.abspath(pathToPseudoExps)):
         pathToPseudoExps = os.path.abspath(pathToPseudoExps)
     else:
@@ -153,6 +226,9 @@ def getDataObs(pathToPseudoExps, rootfile, pdfOutputPath = "./"):
     data_obs_dic = {}
     rootfile = os.path.abspath(rootfile)
     pdfOutputPath = os.path.abspath(pdfOutputPath)
+    pdfOutputPath += "/"
+    if suffix:
+        pdfOutputPath += suffix + "_"
 
     for path in sorted(glob.glob(path1)):
         if os.path.exists(os.path.abspath(path)):
@@ -174,20 +250,7 @@ def getDataObs(pathToPseudoExps, rootfile, pdfOutputPath = "./"):
                                 print "creating data_obs_distr for cat", cat
                                 data_obs_dic[cat] = {}
 
-                            data_obs = ROOT.gDirectory.Get(cat+"/data")
-                            if isinstance(data_obs, ROOT.TGraphAsymmErrors):
-                                print "looping over entries"
-                                s = 0.
-                                for i in range(data_obs.GetN()):
-                                    val = data_obs.GetY()[i]
-                                    if not i in data_obs_dic[cat]:
-                                        data_obs_dic[cat][i] = ROOT.TH1D("data_obs_distr_"+cat+"_"+str(i), ";integral;frequency", 400, val-10*(val)**(1./2.),val+30*(val)**(1./2.))
-                                        data_obs_dic[cat][i].SetDirectory(0)
-
-                                    data_obs_dic[cat][i].Fill(val)
-                                    # s += data_obs.GetY()[i]
-                                # print "filling value =", s
-                                # data_obs_dic[cat].Fill(s)
+                    getDataObs(data_obs_dic)
 
                     rootFile.Close()
                     print "done with", path+"/"+infile
@@ -219,17 +282,36 @@ def getDataObs(pathToPseudoExps, rootfile, pdfOutputPath = "./"):
             else:
                 print "could not load data_obs object \'{0}\' from file \'{1}\'".format("data_obs_finaldiscr_" + cat, rootfile)
             if i == 0:
-                canvas.Print(pdfOutputPath+"/"+name.replace("_{0}".format(i), "")+".pdf(","pdf")
+                canvas.Print(pdfOutputPath+name.replace("_{0}".format(i), "")+".pdf(","pdf")
             elif i == len(data_obs_dic[cat])-1:
-                canvas.Print(pdfOutputPath+"/"+name.replace("_{0}".format(i), "")+".pdf)","pdf")
+                canvas.Print(pdfOutputPath+name.replace("_{0}".format(i), "")+".pdf)","pdf")
             else:
-                canvas.Print(pdfOutputPath+"/"+name.replace("_{0}".format(i), "")+".pdf","pdf")
+                canvas.Print(pdfOutputPath+name.replace("_{0}".format(i), "")+".pdf","pdf")
             canvas.Write()
             #data_obs_dic[cat].SetDirectory(outFile)
             data_obs_dic[cat][i].Write()
             outFile.Close()
 
     origFile.Close()
+    return data_obs_dic
 
-getDataObs(sys.argv[1], sys.argv[2], sys.argv[3])
-compareMus(sys.argv[1], sys.argv[1], sys.argv[3])
+
+if path2 and os.path.exists(os.path.abspath(path2)):
+    path2 = os.path.abspath(path2)
+    print "start comparison between\npath1: {0}\npath2: {1}".format(path1, path2)
+    data_obs_dic_1 = getDataObss( pathToPseudoExps = path1, 
+            rootfile = pathToRootfile, 
+            pdfOutputPath = pdfOutputPath,
+            suffix = "path1")
+    data_obs_dic_2 = getDataObss( pathToPseudoExps = path2, 
+            rootfile = pathToRootfile, 
+            pdfOutputPath = pdfOutputPath,
+            suffix = "path2")
+    compareHistos(dic1 = data_obs_dic_1, dic2 = data_obs_dic_2)
+    compareMus(path1 = path1, path2 = path2, pdfOutputPath = pdfOutputPath)
+else:
+    print "could not find second path, only analyse data in path1"
+    getDataObss( pathToPseudoExps = path1, 
+            rootfile = pathToRootfile, 
+            pdfOutputPath = pdfOutputPath)
+    compareMus(path1 = path1, path2 = path1, pdfOutputPath = pdfOutputPath)
