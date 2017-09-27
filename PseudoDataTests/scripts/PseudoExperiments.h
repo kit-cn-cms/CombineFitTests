@@ -625,7 +625,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
     const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find( it.first ) );
     watch.Stop();
     if(debug_) printTime(watch, "Time to get RooRealVar Object");
-    //std::cout << "filling " << it.first << " with value " << var->getVal() << std::endl;
+    std::cout << "filling " << it.first << " with value " << var->getVal() << std::endl;
     it.second->Fill(var->getVal());
 
     std::map<TString, TH1*>::const_iterator iter_errorHi = hErrorsHi.find( it.first);
@@ -641,6 +641,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
     iter_errors->second->Fill(var->getError());
 
   }
+  std::cout << std::endl;
   collectCorrelations(correlations, result);
 }
 

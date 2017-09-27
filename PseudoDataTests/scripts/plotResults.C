@@ -722,9 +722,11 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
 
 }
 
-void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", double injectedMu = -999) {
+void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", TString injectedMuString = "-999") {
   TheLooks::set();
   gStyle->SetPaintTextFormat(".2f");
+
+  double injectedMu = injectedMuString.Atof();
 
   std::vector<PseudoExperiments> expSet;
   if(pathname.EndsWith("/")) pathname.Chop();
@@ -792,11 +794,11 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   else std::cerr << "was unable to load any Pseudo Experiments!\n";
 }
 
-//
-// # ifndef __CINT__
-// int main()
-// {
-//   plotResults("/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/test/officialHiggsCombine/JTBDT_Spring17v10/test_msfit/wo_NP/PseudoData/r_ttbb/63445464_ttHbb_N1000_r_ttbb_ttbarPlusBBbar_1.2_test1", "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/test/officialHiggsCombine/JTBDT_Spring17v10/test_msfit/wo_NP/PseudoData/r_ttbb/63445464_ttHbb_N1000_r_ttbb_ttbarPlusBBbar_1.2_test1/temp/temp_shapeExpectation.root");
-//   return 0;
-// }
-// # endif
+
+ # ifndef __CINT__
+ int main(int argc, char *argv[])
+ {
+   plotResults(argv[0], argv[1], argv[2]);
+   return 0;
+ }
+# endif
