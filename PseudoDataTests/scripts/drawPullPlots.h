@@ -158,17 +158,17 @@ namespace drawPullPlots{
           //   std::cout << "\t\t" << val << std::endl;
           // }
           helperFuncs::setupHistogramBin(hPostfitBmeans, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][0], PostfitBvalsAndErrors[np][1]);
-          //helperFuncs::setupHistogramBin(hPostfitBmedians, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][2], PostfitBvalsAndErrors[np][3]);
+          helperFuncs::setupHistogramBin(hPostfitBmedians, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][2], PostfitBvalsAndErrors[np][3]);
 
           if(hPostfitBmeansWithFitErrors != NULL) helperFuncs::setupHistogramBin(hPostfitBmeansWithFitErrors, np+1, listOfNPs[np], PostfitBvalsAndErrors[np][0], PostfitBvalsAndErrors[np][4]);
 
           helperFuncs::setupHistogramBin(hPostfitSBmeans, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][0], PostfitSBvalsAndErrors[np][1]);
           if(hPostfitSBmeansWithFitErrors != NULL) helperFuncs::setupHistogramBin(hPostfitSBmeansWithFitErrors, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][0], PostfitSBvalsAndErrors[np][4]);
 
-          //helperFuncs::setupHistogramBin(hPostfitSBmedians, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][2], PostfitSBvalsAndErrors[np][3]);
+          helperFuncs::setupHistogramBin(hPostfitSBmedians, np+1, listOfNPs[np], PostfitSBvalsAndErrors[np][2], PostfitSBvalsAndErrors[np][3]);
 
           helperFuncs::setupHistogramBin(hPrefitMeans, np+1, listOfNPs[np], PrefitValsAndErrors[np][0], PrefitValsAndErrors[np][1]);
-          //helperFuncs::setupHistogramBin(hPrefitMedians, np+1, listOfNPs[np], PrefitValsAndErrors[np][2], PrefitValsAndErrors[np][3]);
+          helperFuncs::setupHistogramBin(hPrefitMedians, np+1, listOfNPs[np], PrefitValsAndErrors[np][2], PrefitValsAndErrors[np][3]);
 
         }
         std::cout << "done!\n";
@@ -226,8 +226,10 @@ namespace drawPullPlots{
         if(canvasName->Contains("=")) canvasName->ReplaceAll("=", "_");
         if(canvasName->Contains(".")) canvasName->ReplaceAll(".", "p");
         //std::cout << "prepending path: " << outLabel << "pullplot_" << std::endl;
-        createLatexOutput::writeLatexTable(hPostfitBmeans, hPostfitBmedians, hPostfitSBmeans, hPostfitSBmedians, outLabel+"values_"+*canvasName+".tex", "Values for "+label, hExpectation, hPostfitBmeansWithFitErrors, hPostfitSBmeansWithFitErrors);
-
+        //~ createLatexOutput::writeLatexTable(hPostfitBmeans, hPostfitBmedians, hPostfitSBmeans, hPostfitSBmedians, outLabel+"values_"+*canvasName+".txt", "Values for "+label, hExpectation, hPostfitBmeansWithFitErrors, hPostfitSBmeansWithFitErrors);
+        createLatexOutput::writeTextTable(hPostfitBmeans, hPostfitBmedians, outLabel+"values_"+*canvasName+"_PostfitB.txt", hExpectation, hPostfitBmeansWithFitErrors);
+        createLatexOutput::writeTextTable(hPostfitSBmeans, hPostfitSBmedians, outLabel+"values_"+*canvasName+"_PostfitSB.txt", hExpectation, hPostfitSBmeansWithFitErrors);
+        
         canvasName->Prepend(outLabel+"pullplot_");
         //canvasName->Append(".pdf");
         //std::cout << "canvas name: " << *canvasName << std::endl;

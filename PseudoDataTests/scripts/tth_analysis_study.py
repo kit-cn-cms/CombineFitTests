@@ -5,6 +5,8 @@ import stat
 import subprocess
 import time
 import shutil
+import imp
+
 from array import array
 from optparse import OptionParser
 from optparse import OptionGroup
@@ -156,8 +158,20 @@ if options.config is not None:
     pathToConfig = os.path.abspath(options.config)
     print "checking config file in", pathToConfig
     if os.path.exists(pathToConfig):
-        sys.path.append(pathToConfig)
-        import config
+        #sys.path.append(os.path.dirname(pathToConfig))
+        config = imp.load_source('config', pathToConfig)
+#        import os.path.basename(pathToConfig)
+        if verbose:
+            print "imported from config:"
+            for cat in config.categories:
+                print cat
+                print "\tsignal processes:"
+                for proc in config.signalHistos[cat]:
+                    print "\t ", proc
+                print "\tbkg processes"
+                for proc in config.backgroundHistos[cat]:
+                    print "\t ", proc
+
     else:
         parser.error("Unable to find config.py file in {0}".format(pathToConfig))
 
@@ -289,10 +303,6 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     shellscript.append('\t\t\t\techo "$combineCmd"')
     shellscript.append('\t\t\t\teval $combineCmd\n')
 
-    shellscript.append('\t\t\t\tif [[ -f "higgsCombineTest.MaxLikelihoodFit.mH125.123456.root" ]]; then')
-    shellscript.append('\t\t\t\t\trm "higgsCombineTest.MaxLikelihoodFit.mH125.123456.root"')
-    shellscript.append('\t\t\t\tfi\n')
-
     shellscript.append('\t\t\t\tif ! [[ -f "mlfit.root" ]]; then')
     shellscript.append('\t\t\t\t\techo "could not produce mlfit.root file!"')
     shellscript.append('\t\t\t\tfi')
@@ -305,15 +315,17 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
         shellscript.append('\t\t\t\t\techo "$combineCmd"')
         shellscript.append('\t\t\t\t\teval $combineCmd\n')
 
-        shellscript.append('\t\t\t\t\tif [[ -f "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root" ]]; then')
-        shellscript.append('\t\t\t\t\t\trm "higgsCombine_MS_mlfit.MaxLikelihoodFit.mH125.123456.root"')
-        shellscript.append('\t\t\t\t\tfi\n')
-
         shellscript.append('\t\t\t\t\tif ! [[ -f "mlfit_MS_mlfit.root" ]]; then')
         shellscript.append('\t\t\t\t\t\techo "could not produce mlfit_MS_mlfit.root file!"')
         shellscript.append('\t\t\t\t\tfi')
 
         shellscript.append('\t\t\t\tfi\n')
+
+    shellscript.append('\t\t\t\tfor f in higgsCombine*MaxLikelihoodFit*.root; do')
+    shellscript.append('\t\t\t\t\tif [[ -f "$f" ]]; then')
+    shellscript.append('\t\t\t\t\t\trm "$f"')
+    shellscript.append('\t\t\t\t\tfi\n')
+    shellscript.append('\t\t\t\tdone')
 
     shellscript.append('\t\t\telse')
     shellscript.append('\t\t\t\techo "Could not find toyFile, skipping the fit"')

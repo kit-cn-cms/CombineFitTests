@@ -21,19 +21,19 @@ stepSize = float(sys.argv[2])
 upperBound = 2
 lowerBound = 0
 
-colors  = [ROOT.kRed   ]#,ROOT.kBlue    ,ROOT.kOrange  ,ROOT.kMagenta  ]
-markers = [20           ]#,21         ,22         ,23          ]
+colors  = [ROOT.kRed    ,ROOT.kBlue     ,ROOT.kOrange   ,ROOT.kMagenta  ]
+markers = [20           ,21             ,22             ,23          ]
 #dic with commands to check. Form: {label: command}
 
 cmds = {
 "minimizerStrategy1, minimizerTolerance 0.0001" :
 "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
-# "minimizerStrategy1, minimizerTolerance 0.001" :
-# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
-# "minimizerStrategy0, minimizerTolerance 0.0001" :
-# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
-# "minimizerStrategy0, minimizerTolerance 0.001" :
-# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+"minimizerStrategy1, minimizerTolerance 0.001" :
+"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+"minimizerStrategy0, minimizerTolerance 0.0001" :
+"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+"minimizerStrategy0, minimizerTolerance 0.001" :
+"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
 
 }
 combineOutputName = "mlfit.root"

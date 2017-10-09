@@ -59,3 +59,10 @@ CVS
 # Test Files#
 #############
 test*
+
+# Manual Ignores#
+#################
+createNewDataObs.py
+runScalingTests.py
+plotResults.C
+config*.py
