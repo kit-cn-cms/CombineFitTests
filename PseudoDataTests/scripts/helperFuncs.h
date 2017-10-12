@@ -23,6 +23,7 @@ namespace helperFuncs{
 
   double findMaxValue(const std::vector<TH1*> histos, const TString mode = "y")
   {
+    std::cout << "looking for maximum value; comparing " << histos.size() << " histos; mode: " << mode << std::endl;
     double maxVal = -999;
     double current = 0;
     if(mode.EqualTo("y"))
@@ -45,11 +46,14 @@ namespace helperFuncs{
         }
       }
     }
+    std::cout << "found maximum at " << maxVal << std::endl;
     return maxVal;
   }
 
   double findMinValue(const std::vector<TH1*> histos, const TString mode = "y")
   {
+    std::cout << "looking for minimum value; comparing " << histos.size() << " histos; mode: " << mode << std::endl;
+
     double minVal = 999;
     double current = 0;
     if(mode.EqualTo("y"))
@@ -71,6 +75,7 @@ namespace helperFuncs{
         }
       }
     }
+    std::cout << "found minimum at " << minVal << std::endl;
     return minVal;
   }
 

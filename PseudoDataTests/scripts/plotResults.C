@@ -41,10 +41,7 @@ void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const
 
     can.SetMargin(0.25, 0.15, 0.15, 0.08);
     correlationPlot->SetStats(kFALSE);
-    //~ correlationPlot->Draw("coltzTEXTE");
-    correlationPlot->GetZaxis()->SetRangeUser(-1, 1);
-
-    correlationPlot->Draw("coltz");
+    correlationPlot->Draw("coltzTEXTE");
     correlationPlot->Write();
     can.Write(outputName);
     can.SaveAs(outputName+".pdf");
@@ -134,8 +131,10 @@ void compareDistributions(const std::vector<TH1*>& hists,
     gPad->RedrawAxis();
     std::cout << "printing distribution as " << outLabel << ".pdf\n";
     can->SaveAs(outLabel+".pdf");
+    std::cout << "printing distribution as " << outLabel << ".root\n";
     can->SaveAs(outLabel+".root");
-
+    
+    std::cout << "deleting temporary objects\n";
     if( hNorm ) delete hNorm;
     if(leg != NULL) delete leg;
     if(can != NULL) delete can;
@@ -143,6 +142,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
         if(lines[nLine] != NULL) delete lines[nLine];
     }
     gStyle->SetOptStat(000000000);
+    std::cout << "done comparing distributions\n";
 }
 
 
@@ -315,9 +315,9 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
             }
 
         }
-        compareDistributions(histsPrefit,labels,outLabel+np+"_Prefit");
-        compareDistributions(histsPostfitB,labels,outLabel+np+"_PostfitB");
-        compareDistributions(histsPostfitS,labels,outLabel+np+"_PostfitS");
+        compareDistributions(histsPrefit,labels,outLabel+np+"_Prefit",true);
+        compareDistributions(histsPostfitB,labels,outLabel+np+"_PostfitB",true);
+        compareDistributions(histsPostfitS,labels,outLabel+np+"_PostfitS",true);
 
         // plot np means
         for(int i=0; i<2; i++) if(hCompareNPMeansList[i] != NULL) compareMeanValues(hCompareNPMeansList[i],hPrefit,labels,outLabel+hCompareNPMeansList[i]->GetName(), hCompareNPMediansList[i]);
@@ -460,7 +460,7 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
 
     std::cout << "comparing mean values for POI\n";
     compareMeanValues(hPOIs,hInit,labels,outLabel+"POImeans",hPOImedians);
-    createLatexOutput::writePOILatexTable(hPOIs, hPOImedians, hPOIwithFittedError, outLabel+"POI.txt", "Signal Strength Parameters", testName);
+    createLatexOutput::writePOILatexTable(hPOIs, hPOImedians, hPOIwithFittedError, outLabel+"POI.tex", "Signal Strength Parameters", testName);
     compareDistributions(hists,labels,outLabel+"POI",false);
 
     if(hPOIs != NULL) delete hPOIs;
@@ -645,10 +645,10 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
             // std::cout << "\tPrefit histograms: " << histsPrefit.size() << "\n";
             // for(int i=0; i<int(histsPrefit.size()); i++) std::cout << "\t\tEntries for " << labels[i]  << " in histo" <<  histsPrefit[i]->GetName() << ": " << histsPrefit[i]->GetEntries() << std::endl;
             compareDistributions(histsPrefit,labels,outLabel+categoryName + "_normalisation_"+np+"_Prefit");
-            //std::cout << "\tPostfitB histograms: " << histsPostfitB.size() << "\n";
+            std::cout << "\tPostfitB histograms: " << histsPostfitB.size() << "\n";
             //for(int i=0; i<int(histsPostfitB.size()); i++) std::cout << "\t\tEntries for " << labels[i]  << " in histo" <<  histsPostfitB[i]->GetName() << ": " << histsPostfitB[i]->GetEntries() << std::endl;
             compareDistributions(histsPostfitB,labels,outLabel+categoryName + "_normalisation_"+np+"_PostfitB");
-            //std::cout << "\t PostfitS histograms: " << histsPostfitS.size() << "\n";
+            std::cout << "\t PostfitS histograms: " << histsPostfitS.size() << "\n";
             //for(int i=0; i<int(histsPostfitS.size()); i++) std::cout << "\t\tEntries for " << labels[i]  << " in histo" <<  histsPostfitS[i]->GetName() << ": " << histsPostfitS[i]->GetEntries() << std::endl;
             compareDistributions(histsPostfitS,labels,outLabel+categoryName + "_normalisation_"+np+"_PostfitS");
 
@@ -725,13 +725,11 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
 
 }
 
-void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", double injectedMuString = -999) {
+void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", TString injectedMuString = "-999") {
   TheLooks::set();
   gStyle->SetPaintTextFormat(".2f");
-  //gStyle->SetPalette(kLightTemperature);
-  std::cout << "injectedMuString = " << injectedMuString << std::endl;
-  double injectedMu = injectedMuString;
-  std::cout << "injectedMu = " << injectedMu << std::endl;
+
+  double injectedMu = injectedMuString.Atof();
 
   std::vector<PseudoExperiments> expSet;
   if(pathname.EndsWith("/")) pathname.Chop();
@@ -751,8 +749,8 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   if(pathname.Contains("PseudoExperiment")){
     loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
     ncolor++;
-     loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-     ncolor++;
+    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+    ncolor++;
   }
   else{
     TList *folders = dir.GetListOfFiles();
@@ -767,14 +765,14 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
         if (folder->IsDirectory() && folderName.Contains("sig")) {
           loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
           ncolor++;
-           loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-           ncolor++;
+          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          ncolor++;
         }
         if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
           loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
           ncolor++;
-           loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
-           ncolor++;
+          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          ncolor++;
           break;
         }
       }
@@ -800,10 +798,10 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
 }
 
 
- //~ # ifndef __CINT__
- //~ int main(int argc, char *argv[])
- //~ {
-   //~ plotResults(argv[0], argv[1], argv[2]);
-   //~ return 0;
- //~ }
-//~ # endif
+ # ifndef __CINT__
+ int main(int argc, char *argv[])
+ {
+   plotResults(argv[0], argv[1], argv[2]);
+   return 0;
+ }
+# endif
