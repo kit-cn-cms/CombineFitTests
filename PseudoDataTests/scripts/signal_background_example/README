@@ -1,0 +1,38 @@
+Information regarding additional shape uncertainties:
+
+formular: [0]*exp([1]*x) + [2]. Following values are relativ to post-fit values (initial vals: (27, -1, 1))
+exp_2:
+
+Parameter	|	Up	|	Down
+------------------------------------------------
+0		|	*2	|	*0.5
+------------------------------------------------
+1		|	*1.5	|	/1.5
+------------------------------------------------
+2		|	+0.5	|	+1.5
+
+
+exp_3:
+
+Parameter	|	Up	|	Down
+------------------------------------------------
+0		|	*3	|	/3
+------------------------------------------------
+1		|	2	|	1/3
+------------------------------------------------
+2		|	+1.5	|	+1.5
+
+
+running combine:
+
+Step 1: Setup CMSSW
+Step 2: use command
+	combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t -1 --expectSignal $signalStrength --minos all $targetDatacard
+	output will be mlfit.root
+Step 3: look at output, try to understand different values
+
+
+perform NLL scan:
+
+you can use dedicated script for that (ask Philip) or use MultiDimFit option in combine
+	 
