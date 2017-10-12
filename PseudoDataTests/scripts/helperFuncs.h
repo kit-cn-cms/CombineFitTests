@@ -2,17 +2,48 @@
 #define HELPER_FUNCS_H
 
 #include "TH1.h"
+#include "TH1D.h"
+#include "TTree.h"
 #include "TString.h"
 #include "TColor.h"
 #include "TLine.h"
 #include "TFile.h"
+#include "TObjArray.h"
 #include "RooFitResult.h"
 #include "RooRealVar.h"
 #include <TMath.h>
 #include <vector>
 
 namespace helperFuncs{
-
+  
+  TH1D* createHistoFromVector(const TString& histName, const std::vector<Double_t>& vec){
+    double minVal = std::min_element(vec.begin(), vec.end());
+    double maxVal = std::max_element(vec.begin(), vec.end());
+    int nBins = 2000;
+    TH1D* histo = new TH1D(histName, "", nBins, minVal, maxVal);
+    for(int i=0; i<int(vec.size()); i++) histo->Fill(vec[i]);
+    return histo;
+  }
+  
+  TH1D* tree2histo(const TTree* tree){
+    std::vector<Double_t> vec;
+    TObjArray branches = tree->GetListOfBranches();
+    TString branchName;
+    for(int nBranch = 0; nBranch < branches->GetEntries(); nBranch++)
+    {
+      branchName = branches->At(i)->GetName();
+      double value = 0;
+      tree->SetBranchAdress(branchName.Data(), &value);
+      for(int i = 0; i< tree->GetEntries(); i++){
+        tree->GetEntry(i);
+        vec.push_back(value);
+      }
+    }
+    return createHistoFromVector(tree->GetName(), vec);
+  }
+  
+  
+  
   Double_t checkValues(Double_t x, Double_t cut = 100000000){
       if(std::isnan(x) || std::isinf(x) || x>cut) {
         std::cout << "WARNING:\tchecked value is either nan, inf or > "<< cut;
@@ -21,7 +52,7 @@ namespace helperFuncs{
       else return x;
   }
 
-  double findMaxValue(const std::vector<TH1*> histos, const TString mode = "y")
+  double findMaxValue(const std::vector<TH1*>& histos, const TString mode = "y")
   {
     std::cout << "looking for maximum value; comparing " << histos.size() << " histos; mode: " << mode << std::endl;
     double maxVal = -999;
@@ -50,7 +81,7 @@ namespace helperFuncs{
     return maxVal;
   }
 
-  double findMinValue(const std::vector<TH1*> histos, const TString mode = "y")
+  double findMinValue(const std::vector<TH1*>& histos, const TString mode = "y")
   {
     std::cout << "looking for minimum value; comparing " << histos.size() << " histos; mode: " << mode << std::endl;
 
