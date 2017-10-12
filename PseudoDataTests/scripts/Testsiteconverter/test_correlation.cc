@@ -43,18 +43,14 @@ void test1(TString filename = "mlfit.root", bool mod =0)
 		{
 			count = 0;
 			Double_t* values = new Double_t[fitb->floatParsFinal().getSize()];
-			std::cout << "before creating new TTree: Tpostb = " << Tpostb <<std::endl;
 			Tpostb = new TTree(Varpostb_one->GetName(),Varpostb_one->GetName());
-			std::cout << "after creating new TTree: Tpostb = " << Tpostb <<std::endl;
 			TIter Ipostb_two = fitb->floatParsFinal().createIterator();	
 			while((Varpostb_two=(RooRealVar*) Ipostb_two.Next()))
 			{
 				values[count] = fitb->correlation(Varpostb_one->GetName(), Varpostb_two->GetName());
 				Tpostb->Branch(Varpostb_two->GetName(), &values[count], "correlation/D");
-				std::cout << "filling for parameter " << Varpostb_two->GetName()  << " value " << values[count] << " into tree " << Tpostb->GetName() << std::endl;
 				count++;
 			}
-			for(int i=0; i<count; i++) std::cout << "\t" << values[i] << std::endl;
 			Tpostb->Fill();
 			Fpostb->Add(Tpostb);
 			delete[] values;

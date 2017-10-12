@@ -23,6 +23,7 @@ void test(TString filename = "mlfit.root", bool mod=0)
 	{
 		// Initalizing fitb
 		RooFitResult* fitb;
+		// Choosing right set of data
 		if(mod==0){file->GetObject("fit_b",fitb);}
 		else {file->GetObject("fit_s",fitb);}
 
@@ -56,8 +57,8 @@ void test(TString filename = "mlfit.root", bool mod=0)
 			// Creating Branches for Tree with specific data
 			Ttemp->Branch("Value",&val,"value/D");
 			Ttemp->Branch("Error",&err,"error/D");
-			Ttemp->Branch("HighError",&hie,"higherror/D");
-			Ttemp->Branch("LowError",&loe,"lowerrorii/D");
+			Ttemp->Branch("HighError",&hie,"high error/D");
+			Ttemp->Branch("LowError",&loe,"low error/D");
 			val = Varpostb->getVal();
                 	err = Varpostb->getError();
                 	hie = Varpostb->getErrorHi();

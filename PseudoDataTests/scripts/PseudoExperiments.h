@@ -28,11 +28,7 @@
 #include "RooAbsCollection.h"
 
 #include "ShapeContainer.h"
-
-Double_t checkValues(Double_t x){
-    if(std::isnan(x) || std::isinf(x)) return 0;
-    else return x;
-}
+#include "helperFuncs.h"
 
 class PseudoExperiments {
 public:
@@ -84,6 +80,12 @@ public:
     if(tempPointer != NULL) returnVal = tempPointer->GetMean();
     return returnVal;
   }
+  Double_t npPrefitMeanError(const TString& np) const{
+    Double_t returnVal = -9999;
+    TH1* tempPointer = getHist(npValuesPrefit_,np);
+    if(tempPointer != NULL) returnVal = tempPointer->GetMeanError();
+    return returnVal;
+  }
   Double_t npPrefitRMS(const TString& np) const {
     return getHist(npValuesPrefit_,np)->GetRMS();
   }
@@ -101,6 +103,9 @@ public:
   }
   Double_t npPostfitBMean(const TString& np) const {
     return getHist(npValuesPostfitB_,np)->GetMean();
+  }
+  Double_t npPostfitBMeanError(const TString& np) const {
+    return getHist(npValuesPostfitB_,np)->GetMeanError();
   }
   Double_t npPostfitBRMS(const TString& np) const {
     return getHist(npValuesPostfitB_,np)->GetRMS();
@@ -131,6 +136,9 @@ public:
   }
   Double_t npPostfitSMean(const TString& np) const {
     return getHist(npValuesPostfitS_,np)->GetMean();
+  }
+  Double_t npPostfitSMeanError(const TString& np) const {
+    return getHist(npValuesPostfitS_,np)->GetMeanError();
   }
   Double_t npPostfitSRMS(const TString& np) const {
     return getHist(npValuesPostfitS_,np)->GetRMS();
@@ -617,7 +625,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
     const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find( it.first ) );
     watch.Stop();
     if(debug_) printTime(watch, "Time to get RooRealVar Object");
-    //std::cout << "filling " << it.first << " with value " << var->getVal() << std::endl;
+    if(debug_) std::cout << "filling " << it.first << " with value " << var->getVal() << std::endl;
     it.second->Fill(var->getVal());
 
     std::map<TString, TH1*>::const_iterator iter_errorHi = hErrorsHi.find( it.first);
@@ -633,12 +641,14 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
     iter_errors->second->Fill(var->getError());
 
   }
+  if(debug_)std::cout << std::endl;
   collectCorrelations(correlations, result);
 }
 
 
 
 TH1* PseudoExperiments::getHist(const std::map<TString,TH1*>& hists, const TString& key) const {
+  if(debug_) std::cout << "entering 'PseudoExperiments::getHist()'\n";
   TH1* returnPointer = NULL;
   std::map<TString,TH1*>::const_iterator it = hists.find(key);
   if( it == hists.end() ) {
@@ -646,12 +656,15 @@ TH1* PseudoExperiments::getHist(const std::map<TString,TH1*>& hists, const TStri
     //throw std::exception();
   }
   else returnPointer = it->second;
+  if(debug_) std::cout << "leaving getHist()\n";
   return returnPointer;
 }
 
 
 TH1* PseudoExperiments::getClone(const TH1* h)const {
+  if(debug_) std::cout << "entering PseudoExperiments::getClone()\n";
   if(h!=NULL){
+    if(debug_) std::cout << "h exists!\n";
     const TUUID id;
     const TString name = h->GetName();
     return static_cast<TH1*>(h->Clone(name+":"+id.AsString()));
@@ -717,9 +730,9 @@ TH2D* PseudoExperiments::getCorrelationPlot(const std::map<TString, std::map<TSt
       if(tempHisto){
         if (debug_) std::cout << "setting bin content: (" << i << ", " << j << ") = " << tempHisto->GetMean() << std::endl;
         correlationPlot->SetBinContent(i,j, tempHisto->GetMean());
-        correlationPlot->SetBinError(i,j, checkValues(tempHisto->GetMeanError()));
+        correlationPlot->SetBinError(i,j, helperFuncs::checkValues(tempHisto->GetMeanError()));
         correlationPlot->SetBinContent(j,i, tempHisto->GetMean());
-        correlationPlot->SetBinError(j,i, checkValues(tempHisto->GetMeanError()));
+        correlationPlot->SetBinError(j,i, helperFuncs::checkValues(tempHisto->GetMeanError()));
         tempHisto = NULL;
       }
       else{

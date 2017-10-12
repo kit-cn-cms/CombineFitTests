@@ -22,6 +22,7 @@ public:
   void loadShape(const TH1D* histo, const TString& signalStrength);
   void loadShapes(TFile& file, const TString& folderName, const TString& signalStrength);
   void checkShapeContainer() const;
+  void createShapeHistos(const TString& signalStrength) const;
   TString getName() const;
   int getNumberOfProcesses() const;
   std::vector<TString> getListOfProcesses() const;
@@ -34,6 +35,7 @@ public:
 private:
   bool debug_;
   std::map<TString, TH1D*> shapeHistos_;
+  std::map<TString, std::vector<Double_t> > normValues_;
   TString categoryName_;
 
 };
@@ -53,53 +55,69 @@ ShapeContainer::~ShapeContainer()
   for(std::map<TString, TH1D*>::const_iterator it = shapeHistos_.begin(); it!= shapeHistos_.end(); it++) delete it->second;
 }
 
-void ShapeContainer::loadShape(const TH1D* histo, const TString& signalStrength){
+// void ShapeContainer::loadShape(const TH1D* histo, const TString& signalStrength){
+  // if(debug_) std::cout << "DEBUG    reading " << histo->GetName() << std::endl;
+  // std::map<TString, TH1D*>::const_iterator it = shapeHistos_.find(histo->GetName());
+  // double integral = histo->Integral();
+  // if(debug_) std::cout << "\t integral value: " << integral << std::endl;
+  // if(debug_) checkShapeContainer();
+  // double lowerBound = 0;
+  // double upperBound = 10;
+  // int nBins = 0;
+  // if(it == shapeHistos_.end())
+  // {
+    // if(debug_) std::cout << "DEBUG    creating new histogram\n";
+    // TString tempHistoName;
+    // tempHistoName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), histo->GetName());
+
+    // if(integral == 0)
+    // {
+      // lowerBound = -500.;
+      // upperBound = 500.;
+    // }
+    // else
+    // {
+      // lowerBound = -10*integral;
+      // upperBound = 10*integral;
+    // }
+    // nBins = int((upperBound - lowerBound)/0.5);
+
+    // //if(lowerBound>-2) lowerBound = -2;
+    // if(nBins <= 0) nBins = 1000;
+    // TH1D* hTemp = new TH1D(tempHistoName, "; Integral; Frequency", nBins, lowerBound, upperBound);
+    // hTemp->SetDirectory(0);
+    // if(debug_)
+    // {
+      // std::cout << "DEBUG    new histogram parameters:\n";
+      // std::cout << "\tname: " << hTemp->GetName() << std::endl;
+      // std::cout << "\tnBins: " << hTemp->GetNbinsX() << " (input: 400)\n";
+      // std::cout << "\tlower Bound: " << hTemp->GetBinLowEdge(1) << " (input: " << lowerBound <<")\n";
+      // std::cout << "\tupper Bound: " << hTemp->GetBinCenter(hTemp->GetNbinsX()) + hTemp->GetBinWidth(hTemp->GetNbinsX())/2 << " (input: " << upperBound <<")\n";
+
+    // }
+    // hTemp->Fill(integral);
+    // shapeHistos_[histo->GetName()] = hTemp;
+  // }
+  // else{
+    // if(debug_) std::cout << "DEBUG    found matching histogram! Filling...\n";
+
+    // it->second->Fill(integral);
+  // }
+// }
+
+void ShapeContainer::loadShape(const TH1D* histo){
   if(debug_) std::cout << "DEBUG    reading " << histo->GetName() << std::endl;
-  std::map<TString, TH1D*>::const_iterator it = shapeHistos_.find(histo->GetName());
   double integral = histo->Integral();
   if(debug_) std::cout << "\t integral value: " << integral << std::endl;
-  if(debug_) checkShapeContainer();
-  double lowerBound = 0;
-  double upperBound = 10;
-  int nBins = 0;
-  if(it == shapeHistos_.end())
-  {
-    if(debug_) std::cout << "DEBUG    creating new histogram\n";
-    TString tempHistoName;
-    tempHistoName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), histo->GetName());
+  normValues_[histo->GetName()].push_back(integral);
+  
+}
 
-    if(integral == 0)
-    {
-      lowerBound = -500.;
-      upperBound = 500.;
-    }
-    else
-    {
-      lowerBound = -10*integral;
-      upperBound = 10*integral;
-    }
-    nBins = int((upperBound - lowerBound)/0.5);
-
-    //if(lowerBound>-2) lowerBound = -2;
-    if(nBins <= 0) nBins = 1000;
-    TH1D* hTemp = new TH1D(tempHistoName, "; Integral; Frequency", nBins, lowerBound, upperBound);
-    hTemp->SetDirectory(0);
-    if(debug_)
-    {
-      std::cout << "DEBUG    new histogram parameters:\n";
-      std::cout << "\tname: " << hTemp->GetName() << std::endl;
-      std::cout << "\tnBins: " << hTemp->GetNbinsX() << " (input: 400)\n";
-      std::cout << "\tlower Bound: " << hTemp->GetBinLowEdge(1) << " (input: " << lowerBound <<")\n";
-      std::cout << "\tupper Bound: " << hTemp->GetBinCenter(hTemp->GetNbinsX()) + hTemp->GetBinWidth(hTemp->GetNbinsX())/2 << " (input: " << upperBound <<")\n";
-
-    }
-    hTemp->Fill(integral);
-    shapeHistos_[histo->GetName()] = hTemp;
-  }
-  else{
-    if(debug_) std::cout << "DEBUG    found matching histogram! Filling...\n";
-
-    it->second->Fill(integral);
+void createShapeHistos(const TString& signalStrength) const{
+  TString tempHistoName;
+  for(std::map<TString, std::vector<Double_t> >::const_iterator it = normValues_.begin(); it != normValues_.end(); it++){
+    tempHistoName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), it->first);
+    shapeHistos_[it->first] = helperFuncs::createHistoFromVector();
   }
 }
 

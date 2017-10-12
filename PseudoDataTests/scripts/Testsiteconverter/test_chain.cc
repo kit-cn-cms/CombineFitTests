@@ -22,19 +22,23 @@ int chaining(TString Filename = "mlfit.root")
 
 	// Creating File, to store all the collected Trees
 	TFile* output = new TFile("newfile.root","RECREATE"); // <- FIX ME!!! It'd be nice to have some sort of dynamic naming of the files, maybe something with the allready generated "firstfile"
-
+	// Creating file with Histograms
+	TFile* outhist = new TFile("histofile.root","RECREATE");
 
 	// Seting TDirectory to save values
 	TDirectoryFile* Dlayer1;
 
 	while(Lsamples->GetSize()!=0)
 	{
+		// Temporalily save subdirectory
 		Dlayer1= (TDirectoryFile*) Samplefile->Get(Lsamples->Last()->GetName());
 		TDirectoryFile* Ftemp = new TDirectoryFile(Dlayer1->GetName(),Dlayer1->GetTitle());
 		TList* Lsub = Dlayer1->GetListOfKeys();
 		TTree* Ttemp;
+
 		while((Lsub->GetSize()!=0)&&(!TString(Dlayer1->Get(Lsub->Last()->GetName())->ClassName()).Contains("TDirectoryFile")))
 		{
+			// Generating location name for chain
 			TString* Spath = new TString(Lsamples->Last()->GetName());
 			Spath->Append("/");
 			Spath->Append(Lsub->Last()->GetName());

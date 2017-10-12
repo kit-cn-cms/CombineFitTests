@@ -3,66 +3,134 @@ import os
 import sys
 ROOT.gROOT.SetBatch(True)
 
+ROOT.gStyle.SetOptStat(0)
 inputRootFile = sys.argv[1]
 outputSuffix = sys.argv[2]
-listOfProcesses = sys.argv[3:]
+listOfProcesses = [	"ttH_hbb", 
+					"ttbarOther", 
+					"ttbarPlusCCbar", 
+					"ttbarPlusB", 
+					"ttbarPlus2B", 
+					"ttbarPlusBBbar"
+					]
 
-categoryEndings = ["ljets_j4_t4", "ljets_j5_tge4","ljets_jge6_t3", "ljets_jge6_tge4"]
+categoryEndings = [	"ljets_j4_t4", 
+					"ljets_j5_tge4",
+					"ljets_jge6_t3", 
+					"ljets_jge6_tge4"
+					]
+
+colors = [	ROOT.kBlack,	ROOT.kRed,		ROOT.kMagenta+2, 
+			ROOT.kBlue,		ROOT.kCyan+2,	ROOT.kGreen+1, 
+			ROOT.kYellow+1,	ROOT.kPink-3,	ROOT.kViolet-8, 
+			ROOT.kAzure+3,	ROOT.kTeal-7,	ROOT.kSpring-9
+			]
+
+histoKey = "$PROCESS_finaldiscr_$CHANNEL"
+
+titleSize = 0.065
+titleX = "final discriminator"
+titleOffsetX = 0.65
+titleYstack = "#Events"
+titleYnormed = "Normalized Events"
+titleOffsetY = 0.75
+
+def setupHistoStyle(hist, color, titleY):
+    hist.GetXaxis().SetTitle(titleX)
+    hist.GetXaxis().SetTitleOffset(titleOffsetX)
+    hist.GetXaxis().SetTitleSize(titleSize)
+    #print "xlabel:", hist.GetXaxis().GetTitle()
+
+    hist.GetYaxis().SetTitle(titleY)
+    hist.GetYaxis().SetTitleOffset(titleOffsetY)
+    hist.GetYaxis().SetTitleSize(titleSize)
+    #print "ylabel:", hist.GetYaxis().GetTitle()
+    hist.SetTitle("")
+
+    hist.SetLineColor(color)
+    hist.SetMarkerColor(color)
+    hist.SetFillColor(color)
+    hist.SetLineWidth(4)
+
+
 
 def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
-    colors = [ROOT.kOrange-3, ROOT.kRed, ROOT.kMagenta+2, ROOT.kBlue, ROOT.kCyan+2, ROOT.kGreen+1, ROOT.kYellow+1, ROOT.kPink-3, ROOT.kViolet-8, ROOT.kAzure+3, ROOT.kTeal-7, ROOT.kSpring-9]
     outfile = ROOT.TFile(outputSuffix+"_stackplots.root", "RECREATE")
+    if len(listOfHistos) > 0:
+        hStack = listOfHistos[0].Clone()
+        hStack.Reset()
+        stackStages = []
+        #hStack_normed = ROOT.THStack()
 
-    hStack = ROOT.THStack()
+        legend = ROOT.TLegend(0.72,0.5,0.95,0.99)
+        color = None
+        for i in range(len(listOfHistos)):
+            color = colors[i%len(colors)]
+
+            hStack.Add(listOfHistos[i].Clone())
+            hStack.SetName(listOfHistos[i].GetName() + "_{0}".format(i))
+            setupHistoStyle(hStack, color, titleY = titleYstack)
+
+            stackStages.append(hStack.Clone())
+            setupHistoStyle(listOfHistos[i], color, titleY = titleYnormed)
+
+            listOfHistos[i].Scale(1./listOfHistos[i].Integral())
+
+        c = ROOT.TCanvas()
+
+        for i, hist in enumerate(reversed(stackStages)):
+            hist.SetFillStyle(1001)
+            if i == 0:
+                hist.GetYaxis().SetRangeUser(0, 1.1*hist.GetBinContent(hist.GetMaximumBin()))
+
+                hist.Draw("HIST")
+            else:
+                hist.Draw("SameHIST")
+            hist.Write()
+            histoName = hist.GetName()
+
+            if histoName.startswith("ttH"):
+                processName = "_".join(histoName.split("_")[:2])
+            else:
+                processName = histoName.split("_")[0]
+
+            legend.AddEntry(hist, processName, "f")
 
 
-    hStack_normed = ROOT.THStack()
+        legend.Draw("Same")
+
+        c.Write("canvas_hStack")
+        c.SaveAs(outputSuffix+"_stackplot.pdf")
+        hStack.Write("stackplot")
+        #print listOfHistos
+        listOfHistos.sort(key = lambda h: h.GetBinContent(h.GetMaximumBin()),reverse=True)
+        #print listOfHistos
+        first = True
+
+        for hist in listOfHistos:
+
+            hist.Write(hist.GetName()+"_normed")
+            if first:
+                first = False
+                hist.GetYaxis().SetRangeUser(0, 1.1*hist.GetBinContent(hist.GetMaximumBin()))
+
+                hist.Draw()
+            else:
+                hist.Draw("Same")
+
+        legend.Draw("Same")
+        c.Write("canvas_hStack_normed")
+        c.SaveAs(outputSuffix+"_normed_stackplot.pdf")
+
+        legend.Write("legend")
+        hStack.Draw("HIST")
+        c.Clear()
 
 
-    legend = ROOT.TLegend(0.72,0.5,0.95,0.99)
-    color = None
-    for i in range(len(listOfHistos)):
-        color = colors[i%len(colors)]
-        listOfHistos[i].GetXaxis().SetTitle("final discriminator")
-        listOfHistos[i].GetYaxis().SetTitle("#Events")
-        listOfHistos[i].SetLineColor(color)
-        listOfHistos[i].SetLineWidth(4)
-        listOfHistos[i].SetFillColor(color)
-        listOfHistos[i].SetMarkerColor(color)
-        histoName = listOfHistos[i].GetName()
-        if histoName.startswith("ttH"):
-            processName = "_".join(histoName.split("_")[:2])
-        else:
-            processName = histoName.split("_")[0]
 
-        legend.AddEntry(listOfHistos[i], processName, "f")
-        hStack.Add(listOfHistos[i].Clone())
-        listOfHistos[i].Scale(1./listOfHistos[i].Integral())
-        hStack_normed.Add(listOfHistos[i].Clone())
-    c = ROOT.TCanvas()
-    print hStack
-
-    hStack.Write("stackplot")
-
-
-    hStack_normed.Write("normed_stackplot")
-    legend.Write()
-    hStack.Draw("HIST")
-    legend.Draw("Same")
-    hStack.GetXaxis().SetTitle("final discriminator")
-    hStack.GetYaxis().SetTitle("#Events")
-    c.Modified()
-    c.Write("canvas_hStack")
-    c.SaveAs(outputSuffix+"_stackplot.pdf")
-    c.Clear()
-    hStack_normed.Draw("nostack")
-    legend.Draw("Same")
-    hStack_normed.GetXaxis().SetTitle("final discriminator")
-    hStack_normed.GetYaxis().SetTitle("normed #Events")
-    c.Modified()
-    c.Write("canvas_hStack_normed")
-    c.SaveAs(outputSuffix+"_normed_stackplot.pdf")
-    outfile.Close()
+        outfile.Close()
+    else:
+        print "did not find any histos!"
 
 
 
@@ -75,14 +143,11 @@ def loadHisto(key, process, listOfHistos):
         end = process
 
     histoName = key.GetName()
+    #print "comparing {0} with process input {1}".format(histoName, process)
     if histoName.startswith(start) and histoName.endswith(end):
         print "adding histo", histoName
         histo = infile.Get(histoName)
         listOfHistos.append(histo)
-
-
-if len(listOfProcesses) == 0:
-    listOfProcesses.append("t*")
 
 
 listOfHistos = []
@@ -92,8 +157,12 @@ if os.path.exists(inputRootFile):
     listOfKeys = infile.GetListOfKeys()
     for catEnding in categoryEndings:
         for process in listOfProcesses:
-            for key in listOfKeys:
-                loadHisto(key, process+"_finaldiscr_"+catEnding, listOfHistos)
+            processKey = histoKey.replace("$CHANNEL", catEnding)
+            processKey = processKey.replace("$PROCESS", process)
+            if processKey in listOfKeys:
+                print "adding histo", processKey
+                histo = infile.Get(processKey)
+                listOfHistos.append(histo)
 
         makeStackPlots(listOfHistos, catEnding+"_"+outputSuffix)
         listOfHistos[:] = []

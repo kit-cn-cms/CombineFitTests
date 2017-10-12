@@ -1,6 +1,5 @@
 #!/bin/bash
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW.txt"
-pathToNLLscanner="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/plotting/nllscan.py"
 if [[ -f "$pathToCMSSWsetup" ]]; then
 
   eval "source $pathToCMSSWsetup"
@@ -11,7 +10,6 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
   randomseed=$5
   pathToMSworkspace=$6
   outputPath=$7
-
   randomseed=$((randomseed+1))
   echo "input variables:"
   echo "targetDatacard = $1"
@@ -27,7 +25,7 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
     cd $outputPath
 
     if [[ -f $toyDatacard ]]; then
-      combineCmd="combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard"
+      combineCmd="combine -M GenerateOnly --toysFrequentist -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard"
       echo "$combineCmd"
       eval $combineCmd
       if [[ -f *.root.dot ]]; then
@@ -64,11 +62,8 @@ if [[ -f "$pathToCMSSWsetup" ]]; then
             echo "could not produce mlfit_MS_mlfit.root file!"
           fi
 
-          combineCmd='combine -M MultiDimFit '$pathToMSworkspace'  --algo=grid --points=400 --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 --cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 -n _MS_multidim --saveWorkspace -m 125 -t '$numberOfToysPerExperiment' --toysFile '$toyFile' --saveFitResult'
-          echo "$combineCmd"
-          eval $combineCmd
         fi
-        
+
 
       else
         echo "Could not find toyFile, skipping the fit"
