@@ -14,15 +14,18 @@
 #include <TClass.h>
 #include <TROOT.h>
 
+#include "helperFuncs.h"
+
 class ShapeContainer{
 public:
   ShapeContainer(const TString& category);
   ~ShapeContainer();
   //void setHistogram(const TH1D* histo, const TString& keyName) const;
-  void loadShape(const TH1D* histo, const TString& signalStrength);
+  void loadShape(const TH1D* histo);
   void loadShapes(TFile& file, const TString& folderName, const TString& signalStrength);
+  void loadShapes(TTree* tree, const TString& signalStrength);
   void checkShapeContainer() const;
-  void createShapeHistos(const TString& signalStrength) const;
+  void createShapeHistos(const TString& signalStrength);
   TString getName() const;
   int getNumberOfProcesses() const;
   std::vector<TString> getListOfProcesses() const;
@@ -113,12 +116,16 @@ void ShapeContainer::loadShape(const TH1D* histo){
   
 }
 
-void createShapeHistos(const TString& signalStrength) const{
+void ShapeContainer::createShapeHistos(const TString& signalStrength){
   TString tempHistoName;
+  TString processName;
   for(std::map<TString, std::vector<Double_t> >::const_iterator it = normValues_.begin(); it != normValues_.end(); it++){
-    tempHistoName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), it->first);
-    shapeHistos_[it->first] = helperFuncs::createHistoFromVector();
+    processName = it->first.Data();
+    TUUID id;
+    tempHistoName.Form("%s_%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), processName.Data(), id.AsString());
+    shapeHistos_[processName] = helperFuncs::createHistoFromVector(tempHistoName, it->second);
   }
+  normValues_.clear();
 }
 
 void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TString& signalStrength){
@@ -131,7 +138,7 @@ void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TS
   TKey* key;
   while ((key = (TKey*)nextHistoObject()) && (!key->IsFolder()) ) {
     TClass *cl = gROOT->GetClass(key->GetClassName());
-    if(cl->InheritsFrom("TH1") && !cl->InheritsFrom("TH2")) loadShape((TH1D*)key->ReadObj(), signalStrength);
+    if(cl->InheritsFrom("TH1") && !cl->InheritsFrom("TH2")) loadShape((TH1D*)key->ReadObj());
     else{
       if(debug_) std::cout << "DEBUG    object " << key->GetName() << " does not inherit from TH1, skipping\n";
     }
@@ -142,6 +149,24 @@ void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TS
   if(debug_) std::cout << "DEBUG    done saving normalisations for category " << categoryName_.Data() << std::endl;
   if(debug_) checkShapeContainer();
 }
+
+void ShapeContainer::loadShapes(TTree* tree, const TString& signalStrength){
+  TString histName;
+  TString processName;
+  TString title;
+  TObjArray* array = tree->GetListOfBranches();
+  std::cout << "Normalizations for process " << categoryName_ << ":\n";
+  for(int i=0; i<array->GetEntries(); i++){
+    const TUUID id;
+    processName = array->At(i)->GetName();
+    histName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), processName.Data());
+    title.Form(";integral %s;Frequency", processName.Data());
+    
+    shapeHistos_[processName] = helperFuncs::branch2histo(tree, processName, title, histName);
+    
+  }
+}
+
 
 void ShapeContainer::checkShapeContainer()const{
   std::cout << "Checking Container for category " << this->getName() << std::endl;
