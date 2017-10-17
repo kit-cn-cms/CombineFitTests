@@ -700,8 +700,6 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
     if(injectedMu != -999) nominalMu = injectedMu;
     else
     {
-
-
         helper = containsSignalStrength;
         helper.Remove(0,helper.Index("sig")+3);
         if(helper.Length() > 3) helper.Remove(3, helper.Length());
@@ -743,8 +741,8 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   int ncolor=0;
   Color_t colors[5] = {kBlue, kRed, kBlack, kGreen, kOrange};
 
-  //if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
-  //std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
+  // if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
+  // std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
   TSystemDirectory dir(pathname.Data(), pathname.Data());
   if(pathname.Contains("PseudoExperiment")){
     loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
@@ -795,6 +793,9 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
 
   }
   else std::cerr << "was unable to load any Pseudo Experiments!\n";
+  // expSet.push_back(PseudoExperiments("test", 1.0));
+  // expSet.back().addExperiments(pathname);
+  
 }
 
 
