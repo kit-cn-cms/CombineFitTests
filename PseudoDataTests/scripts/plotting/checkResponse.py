@@ -7,8 +7,9 @@ import numpy as np
 
 ROOT.gROOT.SetBatch(True)
 
-workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/"
-pathToHelper = workdir + "plotting/helpfulFuncs.py"
+#workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/"
+workdir = os.path.dirname(sys.argv[0])
+pathToHelper = workdir + "/helpfulFuncs.py"
 if os.path.exists(pathToHelper):
     sys.path.append(pathToHelper)
 else:
@@ -27,13 +28,17 @@ markers = [20           ,21             ,22             ,23          ]
 
 cmds = {
 "minimizerStrategy1, minimizerTolerance 0.0001" :
-"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1",
 "minimizerStrategy1, minimizerTolerance 0.001" :
-"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 1 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1",
 "minimizerStrategy0, minimizerTolerance 0.0001" :
-"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.0001 --rMin=-10.00 --rMax=10.00 -t -1",
 "minimizerStrategy0, minimizerTolerance 0.001" :
-"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+# "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1 --minos all",
+"combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --rMin=-10.00 --rMax=10.00 -t -1",
 
 }
 combineOutputName = "mlfit.root"
