@@ -9,7 +9,7 @@ ROOT.gROOT.SetBatch(True)
 
 parser = OptionParser()
 parser.add_option("--toysFile", help= "file with toys that datacard is supposed to be fitted to", dest = "toysFile", metavar = "path/to/toys/file")
-parser.add_option("-d", "--datacard", help = "path to datacard to use for fit", dest = "datacard", metavar = "path/to/datacard")
+parser.add_option("-d", "--datacard", help = "path to datacard to use for toy generation (and fit if no workspace is given)", dest = "datacard", metavar = "path/to/datacard")
 parser.add_option("-t", help = "number of toys in toysFile, -1 for asimov toys (default = -1)", dest = "t", type = "int", default = -1)
 parser.add_option("--addFitCommand", help = "add option to standard combine command 'MultiDimFit' (can be used multiple times)", dest = "addFitCommand", action = "append")
 parser.add_option("--addToyCommand", help = "add option to standard combine command 'GenerateOnly' (can be used multiple times)", dest = "addToyCommand", action = "append")
@@ -47,7 +47,7 @@ if directDrawPath == None:
             parser.error("toy file does not exist!")
 
     if datacard == None:
-        parser.error("datacard for fitting must be specified!")
+        parser.error("datacard for toy generation/fitting must be specified!")
     else:
         datacard = os.path.abspath(datacard)
         if not os.path.exists(datacard):
@@ -78,21 +78,6 @@ if workspace:
 if bonly:
     print "will perform background-only fit"
     suffix += "_bonly"
-    if not toysFile:
-        cmd = "combine -M GenerateOnly -m 125"
-        cmd += " -t " + str(nToys)
-        cmd += " --saveToys -n " + suffix
-        if additionalToyCmds:
-            cmd += " " + " ".join(additionalToyCmds)
-        cmd += " " + datacard
-        
-        print "creating new toy for b-only fit"
-        print cmd
-        subprocess.call([cmd], shell=True)
-        toysFile = "higgsCombine" + suffix + ".GenerateOnly.mH125.123456.root"
-        toysFile = os.path.abspath(toysFile)
-        if not os.path.exists(toysFile):
-            sys.exit("Could not generate toy file %s! Aborting" % toysFile)
     
     if not workspace:
         print "creating b-only workspace"
@@ -111,6 +96,23 @@ if bonly:
         if not os.path.exists(pathToWorkspace):
             sys.exit("Could not generate bonly workspace in %s! Aborting" % pathToWorkspace)
         workspace = pathToWorkspace
+
+if not toysFile:
+    print "starting toy generation"
+    cmd = "combine -M GenerateOnly -m 125"
+    cmd += " -t " + str(nToys)
+    cmd += " --saveToys -n " + suffix
+    if additionalToyCmds:
+        cmd += " " + " ".join(additionalToyCmds)
+    cmd += " " + datacard
+    
+    print "creating new toy for b-only fit"
+    print cmd
+    subprocess.call([cmd], shell=True)
+    toysFile = "higgsCombine" + suffix + ".GenerateOnly.mH125.123456.root"
+    toysFile = os.path.abspath(toysFile)
+    if not os.path.exists(toysFile):
+        sys.exit("Could not generate toy file %s! Aborting" % toysFile)
 
 if workspace:
     datacard = workspace
@@ -194,7 +196,6 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     filename = filename.replace(" ", "_")
     c.SaveAs(outputDirectory + "/" + filename + ".pdf")
     graph.SaveAs(outputDirectory + "/" + filename + ".root")
-
 
 def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     xVals = []
