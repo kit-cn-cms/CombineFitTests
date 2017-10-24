@@ -29,23 +29,31 @@
 // }
 
 void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const TString label){
-    TString outputName = label;
-    if(outputName.Contains(" = ")) outputName.ReplaceAll(" = ", "_");
-    if(outputName.Contains("=")) outputName.ReplaceAll("=","_");
-    if(outputName.Contains(" ")) outputName.ReplaceAll(" ", "_");
-    if(outputName.Contains(".")) outputName.ReplaceAll(".","p");
-    outputName.Prepend(outlabel);
-
-    TFile* output = TFile::Open(outputName+".root", "RECREATE");
-    TCanvas can;
-
-    can.SetMargin(0.25, 0.15, 0.15, 0.08);
-    correlationPlot->SetStats(kFALSE);
-    correlationPlot->Draw("coltzTEXTE");
-    correlationPlot->Write();
-    can.Write(outputName);
-    can.SaveAs(outputName+".pdf");
-    output->Close();
+    if(correlationPlot)
+    {
+        TString outputName = label;
+        if(outputName.Contains(" = ")) outputName.ReplaceAll(" = ", "_");
+        if(outputName.Contains("=")) outputName.ReplaceAll("=","_");
+        if(outputName.Contains(" ")) outputName.ReplaceAll(" ", "_");
+        if(outputName.Contains(".")) outputName.ReplaceAll(".","p");
+        outputName.Prepend(outlabel);
+    
+        TFile* output = TFile::Open(outputName+".root", "RECREATE");
+        TCanvas can;
+    
+        can.SetMargin(0.25, 0.15, 0.15, 0.08);
+        correlationPlot->SetStats(kFALSE);
+        // correlationPlot->Draw("coltzTEXTE");
+        correlationPlot->Draw("coltz");
+        correlationPlot->Write();
+        can.Write(outputName);
+        std::cout << "creating " << outputName << ".pdf\n";
+        can.SaveAs(outputName+".pdf");
+        output->Close();
+    }
+    else{
+        std::cerr << "was unable to load correlation matrix!\n";
+    }
 }
 
 void compareDistributions(const std::vector<TH1*>& hists,
@@ -785,9 +793,19 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
     comparePOIs(expSet,outputPath, testName);
     compareNuisanceParameters(expSet,outputPath,true);
     compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+    TH2D* correlation;
     for(auto& exp : expSet){
       std::cout << "label " << exp() << std::endl;
       std::cout << "\tr = " << exp.muMean() << " +- " << exp.muMeanError() << " +- " << exp.muRMS() << " +- " << exp.muError() << std::endl;
+      // std::cout << "\tprinting correlation for Bonly fit\n";
+      // correlation = exp.getCorrelationPlotPostfitB();
+      // printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitB_" + exp());
+      // if(correlation) delete correlation;
+      
+      // std::cout << "\tprinting correlation for S+B fit\n";
+      // correlation = exp.getCorrelationPlotPostfitS();
+      // printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitS_" + exp());
+      // if(correlation) delete correlation;
     }
 
 
