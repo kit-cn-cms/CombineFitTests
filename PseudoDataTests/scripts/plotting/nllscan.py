@@ -10,8 +10,9 @@ ROOT.gROOT.SetBatch(True)
 parser = OptionParser()
 parser.add_option("--toysFile", help= "file with toys that datacard is supposed to be fitted to", dest = "toysFile", metavar = "path/to/toys/file")
 parser.add_option("-d", "--datacard", help = "path to datacard to use for fit", dest = "datacard", metavar = "path/to/datacard")
-parser.add_option("-t", help = "number of toys in toysFile, -1 for asimov toys (default = 1)", dest = "t", type = "int", default = 1)
-parser.add_option("--addCommand", help = "add option to standard combine command (can be used multiple times)", dest = "addCommand", action = "append")
+parser.add_option("-t", help = "number of toys in toysFile, -1 for asimov toys (default = -1)", dest = "t", type = "int", default = -1)
+parser.add_option("--addFitCommand", help = "add option to standard combine command 'MultiDimFit' (can be used multiple times)", dest = "addFitCommand", action = "append")
+parser.add_option("--addToyCommand", help = "add option to standard combine command 'GenerateOnly' (can be used multiple times)", dest = "addToyCommand", action = "append")
 parser.add_option("-x", "--xVariable", help = "variable for x axis", dest="x")
 parser.add_option("-y", "--yVariable", help = "variable for y axis (default = deltaNLL)", dest="y", default = "deltaNLL")
 parser.add_option("--scan2D", help = "perform 2D NLL scan", dest="scan2D", action="store_true", default=False)
@@ -19,6 +20,8 @@ parser.add_option("-n", "--suffix", help = "add suffix to output name", dest = "
 parser.add_option("-o", "--outputDirectory", metavar = "path/to/save/plots/in", dest = "outputDirectory", help = "path to save output plots in (default = here)", default = "./")
 parser.add_option("--directlyDrawFrom", metavar = "path/to/scan/results", dest = "directDraw", help = "skip multi dim fit and draw plots directly from this file (needs to contain limit tree)")
 parser.add_option("--points", dest = "points", metavar = "numberOfPoints", help = "number of points to scan (default = 1000)", type = "int", default = "1000")
+parser.add_option("--bonly", help = "perform background only fit (creates multiSignalModel where signal strength is not mapped to anything)", action = "store_true", default = False, dest = "bonly")
+parser.add_option("-w", "--workspace", dest = "workspace", metavar = "path/to/workspace", help = "path to workspace to use for fit")
 
 (options, args) = parser.parse_args()
 
@@ -31,7 +34,8 @@ if directDrawPath is not None:
 toysFile = options.toysFile
 datacard = options.datacard
 nToys = options.t
-additionalCmds = options.addCommand
+additionalCmds = options.addFitCommand
+additionalToyCmds = options.addToyCommand
 nPoints = options.points
 
 if directDrawPath == None:
@@ -63,7 +67,53 @@ scan2D = options.scan2D
 if scan2D and (xVar == None or yVar == None):
     parser.error("Both x and y variable must be defined for 2D NLL scan!")
 
+bonly = options.bonly
+workspace = options.workspace
+if workspace:
+    workspace = os.path.abspath(workspace)
+    if not os.path.exists(workspace):
+        print "Could not find workspace, will ignore input"
+        workspace = None
 
+if bonly:
+    print "will perform background-only fit"
+    suffix += "_bonly"
+    if not toysFile:
+        cmd = "combine -M GenerateOnly -m 125"
+        cmd += " -t " + str(nToys)
+        cmd += " --saveToys -n " + suffix
+        if additionalToyCmds:
+            cmd += " " + " ".join(additionalToyCmds)
+        cmd += " " + datacard
+        
+        print "creating new toy for b-only fit"
+        print cmd
+        subprocess.call([cmd], shell=True)
+        toysFile = "higgsCombine" + suffix + ".GenerateOnly.mH125.123456.root"
+        toysFile = os.path.abspath(toysFile)
+        if not os.path.exists(toysFile):
+            sys.exit("Could not generate toy file %s! Aborting" % toysFile)
+    
+    if not workspace:
+        print "creating b-only workspace"
+        pathToWorkspace = os.path.dirname(datacard) + "/"
+        filename = os.path.basename(datacard)
+        parts = filename.split(".")
+        filename = ".".join(parts[:len(parts) - 1])
+        pathToWorkspace += filename + "_bonly.root"
+        cmd = "text2workspace.py " + datacard
+        cmd += " -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel"
+        cmd += " --PO verbose  --PO 'map=.*/(0):r[1,-10,10]'"
+        cmd += " -o " + pathToWorkspace
+        
+        print cmd
+        subprocess.call([cmd], shell=True)
+        if not os.path.exists(pathToWorkspace):
+            sys.exit("Could not generate bonly workspace in %s! Aborting" % pathToWorkspace)
+        workspace = pathToWorkspace
+
+if workspace:
+    datacard = workspace
 
 #______________combine stuff_____________________________________
 
@@ -76,11 +126,18 @@ if directDrawPath is None:
         os.chdir(os.path.dirname(toysFile))
 
     multidimfitcmd = 'combine -M MultiDimFit ' + datacard
-    multidimfitcmd += ' --algo=grid --points=' + str(nPoints) + ' --minimizerStrategy 1 --minimizerTolerance 0.3 --cminApproxPreFitTolerance=25 '
-    multidimfitcmd += '--cminFallbackAlgo "Minuit2,migrad,0:0.3" --cminOldRobustMinimize=0 --X-rtd MINIMIZER_MaxCalls=9999999 '
-    multidimfitcmd += '-m 125 -t ' + str(nToys)
+    multidimfitcmd += ' --algo=grid --points=' + str(nPoints)
+    # multidimfitcmd += ' --minimizerStrategy 1 --minimizerTolerance 0.3'
+    # multidimfitcmd += ' --cminApproxPreFitTolerance=25'
+    # multidimfitcmd += ' --cminFallbackAlgo "Minuit2,migrad,0:0.3"'
+    # multidimfitcmd += ' --cminOldRobustMinimize=0'
+    # multidimfitcmd += ' --X-rtd MINIMIZER_MaxCalls=9999999'
+    multidimfitcmd += ' -m 125 -t ' + str(nToys)
     if toysFile:
         multidimfitcmd += ' --toysFile ' + toysFile
+    else:
+        if additionalToyCmds:
+            multidimfitcmd += " " + " ".join(additionalToyCmds)
     multidimfitcmd += ' --rMin -10 --rMax 10 --saveFitResult --saveInactivePOI 1'
     if not suffix == "":
         multidimfitcmd += ' -n ' + suffix
@@ -104,6 +161,7 @@ else:
 
 #________________________________________________________________
 
+#======================================================================
 
 def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     xVals = []
@@ -169,6 +227,8 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     filename = filename.replace(" ", "_")
     c.SaveAs(outputDirectory + "/" + filename + ".pdf")
     graph.SaveAs(outputDirectory + "/" + filename + ".root")
+
+#=======================================================================
 
 if os.path.exists(fitresFile):
     infile = ROOT.TFile(fitresFile)
