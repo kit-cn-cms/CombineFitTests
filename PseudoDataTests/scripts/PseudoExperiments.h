@@ -38,7 +38,7 @@ public:
   TString operator()() const { return label_; }
 
   void addExperimentFromRoofit(const TString& mlfit);
-  void addExperimentFromTree(const TString& mlfit);
+  bool addExperimentFromTree(const TString& mlfit);
   void addExperiments(TString& sourceDir, const TString& mlfitFile = "mlfit.root");
   void setColor(const int c) {
     color_ = c;
@@ -208,6 +208,7 @@ private:
   bool fitBmustConverge_;
   bool fitSBmustConverge_;
   bool accurateCovariance_;
+  bool noBinByBin_;
 
   TString label_;
   Double_t injectedMu_;
@@ -283,6 +284,7 @@ PseudoExperiments::PseudoExperiments(const TString& label, const Double_t inject
 fitBmustConverge_(true),
 fitSBmustConverge_(true),
 accurateCovariance_(true),
+noBinByBin_(true),
 POIname_("r"),
 label_(label), injectedMu_(injectedMu), color_(kGray),
 muValues_(0) {
@@ -558,7 +560,7 @@ void PseudoExperiments::readParamFolder(TFile* infile, const TString& folderName
           if(saveNps) 
           {
             std::cout << "saving nuisance parameter " << treeName << std::endl;
-            nps_.push_back(treeName);
+            if(!(treeName.Contains("Bin") && noBinByBin_)) nps_.push_back(treeName);
           }
           std::cout << "reading nuisance parameter " << treeName << std::endl;
           readParamTree(tree, hists, hErrors, hErrorsHi, hErrorsLo);
@@ -601,25 +603,27 @@ void PseudoExperiments::readShapeFolder(TFile* infile, const TString& folderName
   }
 }
 
-void PseudoExperiments::addExperimentFromTree(const TString& mlfit){
+bool PseudoExperiments::addExperimentFromTree(const TString& mlfit){
   if(mlfit.EndsWith(".root")){
     TFile* infile = TFile::Open(mlfit);
     if(infile->IsOpen() && !infile->IsZombie() && !infile->TestBit(TFile::kRecovered))
     {
-      // readCorrFolder(infile, "Correlation_sig", correlationsPostfitS_);
-      // readCorrFolder(infile, "Correlation_bac", correlationsPostfitB_);
+      readCorrFolder(infile, "Correlation_sig", correlationsPostfitS_);
+      readCorrFolder(infile, "Correlation_bac", correlationsPostfitB_);
       
-      // readParamFolder(infile, "signal", npValuesPostfitS_, npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_);
-      // readParamFolder(infile, "background", npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_);
-      // readParamFolder(infile, "Prefit", npValuesPrefit_, npValuesPrefiterrors_, npValuesPrefiterrorHi_, npValuesPrefiterrorLo_);
+      readParamFolder(infile, "signal", npValuesPostfitS_, npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_);
+      readParamFolder(infile, "background", npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_);
+      readParamFolder(infile, "Prefit", npValuesPrefit_, npValuesPrefiterrors_, npValuesPrefiterrorHi_, npValuesPrefiterrorLo_);
       readShapeFolder(infile, "shapes_fit_s", postfitSshapes_);
       readShapeFolder(infile, "shapes_fit_b", postfitBshapes_);
       readShapeFolder(infile, "shapes_prefit", prefitShapes_);
+      return true;
     }
   }
   else{
     std::cerr << "ERROR:\tinput file is not a root file!";
   }
+  return false;
 }
 
 void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitFile){
@@ -631,7 +635,9 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
   
   if(sourceDir.EndsWith(".root")){
     std::cout << "loading all experiment data from " << sourceDir.Data() << std::endl;
-    addExperimentFromTree(sourceDir);
+    if(!addExperimentFromTree(sourceDir)){
+      addExperimentFromRoofit(sourceDir);
+      }
   }
   else
   {
@@ -750,11 +756,14 @@ void PseudoExperiments::initContainers(TFile* file, const RooFitResult* result, 
   TString varName = result->floatParsFinal().contentsString();
   if(debug_) std::cout << result << std::endl;
   if(debug_) std::cout << "collecting variable names from RooFitResult " << result->GetName() << std::endl;
+  TString npName;
   while( varName.Contains(",") ) {
-    nps_.push_back(varName(varName.Last(',')+1, varName.Length() - varName.Last(',')));
+    npName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
+    
+    if(!(npName.Contains("Bin") && noBinByBin_)) nps_.push_back(npName);
     varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
   }
-  nps_.push_back(varName);
+  if(!(varName.Contains("Bin") && noBinByBin_)) nps_.push_back(varName);
 
   createHistograms(npValuesPrefit_,nps_,"prefit");
   createHistograms(npValuesPostfitB_,nps_,"postfitB");
@@ -930,7 +939,7 @@ TH2D* PseudoExperiments::getCorrelationPlot(const std::map<TString, std::map<TSt
     }
     i++;
   }
-
+  correlationPlot->GetZaxis()->SetRangeUser(-1, 1);
   return correlationPlot;
 }
 
