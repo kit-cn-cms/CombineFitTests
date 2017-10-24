@@ -10,7 +10,7 @@ import imp
 from array import array
 from optparse import OptionParser
 from optparse import OptionGroup
-#import glob
+
 ROOT.gROOT.SetBatch(True)
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
@@ -158,9 +158,8 @@ if options.config is not None:
     pathToConfig = os.path.abspath(options.config)
     print "checking config file in", pathToConfig
     if os.path.exists(pathToConfig):
-        #sys.path.append(os.path.dirname(pathToConfig))
         config = imp.load_source('config', pathToConfig)
-#        import os.path.basename(pathToConfig)
+
         if verbose:
             print "imported from config:"
             for cat in config.categories:
@@ -221,7 +220,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard
 
     Command for MaxLikelihoodFit (both for simple fit and multi signal model):
-    combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
+    combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.00001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
 
     Keyword arguments:
 
@@ -245,7 +244,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     #create combine MaxLikelihoodFit command
 
     mlfitCmd = "combine -M MaxLikelihoodFit "
-    mlfitCmd += "-m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 "
+    mlfitCmd += "-m 125 --minimizerStrategy 0 --minimizerTolerance 0.00001 "
     mlfitCmd += "--saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 "
     mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile --minos all "
     if additionalFitCmds is not None:
