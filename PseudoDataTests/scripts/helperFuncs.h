@@ -21,6 +21,10 @@ namespace helperFuncs{
     double minVal = vec[position];
     position = std::distance(vec.begin(), std::max_element(vec.begin(), vec.end()));
     double maxVal = vec[position];
+    if(minVal == maxVal){
+      minVal = minVal - 5;
+      maxVal = maxVal + 5;
+    }
     int nBins = 2000;
     TH1D* histo = new TH1D(histName, title.Data(), nBins, minVal, maxVal);
     for(int i=0; i<int(vec.size()); i++) histo->Fill(vec[i]);
