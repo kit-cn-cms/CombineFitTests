@@ -2,29 +2,18 @@ import os
 import sys
 import glob
 import subprocess
+import imp
 
+scriptDir = os.path.dirname(sys.argv[0])
 wildcard 	= sys.argv[1]
 additionalCmds 	= None
 if len(sys.argv) > 2:
 	additionalCmds = sys.argv[2:]
-	
-#=======================================================================
 
-a = subprocess.Popen(["hostname"], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-output = a.communicate()[0]
-hostname = output
+pathToConfig = scriptDir + "/batch_config.py"
 
-if "lxplus" in hostname:
-	print "lxplus system detected!"
-	jobmode = "lxbatch"
-	subopts = "-q 8nh"
-else:
-	print "going to default - desy naf bird system"
-	jobmode = "SGE"
-	subopts = "-q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V"
 
-#======================================================================
-
+config = imp.load_source('config', pathToConfig)
 
 #======================================================================
 
@@ -87,7 +76,7 @@ def create_impacts(outputPath, datacard):
 		cmd = "combineTool.py -M Impacts -m 125 --robustFit 1 --doFits"
 		cmd += " --rMin -10 --rMax 10 -d " + datacard
 		cmd += " " + additionalCmd
-		cmd += " --job-mode {0} --sub-opts='{1}'".format(jobmode, subopts)
+		cmd += " --job-mode {0} --sub-opts='{1}'".format(config.jobmode, config.subopts)
 		cmd += " --task-name {0} -n {0}".format(taskname)
 		
 		# cmd += " --split-points " + nPoints
