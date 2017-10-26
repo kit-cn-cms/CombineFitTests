@@ -32,7 +32,7 @@ Please set the CMSSW environment before using the tools.
    If it encounters a broken file it will automatically search for the corresponding shell script. The scripts are collected and finally submitted as an array job to the batch system (if possible).
    Finally, the script cross checks the list of folders with impact fits with the given list of datacards/workspace to see if anything is missing.
    
-   All is well if nothing has to be resubmitted.
+   All is well if nothing has to be resubmitted.  
    
 #### Step 3: drawImpactPlots.py
   
