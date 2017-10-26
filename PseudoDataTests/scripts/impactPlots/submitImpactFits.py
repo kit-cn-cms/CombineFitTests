@@ -10,10 +10,11 @@ additionalCmds 	= None
 if len(sys.argv) > 2:
 	additionalCmds = sys.argv[2:]
 
-pathToConfig = scriptDir + "/batch_config.py"
+pathToConfig = scriptDir + "/../base/batch_config.py"
+pathToConfig = os.path.abspath(pathToConfig)
+print "loading", pathToConfig
 
-
-config = imp.load_source('config', pathToConfig)
+config = imp.load_source('batch_config', pathToConfig)
 
 #======================================================================
 
@@ -76,7 +77,7 @@ def create_impacts(outputPath, datacard):
 		cmd = "combineTool.py -M Impacts -m 125 --robustFit 1 --doFits"
 		cmd += " --rMin -10 --rMax 10 -d " + datacard
 		cmd += " " + additionalCmd
-		cmd += " --job-mode {0} --sub-opts='{1}'".format(config.jobmode, config.subopts)
+		cmd += " --job-mode {0} --sub-opts='{1}'".format(config.jobmode, " ".join(config.subopts))
 		cmd += " --task-name {0} -n {0}".format(taskname)
 		
 		# cmd += " --split-points " + nPoints

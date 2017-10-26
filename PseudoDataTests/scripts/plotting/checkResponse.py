@@ -7,9 +7,9 @@ import numpy as np
 
 ROOT.gROOT.SetBatch(True)
 
-#workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/"
-workdir = os.path.dirname(sys.argv[0])
-pathToHelper = workdir + "/helpfulFuncs.py"
+workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/"
+# workdir = os.path.dirname(sys.argv[0])
+pathToHelper = workdir + "/base/helpfulFuncs.py"
 if os.path.exists(pathToHelper):
     sys.path.append(pathToHelper)
 else:

@@ -7,11 +7,10 @@ import imp
 
 scriptDir = os.path.dirname(sys.argv[0])
 scriptDir = os.path.abspath(scriptDir)
-basepath = scriptDir + "/../base"
+basepath = scriptDir + "/../base/batch_config.py"
 basepath = os.path.abspath(basepath)
 print "loading", basepath
-sys.path.append(basepath)
-from helpfulFuncs import submitArrayToNAF
+batch_config = imp.load_source('batch_config', basepath)
 #========input variables================================================
 
 resubWildcard 		= sys.argv[1]
@@ -22,11 +21,11 @@ if len(sys.argv) > 3:
 
 
 
-pathToConfig = scriptDir + "/batch_config.py"
-pathToConfig = os.path.abspath(pathToConfig)
-print "loading config from", pathToConfig
+# pathToConfig = scriptDir + "/batch_config.py"
+# pathToConfig = os.path.abspath(pathToConfig)
+# print "loading config from", pathToConfig
 
-config = imp.load_source('config', pathToConfig)
+# config = imp.load_source('config', pathToConfig)
 
 #=======================================================================
 
@@ -59,17 +58,39 @@ def check_for_resubmit(folder):
 		    print "looking for script for file", path
 		    keywords = path.replace("higgsCombine", "").split(".")
 		    for script in scriptList:
-			with open(script) as s:
-			    lines = s.read().splitlines()
-			    if keywords[0] in lines[-1]:
-				scripts.append(script)
-				# cmd = config.subname + " -o " + script.replace(".sh", "_%J.log")
-				# cmd += " " + config.subopts + " " + script
-				# print cmd
-				# subprocess.call([cmd], shell = True)
-				break
+			script = os.path.abspath(script)
+			s = open(script)
+			lines = s.read().splitlines()
+			# if not lines[1].startswith("module"):
+			    # s.close()
+			    # cmds = []
+			    # cmds.append(lines[0])
+			    # cmds.append("module use -a /afs/desy.de/group/cms/modulefiles/")
+			    # cmds.append("module use -a /afs/desy.de/group/cms/modulefiles/")
+			    # cmds += lines[1:]
+			    # print "overwriting {0} with\n{1}".format(script, "\n".join(cmds))
+			    # s = open(script, "w")
+			    # s.write("\n".join(cmds))
+			s.close()
+			if keywords[0] in lines[-1]:
+			    scripts.append(script)
+			    # cmd = batch_config.subname + " -o " + script.replace(".sh", "_%J.log")
+			    # cmd += " " + batch_config.subopts + " " + script
+			    # print cmd
+			    # subprocess.call([cmd], shell = True)
+			    break
 	    if len(scripts) is not 0:
-		submitArrayToNAF(script, "arrayJob.sh")
+		if batch_config.arraysubmit is True:
+		    batch_config.submitArrayToBatch(scripts, folder + "/logs/arrayJob.sh")
+		else:
+		    cmdlist = [batch_config.subname]
+		    cmdlist += batch_config.subopts
+		    for script in scripts:
+			cmd = " ".join(cmdList)
+			cmd += " " + script
+			print cmd
+			subprocess.call([cmd], shell = True)
+			
 
 	return False
     else:
