@@ -1,8 +1,17 @@
+from ROOT import TFile
 import os
 import sys
 import glob
 import subprocess
+import imp
 
+scriptDir = os.path.dirname(sys.argv[0])
+scriptDir = os.path.abspath(scriptDir)
+basepath = scriptDir + "/../base"
+basepath = os.path.abspath(basepath)
+print "loading", basepath
+sys.path.append(basepath)
+from helpfulFuncs import submitArrayToNAF
 #========input variables================================================
 
 resubWildcard 		= sys.argv[1]
@@ -11,14 +20,17 @@ additionalSubmitCmds 	= None
 if len(sys.argv) > 3:
     additionalSubmitCmds= sys.argv[3:]
 
-scriptDir		= os.path.dirname(sys.argv[0])
+
+
+pathToConfig = scriptDir + "/batch_config.py"
+pathToConfig = os.path.abspath(pathToConfig)
+print "loading config from", pathToConfig
+
+config = imp.load_source('config', pathToConfig)
 
 #=======================================================================
 
 #========functions======================================================
-
-def submitArrayJob(scriptList):
-    pass
 
 def check_for_resubmit(folder):
     print "cd into", folder
@@ -39,7 +51,26 @@ def check_for_resubmit(folder):
 		cmd = lines[-1]
 		print cmd
 		subprocess.call([cmd], shell = True)
-	    
+	else:
+	    scripts = []
+	    for path in rootfiles:
+		infile = TFile(path)
+		if not (infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(TFile.kRecovered)):
+		    print "looking for script for file", path
+		    keywords = path.replace("higgsCombine", "").split(".")
+		    for script in scriptList:
+			with open(script) as s:
+			    lines = s.read().splitlines()
+			    if keywords[0] in lines[-1]:
+				scripts.append(script)
+				# cmd = config.subname + " -o " + script.replace(".sh", "_%J.log")
+				# cmd += " " + config.subopts + " " + script
+				# print cmd
+				# subprocess.call([cmd], shell = True)
+				break
+	    if len(scripts) is not 0:
+		submitArrayToNAF(script, "arrayJob.sh")
+
 	return False
     else:
 	print "unable to find any .sh files!"
@@ -91,11 +122,12 @@ listOfDatacards = [os.path.abspath(datacard) for datacard in listOfDatacards]
 impactFolders = [os.path.abspath(path) for path in glob.glob(resubWildcard)]
 
 toResub = []
+base = os.getcwd()
 for resubFolder in glob.glob(resubWildcard):
     resubFolder = os.path.abspath(resubFolder)
     foldername = os.path.basename(resubFolder)
-    base = os.path.dirname(resubFolder)
-    if check_for_resubmit(	folder = resubFolder):
+    
+    if check_for_resubmit(folder = resubFolder):
 	toResub.append(resubFolder)
     os.chdir(base)
 
