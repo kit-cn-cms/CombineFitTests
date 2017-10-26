@@ -4,33 +4,33 @@ import subprocess
 import stat
 import shutil
 
-#=======================================================================
+class batchConfig:
 
-a = subprocess.Popen(["hostname"], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-output = a.communicate()[0]
-hostname = output
+  def __init__(self, hostname=""):
+    if not hostname:
+      a = subprocess.Popen(["hostname"], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+      output = a.communicate()[0]
+      hostname = output
+    
+    if "lxplus" in hostname:
+        print "lxplus system detected!"
+        self.jobmode = "lxbatch"
+        self.subname = "bsub"
+        self.subopts = "-q 8nh"
+        self.arraysubmit = False
+        self.arraysubopts = None
+        
+    else:
+        print "going to default - desy naf bird system"
+        self.jobmode = "SGE"
+        self.subname = "qsub"
+        self.subopts = "-q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
+        self.arraysubopts = [self.subname, '-terse','-o', '/dev/null', '-e', '/dev/null']
+        self.arraysubopts += self.subopts
+        self.arraysubmit = True
 
-if "lxplus" in hostname:
-	print "lxplus system detected!"
-	jobmode = "lxbatch"
-	subname = "bsub"
-	subopts = "-q 8nh"
-	arraysubmit = False
-	arraysubopts = None
-	
-else:
-	print "going to default - desy naf bird system"
-	jobmode = "SGE"
-	subname = "qsub"
-	subopts = "-q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
-	arraysubopts = [subname, '-terse','-o', '/dev/null', '-e', '/dev/null']
-	arraysubopts += subopts
-	arraysubmit = True
 
-#======================================================================
-
-
-def submitArrayToBatch(scripts, arrayscriptpath):
+  def submitArrayToBatch(scripts, arrayscriptpath):
     """
     generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
 
@@ -74,7 +74,7 @@ def submitArrayToBatch(scripts, arrayscriptpath):
     print 'submitting',arrayscriptpath
     #command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', logdir+'/dev/null', '-e', logdir+'/dev/null', arrayscriptpath]
     # command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', '/dev/null', '-e', '/dev/null', arrayscriptpath]
-    command = arraysubopts
+    command = self.arraysubopts
     command.append('-t')
     command.append(tasknumberstring)
     command.append(arrayscriptpath)

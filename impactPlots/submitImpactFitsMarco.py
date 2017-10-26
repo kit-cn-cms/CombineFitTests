@@ -4,17 +4,16 @@ import glob
 import subprocess
 import imp
 
-scriptDir = os.path.dirname(sys.argv[0])
+sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'base'))
+
+
 wildcard 	= sys.argv[1]
 additionalCmds 	= None
 if len(sys.argv) > 2:
 	additionalCmds = sys.argv[2:]
 
-pathToConfig = scriptDir + "/../base/batch_config.py"
-pathToConfig = os.path.abspath(pathToConfig)
-print "loading", pathToConfig
-
-config = imp.load_source('batch_config', pathToConfig)
+from batchConfig import *
+config = batchConfig()
 
 #======================================================================
 
