@@ -150,7 +150,7 @@ def throwToys(wildcard, rootfile, pathToConfig, additionalCmds = None):
             rootfile = os.path.abspath(rootfile)
             parts = os.path.basename(datacard).split(".")
             
-            outputDirectory = targetPath + "/" + ".".join(parts[:len(parts)-1])
+            outputDirectory = targetPath + "/asimov/" + ".".join(parts[:len(parts)-1])
             outputDirectory = os.path.abspath(outputDirectory)
             
             string = ""
