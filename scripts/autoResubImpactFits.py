@@ -4,13 +4,10 @@ import sys
 import glob
 import subprocess
 import imp
+sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'base'))
 
-scriptDir = os.path.dirname(sys.argv[0])
-scriptDir = os.path.abspath(scriptDir)
-basepath = scriptDir + "/../base/batch_config.py"
-basepath = os.path.abspath(basepath)
-print "loading", basepath
-batch_config = imp.load_source('batch_config', basepath)
+from batchConfig import *
+batch_config = batchConfig()
 #========input variables================================================
 
 resubWildcard 		= sys.argv[1]
@@ -44,7 +41,6 @@ def check_for_resubmit(folder):
 	print "# rootfiles:", len(rootfiles)
 	print "# scripts:", len(scriptList)
 	if not len(scriptList) == len(rootfiles):
-	    # submitArrayJob(scriptList)
 	    with open("commands.txt") as infile:
 		lines = infile.readlines()
 		cmd = lines[-1]
@@ -61,35 +57,18 @@ def check_for_resubmit(folder):
 			script = os.path.abspath(script)
 			s = open(script)
 			lines = s.read().splitlines()
-			# if not lines[1].startswith("module"):
-			    # s.close()
-			    # cmds = []
-			    # cmds.append(lines[0])
-			    # cmds.append("module use -a /afs/desy.de/group/cms/modulefiles/")
-			    # cmds.append("module use -a /afs/desy.de/group/cms/modulefiles/")
-			    # cmds += lines[1:]
-			    # print "overwriting {0} with\n{1}".format(script, "\n".join(cmds))
-			    # s = open(script, "w")
-			    # s.write("\n".join(cmds))
 			s.close()
 			if keywords[0] in lines[-1]:
 			    scripts.append(script)
-			    # cmd = batch_config.subname + " -o " + script.replace(".sh", "_%J.log")
-			    # cmd += " " + batch_config.subopts + " " + script
-			    # print cmd
-			    # subprocess.call([cmd], shell = True)
 			    break
+			    
 	    if len(scripts) is not 0:
 		if batch_config.arraysubmit is True:
 		    batch_config.submitArrayToBatch(scripts, folder + "/logs/arrayJob.sh")
 		else:
-		    cmdlist = [batch_config.subname]
-		    cmdlist += batch_config.subopts
-		    for script in scripts:
-			cmd = " ".join(cmdList)
-			cmd += " " + script
-			print cmd
-			subprocess.call([cmd], shell = True)
+		    batch_config.submitJobToBatch(scripts)
+	    else:
+		print "all root files are intact"
 			
 
 	return False
@@ -102,6 +81,7 @@ def submit_missing(	impactFolders, listToCrossCheck,
 			listToResub, cmdList = None):
     folders = []
     basenames = [os.path.basename(i) for i in impactFolders]
+    print "list of impact folders to be cross checked with list of datacards/workspaces"
     print basenames
     for path in listToCrossCheck:
 	parts = os.path.basename(path).split(".")
@@ -110,7 +90,7 @@ def submit_missing(	impactFolders, listToCrossCheck,
 	if foldername in basenames:
 	    continue
 	else:
-	    print "foldername is not in basenames!"
+	    print "foldername is not in list of impact folders!"
 	if not (string.endswith(foldername) for string in listToResub):
 	    continue
 	else:

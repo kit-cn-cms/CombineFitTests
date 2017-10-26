@@ -1,4 +1,0 @@
-initial fit:
-combineTool.py -M Impacts -m 125 --doInitialFit --robustFit 1 --rMin -10 --rMax 10 -d /nfs/dust/cms/user/mharrend/doktorarbeit/output201710251152-reference-nn-221646/datacards/nn-analysis_datacard_ljets_jge6_t2_tt2b_hdecay.root -n nn-analysis_datacard_ljets_jge6_t2_tt2b_hdecay
-nuisance parameter fits:
-combineTool.py -M Impacts -m 125 --robustFit 1 --doFits --rMin -10 --rMax 10 -d /nfs/dust/cms/user/mharrend/doktorarbeit/output201710251152-reference-nn-221646/datacards/nn-analysis_datacard_ljets_jge6_t2_tt2b_hdecay.root  --job-mode SGE --sub-opts='-q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V' --task-name nn-analysis_datacard_ljets_jge6_t2_tt2b_hdecay -n nn-analysis_datacard_ljets_jge6_t2_tt2b_hdecay
