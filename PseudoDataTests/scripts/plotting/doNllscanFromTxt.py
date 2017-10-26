@@ -9,7 +9,12 @@ pathToDatacards = sys.argv[2]
 cmdList = None
 if len(sys.argv) > 3:
     cmdList = sys.argv[3:]
-    
+
+print "input:"
+print "\twildcard:", wildcard
+print "\tpathToDatacards:", pathToDatacards
+print "\tcmdList:\n", cmdList
+
 basepath = os.getcwd()
 if os.path.exists(pathToDatacards):
     pathToDatacards = os.path.abspath(pathToDatacards)
@@ -19,8 +24,9 @@ if os.path.exists(pathToDatacards):
 	datacardname = os.path.basename(parentDir)
 	os.chdir(parentDir)
 	with open(txtfilepath) as f:
-	    lines = f.readlines()
+	    lines = f.read().splitlines()
 	    for param in lines:
+		print param
 		cmd = "python {0}/nllscan.py".format(scriptDir)
 		cmd += " -d {0}/{1}.root".format(pathToDatacards, datacardname)
 		cmd += ' -x {0} --addFitCommand "--redefineSignalPOIs {0}"'.format(param)
