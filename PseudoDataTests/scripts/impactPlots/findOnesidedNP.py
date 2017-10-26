@@ -30,5 +30,3 @@ for infile in glob.glob(wildcard):
 	    outfile.write(name + "\n")
 	outfile.close()
 	os.chdir(basepath)
-	    
-	    
