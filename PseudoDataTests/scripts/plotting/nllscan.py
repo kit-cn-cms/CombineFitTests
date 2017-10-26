@@ -75,51 +75,52 @@ if workspace:
         print "Could not find workspace, will ignore input"
         workspace = None
 
-if bonly:
-    print "will perform background-only fit"
-    suffix += "_bonly"
+
+if directDrawPath is None:
+    if bonly:
+        print "will perform background-only fit"
+        suffix += "_bonly"
+        
+        if not workspace:
+            print "creating b-only workspace"
+            pathToWorkspace = os.path.dirname(datacard) + "/"
+            filename = os.path.basename(datacard)
+            parts = filename.split(".")
+            filename = ".".join(parts[:len(parts) - 1])
+            pathToWorkspace += filename + "_bonly.root"
+            cmd = "text2workspace.py " + datacard
+            cmd += " -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel"
+            cmd += " --PO verbose  --PO 'map=.*/(0):r[1,-10,10]'"
+            cmd += " -o " + pathToWorkspace
+            
+            print cmd
+            subprocess.call([cmd], shell=True)
+            if not os.path.exists(pathToWorkspace):
+                sys.exit("Could not generate bonly workspace in %s! Aborting" % pathToWorkspace)
+            workspace = pathToWorkspace
     
-    if not workspace:
-        print "creating b-only workspace"
-        pathToWorkspace = os.path.dirname(datacard) + "/"
-        filename = os.path.basename(datacard)
-        parts = filename.split(".")
-        filename = ".".join(parts[:len(parts) - 1])
-        pathToWorkspace += filename + "_bonly.root"
-        cmd = "text2workspace.py " + datacard
-        cmd += " -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel"
-        cmd += " --PO verbose  --PO 'map=.*/(0):r[1,-10,10]'"
-        cmd += " -o " + pathToWorkspace
+    if not toysFile:
+        print "starting toy generation"
+        cmd = "combine -M GenerateOnly -m 125"
+        cmd += " -t " + str(nToys)
+        cmd += " --saveToys -n " + suffix
+        if additionalToyCmds:
+            cmd += " " + " ".join(additionalToyCmds)
+        cmd += " " + datacard
         
         print cmd
         subprocess.call([cmd], shell=True)
-        if not os.path.exists(pathToWorkspace):
-            sys.exit("Could not generate bonly workspace in %s! Aborting" % pathToWorkspace)
-        workspace = pathToWorkspace
-
-if not toysFile:
-    print "starting toy generation"
-    cmd = "combine -M GenerateOnly -m 125"
-    cmd += " -t " + str(nToys)
-    cmd += " --saveToys -n " + suffix
-    if additionalToyCmds:
-        cmd += " " + " ".join(additionalToyCmds)
-    cmd += " " + datacard
+        toysFile = "higgsCombine" + suffix + ".GenerateOnly.mH125.123456.root"
+        toysFile = os.path.abspath(toysFile)
+        if not os.path.exists(toysFile):
+            sys.exit("Could not generate toy file %s! Aborting" % toysFile)
     
-    print "creating new toy for b-only fit"
-    print cmd
-    subprocess.call([cmd], shell=True)
-    toysFile = "higgsCombine" + suffix + ".GenerateOnly.mH125.123456.root"
-    toysFile = os.path.abspath(toysFile)
-    if not os.path.exists(toysFile):
-        sys.exit("Could not generate toy file %s! Aborting" % toysFile)
-
-if workspace:
-    datacard = workspace
+    if workspace:
+        datacard = workspace
 
 #______________combine stuff_____________________________________
 
-if directDrawPath is None:
+
     basepath = os.getcwd()
     fitresFile = "higgsCombine"
     if toysFile:
@@ -164,10 +165,142 @@ else:
 #________________________________________________________________
 
 #======================================================================
+def find_crossing(graph, cl, start, stop):
+    stepsize = 0.001
+    deltabest = 9999
+    print "looking for crossing at {0} in interval [{1}, {2}]".format(cl, start, stop)
+    xlast = start
+    if stop >= start:
+        for i in range(0, int(abs(start - stop)/stepsize)):
+            x = start + i*stepsize
+            # print "\tx =", x
+            yval = graph.Eval(x)
+            delta = abs(cl - yval)
+            # print "\tcurrent delta =", delta
+            if delta > deltabest:
+                print "found crossing at", xlast
+                return xlast
+            deltabest = delta
+            xlast = x
+    else:
+        for i in range(0, int(abs(start - stop)/stepsize)):
+            x = start - i*stepsize
+            # print "\tx =", x
+            yval = graph.Eval(x)
+            delta = abs(cl - yval)
+            # print "\tcurrent delta =", delta
+            if delta > deltabest:
+                print "found crossing at", xlast
+                return xlast
+            deltabest = delta
+            xlast = x
+    print "could not find crossing in interval"
+    return None
 
+def create_straight_line(val, minVal, maxVal, style, mode = "horizontal"):
+    if val and minVal and maxVal:
+        print "drawing {0} line at {1} from {2} to {3}".format(mode, val, minVal, maxVal)
+        if mode is "horizontal":
+            line = ROOT.TLine(minVal, val, maxVal, val)
+            line.SetLineStyle(style)
+        elif mode is "vertical":
+            line = ROOT.TLine(val, minVal, val, maxVal)
+            line.SetLineStyle(style)
+        else:
+            print "error! Did not recognize mode"
+            return None
+        return line
+    else:
+        return None
+
+def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None):
+    lines = []
+    vals = []
+    clresults = {}
+    
+    parabel = None
+    if isinstance(graph, ROOT.TGraph) and not isinstance(graph, ROOT.TGraph2D):
+        npoints = graph.GetN()
+        xmin = graph.GetXaxis().GetXmin()
+        xmax = graph.GetXaxis().GetXmax()
+        
+        parabel = ROOT.TF1("parabel", "[0]*(x*x*x*x - [1]*[1]*[1]*[1]) + [2]*(x*x*x - [1]*[1]*[1]) + [3]*(x*x - [1]*[1]) + [4]*(x - [1]) + [5]", xmin, xmax)
+        parabel.SetParNames("a", "best fit val", "b", "c", "d", "best fit y")
+        parabel.SetParameter(0, 0.5)
+        parabel.SetParameter(2, 0.5)
+        parabel.SetParameter(3, 0.5)
+        parabel.SetParameter(4, 0.5)
+        parabel.FixParameter(1, xbest)
+        # parabel.SetParameter(1,xbest)
+        if ybest:
+            parabel.FixParameter(5, ybest)
+            # parabel.SetParameter(5,ybest)
+        else:
+            print "got no best fit y!"
+            parabel.SetParameter(5, 0.5)
+        # parabel.SetParameter(1, xbest)
+        parabel.SetLineStyle(3)
+        parabel.SetLineColor(ROOT.kBlack)
+        graph.Fit(parabel, "R")
+        print "fitted parabola with #chi^2/ndf =", parabel.GetChisquare()/parabel.GetNDF()
+        parabel.Draw("same")
+    for cl in clStyles:
+        if isinstance(parabel, ROOT.TF1):
+            x_down = None
+            x_up = None
+            if xbest:
+                x_down = find_crossing( graph = parabel,
+                                        cl = cl, 
+                                        start = xbest, 
+                                        stop = xmin)
+                x_up = find_crossing(   graph = parabel,
+                                        cl = cl, 
+                                        start = xbest, 
+                                        stop = xmax)
+                vals.append([x_down, x_up])
+            line_hor = create_straight_line(val = cl,
+                                            minVal = xmin,
+                                            maxVal = xmax,
+                                            mode = "horizontal",
+                                            style = clStyles[cl])
+            if line_hor:
+                lines.append(line_hor.Clone())
+            
+            line_down = create_straight_line(   val = x_down,
+                                                minVal = ymin,
+                                                maxVal = ymax,
+                                                mode = "vertical",
+                                                style = clStyles[cl])                                 
+            if line_down:
+                lines.append(line_down.Clone())
+            
+            line_up = create_straight_line( val = x_up,
+                                            minVal = ymin,
+                                            maxVal = ymax,
+                                            mode = "vertical",
+                                            style = clStyles[cl])
+            if line_up:
+                lines.append(line_up.Clone())
+            clresults[cl] = {"lines" : lines, "vals" : vals}
+            
+        elif isinstance(graph, ROOT.TGraph2D):
+            hist = graph.GetHistogram().Clone("{0}_{1}".format(graph.GetName, cl))
+            hist.SetContour(1)
+            hist.SetContourLevel(0,cl)
+            hist.SetLineColor(ROOT.kBlack)
+            hist.SetLineWidth(3)
+            lines.append(hist.Clone("clone_" + hist.GetName()))
+            clresults[cl] = lines
+                    
+    return clresults
+            
 def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
+    cls = { 1 : 2,  #68%
+            4 : 3}  #95%     
     xVals = []
     yVals = []
+    xbest = None
+    ybest = 999999
     for e in limit:
         x = eval("e." + xVar)
         y = eval("e." + yVar)
@@ -178,9 +311,13 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
                 #print "saving values {0}, {1}".format(x, 2*y)
                 xVals.append(x)
                 yVals.append(2*y)
+                if y < ybest:
+                    xbest = x
+                    ybest = y
         else:
             xVals.append(x)
             yVals.append(y)
+
     c = ROOT.TCanvas()
     graph = ROOT.TGraph(len(xVals))
     for i in range(len(xVals)):
@@ -188,16 +325,33 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     graph.GetXaxis().SetTitle(xVar)
     if yVar == "deltaNLL":
         yVar = '2#Delta NLL'
+        
+    xmin = min(xVals)
+    xmax = max(xVals)
+    ymin = min(yVals)
+    ymax = max(yVals)
+    print "creating TF1 in range [{0}, {1}]".format(xmin,xmax)
     graph.GetYaxis().SetTitle(yVar)
     graph.SetTitle("Scan of {0} over {1}".format(yVar, xVar))
     graph.Sort()
     graph.Draw()
+    results = create_lines( graph = graph, xbest = xbest, clStyles = cls,
+                            ymin = ymin, ymax = ymax, ybest = ybest)
+    
+    
+    for cl in results:
+        lines = results[cl]["lines"]
+        for line in lines:
+            line.Draw("Same")
+    
     filename = ("nllscan_{0}_{1}{2}").format(xVar,yVar.replace("#", "x"), suffix)
     filename = filename.replace(" ", "_")
     c.SaveAs(outputDirectory + "/" + filename + ".pdf")
     graph.SaveAs(outputDirectory + "/" + filename + ".root")
 
 def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
+    cls = { 2.297 : 2,  #68%
+            5.991 : 3}  #95%
     xVals = []
     yVals = []
     zVals = []
@@ -218,6 +372,7 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     graph = ROOT.TGraph2D()
     for i in range(len(xVals)):
         graph.SetPoint(i, xVals[i], yVals[i], zVals[i])
+
     graph.GetHistogram().GetXaxis().SetTitle(xVar)
     graph.GetHistogram().GetYaxis().SetTitle(yVar)
     graph.GetHistogram().GetZaxis().SetTitle("2#Delta NLL")
@@ -228,6 +383,7 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     filename = filename.replace(" ", "_")
     c.SaveAs(outputDirectory + "/" + filename + ".pdf")
     graph.SaveAs(outputDirectory + "/" + filename + ".root")
+
 
 #=======================================================================
 
