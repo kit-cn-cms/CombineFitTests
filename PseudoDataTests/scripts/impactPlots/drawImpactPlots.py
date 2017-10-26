@@ -26,10 +26,13 @@ if os.path.exists(datacardDir):
 	    print cmd
 	    subprocess.call([cmd], shell=True)
 	    
-	    cmd = "plotImpacts.py -i " + impactName +".json"
-	    cmd += " -o " + impactName + " --transparent"
-	    print cmd
-	    subprocess.call([cmd], shell=True)
+	    if os.path.exists(impactName +".json"):
+		cmd = "plotImpacts.py -i " + impactName +".json"
+		cmd += " -o " + impactName + " --transparent"
+		print cmd
+		subprocess.call([cmd], shell=True)
+	    else:
+		print "could not find .json file"
 	else:
 	    print "could not find workspace in", workspace
 	os.chdir(basepath)
