@@ -12,7 +12,7 @@ Please set the CMSSW environment before using the tools.
 
   * First parameter is a string wildcard to the datacards/workspaces that are to be analyzed (uses python module `glob`)
   * All following parameters are additional combine options
-  * Example for fitting to asimov data with #mu = 1: `python submitImpactFits.py "wildcard/to/data" -t -1 --expectSignal 1 --minimizerStrategy 0 --minimizerTolerance 0.00001
+  * Example for fitting to asimov data with #mu = 1: `python submitImpactFits.py "wildcard/to/data" -t -1 --expectSignal 1 --minimizerStrategy 0 --minimizerTolerance 0.00001`
   * The script will generate a folder based on the datacard name in the current working directory.
    If the input file is not a .root file (-> workspace) it will call `text2workspace.py` to generate a workspace in the datacard directory.
    The computing time can be significantly reduced if input is workspace.
