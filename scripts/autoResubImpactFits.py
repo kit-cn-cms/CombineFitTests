@@ -3,19 +3,38 @@ import os
 import sys
 import glob
 import subprocess
-import imp
+import json
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'base'))
 
 from batchConfig import *
 batch_config = batchConfig()
 #========input variables================================================
 
-resubWildcard 		= sys.argv[1]
-datacardWildcard 	= sys.argv[2]
+listOfDatacards = None
+listOfResubFolders = None
 additionalSubmitCmds 	= None
-if len(sys.argv) > 3:
-    additionalSubmitCmds= sys.argv[3:]
 
+if len(sys.argv) == 2:
+    pathToJson = sys.argv[1]
+    pathToJson = os.path.abspath(pathToJson)
+    if os.path.exists(pathToJson) and pathToJson.endswith(".json"):
+	print "loading impact submit infos from", pathToJson
+	with open(pathToJson) as f:
+	    dic = json.load(f)
+	listOfDatacards = dic["datacards"]
+	listOfResubFolders = dic["impact_folders"]
+	additionalSubmitCmds = dic["commands"]
+    else:
+	sys.exit("Input has to be a .json file!")
+else:
+    resubWildcard 		= sys.argv[1]
+    datacardWildcard 	= sys.argv[2]
+    additionalSubmitCmds 	= None
+    if len(sys.argv) > 3:
+	additionalSubmitCmds= sys.argv[3:]
+    
+    listOfDatacards = glob.glob(datacardWildcard)
+    listOfResubFolders = glob.glob(resubWildcard)
 
 
 # pathToConfig = scriptDir + "/batch_config.py"
@@ -88,13 +107,14 @@ def submit_missing(	impactFolders, listToCrossCheck,
 	foldername = ".".join(parts[:len(parts)-1])
 	print "checking", foldername
 	if foldername in basenames:
+	    print "\tfound matching folder"
 	    continue
 	else:
-	    print "foldername is not in list of impact folders!"
+	    print "\tfoldername is not in list of impact folders!"
 	if not (string.endswith(foldername) for string in listToResub):
 	    continue
 	else:
-	    print "foldername is in list to resub!"
+	    print "\tfoldername is in list to resub!"
 	
 	folders.append(path)
     fresh_submit(folders, cmdList)
@@ -113,19 +133,21 @@ def fresh_submit(datacards, cmdList = None):
 
 #=======script==========================================================
 
-
-listOfDatacards = glob.glob(datacardWildcard)
+print listOfDatacards
+print listOfResubFolders
+print additionalSubmitCmds
+print " ".join(additionalSubmitCmds)
 
 if len(listOfDatacards) is 0:
     sys.exit("Found no datacards to cross check with in %s" % datacardWildcard)
 
 listOfDatacards = [os.path.abspath(datacard) for datacard in listOfDatacards]
-impactFolders = [os.path.abspath(path) for path in glob.glob(resubWildcard)]
+impactFolders = [os.path.abspath(path) for path in listOfResubFolders]
 
 toResub = []
 base = os.getcwd()
-for resubFolder in glob.glob(resubWildcard):
-    resubFolder = os.path.abspath(resubFolder)
+for resubFolder in impactFolders:
+    # resubFolder = os.path.abspath(resubFolder)
     foldername = os.path.basename(resubFolder)
     
     if check_for_resubmit(folder = resubFolder):

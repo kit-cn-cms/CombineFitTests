@@ -2,8 +2,8 @@ import os
 import sys
 import glob
 import subprocess
-import imp
-
+import json
+import datetime
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'base'))
 
 
@@ -44,13 +44,15 @@ def create_workspace(datacard):
 		
 		# return outputPath + "/" + os.path.basename(datacard)
 		return datacard
+
     return ""
 
-def create_impacts(outputPath, datacard):
+def create_impacts(outputPath, datacard, impactList):
 	print "submitting impact jobs"
 	print "\tin", outputPath
 	print "\tfrom", datacard
 	if os.path.exists(outputPath) and os.path.exists(datacard):
+		impactList.append(outputPath)
 		print "cd into", outputPath
 		os.chdir(outputPath)	
 		outfile = open("commands.txt", "w")
@@ -69,7 +71,7 @@ def create_impacts(outputPath, datacard):
 		
 		print cmd
 		outfile.write("initial fit:\n" + cmd + "\n")
-		subprocess.call([cmd], shell = True)
+		# subprocess.call([cmd], shell = True)
 		
 		print "starting nuisance parameter fits"
 		taskname = os.path.basename(datacard).replace(".root", "")
@@ -85,14 +87,19 @@ def create_impacts(outputPath, datacard):
 		cmd.replace("  ", " ")
 		print cmd
 		outfile.write("nuisance parameter fits:\n" + cmd + "\n")
-		subprocess.call([cmd], shell = True)
 		outfile.close()
+		# subprocess.call([cmd], shell = True)
+		
 	else:
 		print "Something is wrong! Aborting"
 
 #======================================================================
 
 basepath = os.getcwd()
+dic = {}
+dic["datacards"] = []
+dic["impact_folders"] = []
+dic["commands"] = additionalCmds
 for datacard in glob.glob(wildcard):
 	datacard = os.path.abspath(datacard)
 	parts = datacard.split(".")
@@ -109,5 +116,10 @@ for datacard in glob.glob(wildcard):
 	if not (os.path.exists(outputPath) and os.path.exists(workspace)):
 	    workspace = create_workspace(datacard)
 	    
-	create_impacts(outputPath, workspace)
+	dic["datacards"].append(workspace)
+	create_impacts(outputPath, workspace, impactList = dic["impact_folders"])
+	
 	os.chdir(basepath)
+with open("impact_submit_{:%Y-%b-%d}.json".format(datetime.date.today()), "w") as f:
+	json.dump(dic, f, sort_keys=True,
+                      separators=(',', ': '))

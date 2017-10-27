@@ -19,12 +19,14 @@ Please set the CMSSW environment before using the tools.
    First, the script will perform an initial fit of the datacard. Afterwards, a fit for each parameter will be performed via the batch system, respectively.
    You can configure the submit option in the [batchConfig class](https://gitlab.cern.ch/kit-cn-cms/impactPlots/blob/b76e641f30d4731ac1969ffb5a320339ecc9dc55/base/batchConfig.py).
    There will be a `commands.txt` file in each folder containing the commands used to generate the present files.
+   A .json file containing the list of datacards, the list of generated folders and the list of additional commands is generated in the current working directory. 
    
 #### Step 2: autoResubmitImpactFits.py
-
-  * First parameter is string wildcard to folders with impact fits that are to be checked
-  * Second parameter is string wildcard to datacards or workspaces for which there should be impact plots
-  * All following parameters are additional combine options. These should be the same as in step 1 in order to generate consistent impacts
+  * If only one parameter is given, the script expects the output .json file generated in step 1
+  * Else:
+    * First parameter is string wildcard to folders with impact fits that are to be checked
+    * Second parameter is string wildcard to datacards or workspaces for which there should be impact plots
+    * All following parameters are additional combine options. These should be the same as in step 1 in order to generate consistent impacts
   * Example: python autoResubmitImpactFits.py "wildcard/to/impact/folders" "wildcard/to/data" -t -1 --expectSignal 1 --minimizerStrategy 0 --minimizerTolerance 0.00001
   * The script will first check for .sh files and then compare the number of shell scripts with the number of rootfile in the corresponding directory.
    If these numbers are not equal, it will call the corresponding CombineHarvester command to regenerate the shell scripts.
