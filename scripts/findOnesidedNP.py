@@ -6,7 +6,7 @@ import json
 wildcards = sys.argv[1:]
 
 basepath = os.getcwd()
-for wildcard in wildcards
+for wildcard in wildcards:
     for infile in glob.glob(wildcard):
 	infile = os.path.abspath(infile)
 	
