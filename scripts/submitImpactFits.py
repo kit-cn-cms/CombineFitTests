@@ -71,7 +71,7 @@ def create_impacts(outputPath, datacard, impactList):
 		
 		print cmd
 		outfile.write("initial fit:\n" + cmd + "\n")
-		# subprocess.call([cmd], shell = True)
+		subprocess.call([cmd], shell = True)
 		
 		print "starting nuisance parameter fits"
 		taskname = os.path.basename(datacard).replace(".root", "")
@@ -88,7 +88,7 @@ def create_impacts(outputPath, datacard, impactList):
 		print cmd
 		outfile.write("nuisance parameter fits:\n" + cmd + "\n")
 		outfile.close()
-		# subprocess.call([cmd], shell = True)
+		subprocess.call([cmd], shell = True)
 		
 	else:
 		print "Something is wrong! Aborting"
