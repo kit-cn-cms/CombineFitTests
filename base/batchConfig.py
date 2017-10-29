@@ -1,5 +1,6 @@
 from ROOT import TStopwatch
 import os
+import sys
 import subprocess
 import stat
 import shutil
@@ -30,7 +31,7 @@ class batchConfig:
             self.arraysubmit = True
 
 
-    def submitArrayToBatch(scripts, arrayscriptpath):
+    def submitArrayToBatch(self, scripts, arrayscriptpath):
         """
         generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
         
@@ -78,6 +79,8 @@ class batchConfig:
         command.append('-t')
         command.append(tasknumberstring)
         command.append(arrayscriptpath)
+        print command
+        print " ".join(command)
         a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
         output = a.communicate()[0]
         jobidstring = output
@@ -91,7 +94,7 @@ class batchConfig:
         print "submitted job", jobidint, " in ", submittime
         return [jobidint]
     
-    def submitJobToBatch(scripts):
+    def submitJobToBatch(self, scripts):
         cmdlist = [self.subname]
         cmdlist += self.subopts
         for script in scripts:
