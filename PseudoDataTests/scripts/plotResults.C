@@ -23,11 +23,6 @@
 #include "helperFuncs.h"
 #include "createLatexOutput.h"
 
-// double checkValues(double x){
-//     if(std::isnan(x)) return 0;
-//     else return x;
-// }
-
 void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const TString label){
     if(correlationPlot)
     {
@@ -468,7 +463,7 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
 
     std::cout << "comparing mean values for POI\n";
     compareMeanValues(hPOIs,hInit,labels,outLabel+"POImeans",hPOImedians);
-    createLatexOutput::writePOILatexTable(hPOIs, hPOImedians, hPOIwithFittedError, outLabel+"POI.tex", "Signal Strength Parameters", testName);
+    createLatexOutput::writePOILatexTable(hPOIs, hPOImedians, hPOIwithFittedError, outLabel+"POI.txt", "Signal Strength Parameters", testName);
     compareDistributions(hists,labels,outLabel+"POI",false);
 
     if(hPOIs != NULL) delete hPOIs;
