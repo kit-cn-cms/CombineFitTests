@@ -141,7 +141,8 @@ if directDrawPath is None:
     else:
         if additionalToyCmds:
             multidimfitcmd += " " + " ".join(additionalToyCmds)
-    multidimfitcmd += ' --rMin -10 --rMax 10 --saveFitResult --saveInactivePOI 1'
+    multidimfitcmd += ' --rMin -10 --rMax 10 --saveFitResult'
+    multidimfitcmd += ' --saveInactivePOI 1 --floatOtherPOI 1'
     if not suffix == "":
         multidimfitcmd += ' -n ' + suffix
         fitresFile += suffix
@@ -168,6 +169,7 @@ else:
 def find_crossing(graph, cl, start, stop):
     stepsize = 0.001
     deltabest = 9999
+    epsilon = 1e-3
     print "looking for crossing at {0} in interval [{1}, {2}]".format(cl, start, stop)
     xlast = start
     if stop >= start:
@@ -177,7 +179,7 @@ def find_crossing(graph, cl, start, stop):
             yval = graph.Eval(x)
             delta = abs(cl - yval)
             # print "\tcurrent delta =", delta
-            if delta > deltabest:
+            if delta > deltabest and deltabest <= epsilon:
                 print "found crossing at", xlast
                 return xlast
             deltabest = delta
@@ -189,7 +191,7 @@ def find_crossing(graph, cl, start, stop):
             yval = graph.Eval(x)
             delta = abs(cl - yval)
             # print "\tcurrent delta =", delta
-            if delta > deltabest:
+            if delta > deltabest and deltabest <= epsilon:
                 print "found crossing at", xlast
                 return xlast
             deltabest = delta
