@@ -5,7 +5,7 @@ import glob
 import subprocess
 import json
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'base'))
-
+scriptDir = os.path.join(os.path.dirname(sys.path[0]),'scripts')
 from batchConfig import *
 batch_config = batchConfig()
 #========input variables================================================
@@ -13,6 +13,7 @@ batch_config = batchConfig()
 listOfDatacards = None
 listOfResubFolders = None
 additionalSubmitCmds 	= None
+useBatch = True
 
 if len(sys.argv) == 2:
     pathToJson = sys.argv[1]
@@ -59,7 +60,19 @@ def check_for_resubmit(folder):
 	rootfiles = glob.glob("higgsCombine_paramFit*.root")
 	print "# rootfiles:", len(rootfiles)
 	print "# scripts:", len(scriptList)
-	if not len(scriptList) == len(rootfiles):
+	initFitList = glob.glob("higgsCombine_initialFit_*.root")
+	redoInitFit = False
+	if initFitList:
+	    initFitFile = initFitList[0]
+	    infile = TFile(initFitFile)
+	    if not (infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(TFile.kRecovered)):
+		redoInitFit = True
+	    else:
+		print "init file is working"
+	else:
+	    redoInitFit = True
+	    
+	if not len(scriptList) == len(rootfiles) or redoInitFit:
 	    with open("commands.txt") as infile:
 		lines = infile.readlines()
 		cmd = lines[-1]
@@ -82,10 +95,14 @@ def check_for_resubmit(folder):
 			    break
 			    
 	    if len(scripts) is not 0:
-		if batch_config.arraysubmit is True:
-		    batch_config.submitArrayToBatch(scripts, folder + "/logs/arrayJob.sh")
+		if useBatch:
+		    if batch_config.arraysubmit is True:
+			batch_config.submitArrayToBatch(scripts, folder + "/logs/arrayJob.sh")
+		    else:
+			batch_config.submitJobToBatch(scripts)
 		else:
-		    batch_config.submitJobToBatch(scripts)
+		    for script in scripts:
+			subprocess.call([script], shell=True)
 	    else:
 		print "all root files are intact"
 			
