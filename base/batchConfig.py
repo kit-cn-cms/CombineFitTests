@@ -4,6 +4,7 @@ import sys
 import subprocess
 import stat
 import shutil
+from copy import deepcopy
 
 class batchConfig:
 
@@ -25,12 +26,17 @@ class batchConfig:
             print "going to default - desy naf bird system"
             self.jobmode = "SGE"
             self.subname = "qsub"
-            self.subopts = "-q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
-            self.arraysubopts = [self.subname, '-terse','-o', '/dev/null', '-e', '/dev/null']
-            self.arraysubopts += self.subopts
+            self.subopts = "-q short.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
             self.arraysubmit = True
 
-
+    def construct_array_submit(self):
+        command = None
+        if self.arraysubmit:
+                command = [self.subname, '-terse','-o', '/dev/null', '-e', '/dev/null']
+                command += self.subopts
+        return command
+    
+    
     def submitArrayToBatch(self, scripts, arrayscriptpath):
         """
         generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
@@ -75,24 +81,27 @@ class batchConfig:
         print 'submitting',arrayscriptpath
         #command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', logdir+'/dev/null', '-e', logdir+'/dev/null', arrayscriptpath]
         # command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', '/dev/null', '-e', '/dev/null', arrayscriptpath]
-        command = self.arraysubopts
-        command.append('-t')
-        command.append(tasknumberstring)
-        command.append(arrayscriptpath)
-        print command
-        print " ".join(command)
-        a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-        output = a.communicate()[0]
-        jobidstring = output
-        if len(jobidstring)<2:
-            sys.exit("something did not work with submitting the array job")
-        
-        jobidstring=jobidstring.split(".")[0]
-        print "the jobID", jobidstring
-        jobidint=int(jobidstring)
-        submittime=submitclock.RealTime()
-        print "submitted job", jobidint, " in ", submittime
-        return [jobidint]
+        command = self.construct_array_submit()
+        if command:
+                command.append('-t')
+                command.append(tasknumberstring)
+                command.append(arrayscriptpath)
+                print command
+                print " ".join(command)
+                a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+                output = a.communicate()[0]
+                jobidstring = output
+                if len(jobidstring)<2:
+                    sys.exit("something did not work with submitting the array job")
+                
+                jobidstring=jobidstring.split(".")[0]
+                print "the jobID", jobidstring
+                jobidint=int(jobidstring)
+                submittime=submitclock.RealTime()
+                print "submitted job", jobidint, " in ", submittime
+                return [jobidint]
+        else:
+                print "could not generate array submit command"
     
     def submitJobToBatch(self, scripts):
         cmdlist = [self.subname]
