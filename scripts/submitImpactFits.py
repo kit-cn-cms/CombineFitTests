@@ -4,6 +4,7 @@ import glob
 import subprocess
 import json
 import datetime
+import shutil
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'base'))
 
 
@@ -31,18 +32,9 @@ def create_workspace(datacard):
     if os.path.exists(datacard):
 		basename = os.path.basename(datacard)
 		outputPath = basename.replace(".root", "")
-		if not os.path.exists(outputPath):
-		    os.makedirs(outputPath)
 		outputPath = os.path.abspath(outputPath)
-		# print "moving workspace and copying rootfile into directory", outputPath
-		# cmd = "mv " + datacard + " " + outputPath
-		# print cmd
-		# subprocess.call([cmd], shell=True)
-		# cmd = "cp " + rootFile + " " + outputPath
-		# print cmd
-		# subprocess.call([cmd], shell=True)
 		
-		# return outputPath + "/" + os.path.basename(datacard)
+		
 		return datacard
 
     return ""
@@ -51,7 +43,12 @@ def create_impacts(outputPath, datacard, impactList):
 	print "submitting impact jobs"
 	print "\tin", outputPath
 	print "\tfrom", datacard
-	if os.path.exists(outputPath) and os.path.exists(datacard):
+	if os.path.exists(datacard):
+		if os.path.exists(outputPath):
+			print "resetting path", outputPath
+			shutil.rmtree(outputPath)
+		
+		os.makedirs(outputPath)
 		impactList.append(outputPath)
 		print "cd into", outputPath
 		os.chdir(outputPath)	
@@ -120,6 +117,9 @@ for datacard in glob.glob(wildcard):
 	create_impacts(outputPath, workspace, impactList = dic["impact_folders"])
 	
 	os.chdir(basepath)
-with open("impact_submit_{:%Y-%b-%d}.json".format(datetime.date.today()), "w") as f:
+	
+jsonname = wildcard.replace("*", "X")
+jsonname += "_impact_submit_{:%Y-%b-%d_%H-%M-%S}.json".format(datetime.datetime.now())
+with open(jsonname, "w") as f:
 	json.dump(dic, f, sort_keys=True,
                       separators=(',', ': '))
