@@ -97,6 +97,10 @@ dic = {}
 dic["datacards"] = []
 dic["impact_folders"] = []
 dic["commands"] = additionalCmds
+print "input:"
+print "\twildcard:", wildcard
+print "\tcommands:", additionalCmds
+print "\tlist of files:", glob.glob(wildcard)
 for datacard in glob.glob(wildcard):
 	datacard = os.path.abspath(datacard)
 	parts = datacard.split(".")
@@ -109,7 +113,8 @@ for datacard in glob.glob(wildcard):
 		workspace = outputPath + "/" + os.path.basename(workspace)
 	else:
 		workspace = datacard
-	
+	print "checking for output path", outputPath
+	print "checking for workspace in path", workspace
 	if not (os.path.exists(outputPath) and os.path.exists(workspace)):
 	    workspace = create_workspace(datacard)
 	    
@@ -117,9 +122,14 @@ for datacard in glob.glob(wildcard):
 	create_impacts(outputPath, workspace, impactList = dic["impact_folders"])
 	
 	os.chdir(basepath)
-	
-jsonname = wildcard.replace("*", "X")
-jsonname += "_impact_submit_{:%Y-%b-%d_%H-%M-%S}.json".format(datetime.datetime.now())
+
+parts = wildcard.split(".")
+workingtitle = ".".join(parts[:len(parts)-1])
+if "/" in workingtitle:
+	workingtitle = os.path.basename(workingtitle)
+jsonname = workingtitle.replace("*", "X")
+jsonname += "-impact_submit_{:%Y-%b-%d_%H-%M-%S}.json".format(datetime.datetime.now())
+print "opening file", jsonname
 with open(jsonname, "w") as f:
 	json.dump(dic, f, sort_keys=True,
                       separators=(',', ': '))

@@ -20,13 +20,13 @@ for wildcard in wildcards:
 		rVals = param["r"]
 		# print rVals
 		if (rVals[0] > rVals[1] and rVals[-1] > rVals[1]) or (rVals[0] < rVals[1] and rVals[-1] < rVals[1]):
-		    onesidedImpacts[param["name"]] = rVals[0]
+		    onesidedImpacts[param["name"]] = abs(rVals[0])
 		    
 	    outfile = open("onesidedNPs.txt","w")
 	    # print onesidedImpacts
 	    # print sorted(onesidedImpacts.items(), key = lambda x: x[1], reverse = True)
-	    for paramSet in sorted(onesidedImpacts.items(), key = lambda x: x[1], reverse = True):
-		name = paramSet[0]
+	    for param in sorted(onesidedImpacts):
+		name = param
 		print name
 		outfile.write(name + "\n")
 	    outfile.close()
