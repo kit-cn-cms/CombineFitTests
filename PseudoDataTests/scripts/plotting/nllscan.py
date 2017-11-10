@@ -108,7 +108,7 @@ if directDrawPath is None:
         cmd = "combine -M GenerateOnly -m 125"
         cmd += " -t " + str(nToys)
         cmd += " --saveToys"
-        if suffix:
+        if suffix and not suffix == "":
             cmd += " -n " + suffix
         if additionalToyCmds:
             cmd += " " + " ".join(additionalToyCmds)
