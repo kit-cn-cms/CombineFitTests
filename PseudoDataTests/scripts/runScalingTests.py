@@ -9,16 +9,31 @@ scriptDir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/Pseu
 processDic = {
 #"ttbarOther": ["0.99", "0.9", "1.01", "1.1"],
 # "ttbarPlusBBbar": ["0.5", "0.8", "1.2", "1.5"],
-"ttbarPlusBBbar": ["1.3", "1.8"],
+# "ttbarPlusBBbar": ["1.3", "1.8"],
+
+"ttbarPlusBBbar": ["1.3"],
 #"ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
 #"ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
 #"ttbarPlusCCbar": ["0.5", "0.8", "1.2", "1.5"],
 #"ttbarPlusBBbar,ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
 #"ttbarPlusBBbar,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
 #"ttbarPlus2B,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
-"ttbarPlusBBbar,ttbarPlus2B,ttbarPlusB": ["1.3", "1.8"]#["0.5", "0.8", "1.2", "1.5"]
+# "ttbarPlusBBbar,ttbarPlus2B,ttbarPlusB": ["1.3", "1.8"]#["0.5", "0.8", "1.2", "1.5"]
 }
 
+# listOfPoisCombis = [
+        # #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
+        # #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        # #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
+        # #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
+        # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},
+        # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        # #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]"},
+        # #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        # ]
+listOfPoisCombis = None
 
 def runScript(targetPath, suffix, pathToDatacard, pathToRoofile = None, pois = None, key = None, factor = None, pathToConfig = None, listOfMus = None):
     # construct command string
@@ -52,6 +67,7 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
     print "base_suffix:", base_suffix
     if pois:
         for poi in sorted(pois):
+            print poi
             if not targetPath.endswith('/'):
                 targetPath = targetPath + "_"
             targetPath = targetPath + poi
@@ -60,11 +76,11 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
     string = ""
     if additionalCmds:
         string = additionalCmds
-    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pois, key = string)
-    if pathToSherpa:
-        runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa)
-    if pathToAMC:
-        runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
+    runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
+    # if pathToSherpa:
+        # runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa)
+    # if pathToAMC:
+        # runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
         for factor in processDic[key]:
             process = key
@@ -142,7 +158,7 @@ def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
 
         runScript(targetPath = targetPath, suffix = suffix + folderSuffix , pathToDatacard = datacard, key = additionalCmds)
 
-def throwToys(wildcard, rootfile, pathToConfig, additionalCmds = None):
+def throwToys(wildcard, rootfile = None, pathToConfig = None, additionalCmds = None, pois = None):
     for datacard in glob.glob(wildcard):
         if os.path.exists(os.path.abspath(datacard)):
             datacard = os.path.abspath(datacard)
@@ -150,13 +166,24 @@ def throwToys(wildcard, rootfile, pathToConfig, additionalCmds = None):
             rootfile = os.path.abspath(rootfile)
             parts = os.path.basename(datacard).split(".")
             
-            outputDirectory = targetPath + "/asimov/" + ".".join(parts[:len(parts)-1])
+            outputDirectory = targetPath + "/toys/" + ".".join(parts[:len(parts)-1])
             outputDirectory = os.path.abspath(outputDirectory)
             
             string = ""
             if additionalCmds:
                 string = additionalCmds
-            do_scaling( targetPath = outputDirectory, 
+            if pois:
+                print pois
+                for poi in pois:
+                    print poi
+                    do_scaling( targetPath = outputDirectory, 
+                        pathToDatacard = datacard, 
+                        pathToRoofile = rootfile,
+                        pathToConfig = pathToConfig, 
+                        additionalCmds = additionalCmds,
+                        pois = poi)
+            else:
+                do_scaling( targetPath = outputDirectory, 
                         pathToDatacard = datacard, 
                         pathToRoofile = rootfile,
                         pathToConfig = pathToConfig, 
@@ -167,19 +194,9 @@ def throwToys(wildcard, rootfile, pathToConfig, additionalCmds = None):
 throwToys(  wildcard = sys.argv[1], 
             rootfile = sys.argv[2], 
             pathToConfig = sys.argv[3],
-            additionalCmds = sys.argv[4])
-listOfPoisCombis = [
-        #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
-        #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
-        #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
-        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},
-        {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]"},
-        #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        ]
+            additionalCmds = sys.argv[4],
+            pois = listOfPoisCombis)
+
 
 # for pois in listOfPoisCombis:
     # tth_fit_stability(pois, sys.argv[1])
