@@ -41,7 +41,9 @@ def submitArrayToBatch(scripts, arrayscriptpath):
     """
     submitclock=TStopwatch()
     submitclock.Start()
-    logdir = os.getcwd()+"/logs"
+    arrayscriptpath = os.path.abspath(arrayscriptpath)
+    logdir = os.path.dirname(arrayscriptpath)+"/logs"
+    print "will save logs in", logdir
     if os.path.exists(logdir):
         print "emptying directory", logdir
         shutil.rmtree(logdir)
