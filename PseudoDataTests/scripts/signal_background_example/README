@@ -31,8 +31,10 @@ Step 2: use command
 	output will be mlfit.root
 Step 3: look at output, try to understand different values
 
+Helpfull: diffNuisances.py ->Pullplots
 
 perform NLL scan:
 
+
 you can use dedicated script for that (ask Philip) or use MultiDimFit option in combine
-	 
+script path: ../plotting/nllscan.py (use --help for options)	 

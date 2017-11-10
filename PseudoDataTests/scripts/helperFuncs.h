@@ -16,33 +16,59 @@
 
 namespace helperFuncs{
   
-  TH1D* createHistoFromVector(const TString& histName, const std::vector<Double_t>& vec){
-    double minVal = std::min_element(vec.begin(), vec.end());
-    double maxVal = std::max_element(vec.begin(), vec.end());
+  TH1D* createHistoFromVector(const TString& histName, const std::vector<Double_t>& vec, const TString& title=""){
+    int position = std::distance(vec.begin(), std::min_element(vec.begin(), vec.end()));
+    double minVal = vec[position];
+    position = std::distance(vec.begin(), std::max_element(vec.begin(), vec.end()));
+    double maxVal = vec[position];
+    if(minVal == maxVal){
+      minVal = minVal - 5;
+      maxVal = maxVal + 5;
+    }
     int nBins = 2000;
-    TH1D* histo = new TH1D(histName, "", nBins, minVal, maxVal);
+    TH1D* histo = new TH1D(histName, title.Data(), nBins, minVal, maxVal);
     for(int i=0; i<int(vec.size()); i++) histo->Fill(vec[i]);
     return histo;
   }
   
-  TH1D* tree2histo(const TTree* tree){
-    std::vector<Double_t> vec;
-    TObjArray branches = tree->GetListOfBranches();
-    TString branchName;
-    for(int nBranch = 0; nBranch < branches->GetEntries(); nBranch++)
-    {
-      branchName = branches->At(i)->GetName();
-      double value = 0;
-      tree->SetBranchAdress(branchName.Data(), &value);
-      for(int i = 0; i< tree->GetEntries(); i++){
-        tree->GetEntry(i);
-        vec.push_back(value);
-      }
+  void saveTreeVals(TTree* tree, const TString& branchName, std::vector<Double_t>& vec){
+    double value = 0;
+    std::cout << "reading branch " << branchName << std::endl;
+    tree->SetBranchAddress(branchName.Data(), &value);
+    for(int i = 0; i< tree->GetEntries(); i++){
+      tree->GetEntry(i);
+      std::cout << "\t" << value << std::endl;
+      vec.push_back(value);
     }
-    return createHistoFromVector(tree->GetName(), vec);
+  }
+  
+  void saveTreeVals(TTree* tree, const TString& branchName, std::map<TString,TH1*>& vec, const TString& histName, const int nbins = 400, const double xmin = -1, const double xmax = 1){
+    std::map<TString, TH1*>::const_iterator it = vec.find(branchName.Data());
+    if(it == vec.end()){
+      vec[branchName] = new TH1D(histName.Data(), "", nbins, xmin, xmax);
+      vec[branchName]->SetDirectory(0);      
+    }
+    double value = 0;
+    tree->SetBranchAddress(branchName.Data(), &value);
+    for(int i = 0; i< tree->GetEntries(); i++){
+      std::cout << "\t" << branchName << ":\t" << value << std::endl;
+      tree->GetEntry(i);
+      vec[branchName]->Fill(value);
+    }
   }
   
   
+  TH1D* branch2histo(TTree* tree, const TString& branchName, const TString& title = "", const TString& hName = ""){
+    std::vector<Double_t> vec;
+    saveTreeVals(tree, branchName, vec);
+    const TUUID id;
+    TString histoName = hName;
+    if(histoName.EqualTo(""))
+    {
+      histoName.Form("%s_%s_%s", tree->GetName(), branchName.Data(), id.AsString());
+    }
+    return createHistoFromVector(histoName, vec, title);
+  }
   
   Double_t checkValues(Double_t x, Double_t cut = 100000000){
       if(std::isnan(x) || std::isinf(x) || x>cut) {

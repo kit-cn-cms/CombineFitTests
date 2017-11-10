@@ -6,6 +6,20 @@ import glob
 
 scriptDir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 
+processDic = {
+#"ttbarOther": ["0.99", "0.9", "1.01", "1.1"],
+# "ttbarPlusBBbar": ["0.5", "0.8", "1.2", "1.5"],
+"ttbarPlusBBbar": ["1.3", "1.8"],
+#"ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
+#"ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
+#"ttbarPlusCCbar": ["0.5", "0.8", "1.2", "1.5"],
+#"ttbarPlusBBbar,ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
+#"ttbarPlusBBbar,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
+#"ttbarPlus2B,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
+"ttbarPlusBBbar,ttbarPlus2B,ttbarPlusB": ["1.3", "1.8"]#["0.5", "0.8", "1.2", "1.5"]
+}
+
+
 def runScript(targetPath, suffix, pathToDatacard, pathToRoofile = None, pois = None, key = None, factor = None, pathToConfig = None, listOfMus = None):
     # construct command string
     commandString = 'python ' + scriptDir+'/tth_analysis_study.py '
@@ -30,53 +44,27 @@ def runScript(targetPath, suffix, pathToDatacard, pathToRoofile = None, pois = N
     print commandString
     subprocess.call([commandString], shell=True)
 
-def tth_fit_stability(pois, additionalCmds = None):
-    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/new_powheg/freezeNP/PseudoData/noFrequentist/"
-    # pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_ttHbb_63445464.txt"
-    pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_ttHbb_allCats_allNP.txt"
-    #pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_ttHbb_63445464.txt"
-    pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput_majorBkgDataObs.root"
-    #pathToConfig = "config_ttHbb_allCats_include_nps.py"
-
-    #pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
-    #pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
-
-    #pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_allProcs_63445464.txt"
-    #pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput.root"
-    #pathToConfig = "config_allProcs_63445464.py"
-
-    pathToConfig = "config_ttHbb_allCats.py"
-    #pathToConfig = "config_allProcs_allCats.py"
-
-    pathToSherpa 	= "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_sherpa_ol_normedHisto/limits_BDT_sherpa_ol_normedHisto_63445464_ttHbb.txt"
-    pathToAMC 		= "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_amc_normedHisto/limits_BDT_amc_normedHisto_63445464_ttHbb.txt"
-
+def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
+                pois = None, pathToConfig = None, additionalCmds = None,
+                pathToAMC = None, pathToSherpa = None):
     print pois
-    base_suffix = "allCats_allNP_ttHbb_N1000_" + "_".join(sorted(pois))+"_"
-
-    processDic = {
-    #"ttbarOther": ["0.99", "0.9", "1.01", "1.1"],
-    "ttbarPlusBBbar": ["0.5", "0.8", "1.2", "1.5"],
-    #"ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
-    #"ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
-    #"ttbarPlusCCbar": ["0.5", "0.8", "1.2", "1.5"],
-    #"ttbarPlusBBbar,ttbarPlus2B": ["0.5", "0.8", "1.2", "1.5"],
-    #"ttbarPlusBBbar,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
-    #"ttbarPlus2B,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"],
-    "ttbarPlusBBbar,ttbarPlus2B,ttbarPlusB": ["0.5", "0.8", "1.2", "1.5"]
-    }
-
-    for poi in sorted(pois):
-        if not targetPath.endswith('/'):
-            targetPath = targetPath + "_"
-        targetPath = targetPath + poi
+    base_suffix = os.path.basename(targetPath) + "_" 
+    print "base_suffix:", base_suffix
+    if pois:
+        for poi in sorted(pois):
+            if not targetPath.endswith('/'):
+                targetPath = targetPath + "_"
+            targetPath = targetPath + poi
+        base_suffix += "_".join(sorted(pois))+"_"
 
     string = ""
     if additionalCmds:
         string = additionalCmds
-    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pathToRoofile, pois, key = string)
-    runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa)
-    runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
+    runScript(targetPath, base_suffix+"noScaling", pathToDatacard, pois, key = string)
+    if pathToSherpa:
+        runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa)
+    if pathToAMC:
+        runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
         for factor in processDic[key]:
             process = key
@@ -110,6 +98,36 @@ def tth_fit_stability(pois, additionalCmds = None):
                         pathToConfig = pathToConfig)
 
 
+def tth_fit_stability(pois, additionalCmds = None):
+    targetPath = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/test/new_powheg/freezeNP/PseudoData/noFrequentist/"
+    # pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_ttHbb_63445464.txt"
+    pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_ttHbb_allCats_allNP.txt"
+    #pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_ttHbb_63445464.txt"
+    pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput_majorBkgDataObs.root"
+    #pathToConfig = "config_ttHbb_allCats_include_nps.py"
+
+    #pathToDatacard = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10_63445464_ttHbb.txt"
+    #pathToRoofile = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/datacards/limits_JTBDT_Spring17v10/limits_JTBDT_Spring17v10_limitInput.root"
+
+    #pathToDatacard = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_powheg/limits_BDT_powheg_allProcs_63445464.txt"
+    #pathToRoofile = "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/workdir/limits_BDT_powheg/output_limitInput.root"
+    #pathToConfig = "config_allProcs_63445464.py"
+
+    pathToConfig = "config_ttHbb_allCats.py"
+    #pathToConfig = "config_allProcs_allCats.py"
+
+    pathToSherpa 	= "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_sherpa_ol_normedHisto/limits_BDT_sherpa_ol_normedHisto_63445464_ttHbb.txt"
+    pathToAMC 		= "/nfs/dust/cms/user/pkeicher/ttbb/pyroot-plotscripts/limits_BDT_amc_normedHisto/limits_BDT_amc_normedHisto_63445464_ttHbb.txt"
+
+    do_scaling( targetPath = targetPath, 
+                pathToDatacard = pathToDatacard, 
+                pathToRoofile = pathToRoofile, pois = pois, 
+                additionalCmds = additionalCmds, 
+                pathToAMC = pathToAMC, pathToSherpa = pathToSherpa,
+                pathToConfig = pathToConfig
+                )
+
+
 def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
     targetPath = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/tests/CMS_nominal_CSV/"
     #pathToDatacards = "/nfs/dust/cms/user/pkeicher/JES_CSV_impact_study/input/nuisanceImpact/datacard_63445463_CMS_scale_*j_*.txt"
@@ -124,29 +142,32 @@ def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
 
         runScript(targetPath = targetPath, suffix = suffix + folderSuffix , pathToDatacard = datacard, key = additionalCmds)
 
-def throwToys(wildcard, inputRootFile, pathToConfig):
-    #wildcard = sys.argv[1]
-    #inputRootFile = sys.argv[2]
-    listOfSignalStrenghts = [0.,1.,2.]
-    if os.path.exists(os.path.abspath(inputRootFile)):
-        inputRootFile = os.path.abspath(inputRootFile)
-        pathToConfig = os.path.abspath(pathToConfig)
-        for datacard in glob.glob(wildcard):
-            if os.path.exists(os.path.abspath(datacard)):
-                datacard = os.path.abspath(datacard)
-                outputDirectory = os.path.dirname(datacard) + "/noScaling/" + os.path.basename(datacard).replace(".txt", "")
-                if not os.path.exists(outputDirectory):
-                    os.makedirs(outputDirectory)
-                os.chdir(outputDirectory)
+def throwToys(wildcard, rootfile, pathToConfig, additionalCmds = None):
+    for datacard in glob.glob(wildcard):
+        if os.path.exists(os.path.abspath(datacard)):
+            datacard = os.path.abspath(datacard)
+            targetPath = os.path.dirname(datacard)
+            rootfile = os.path.abspath(rootfile)
+            parts = os.path.basename(datacard).split(".")
+            
+            outputDirectory = targetPath + "/asimov/" + ".".join(parts[:len(parts)-1])
+            outputDirectory = os.path.abspath(outputDirectory)
+            
+            string = ""
+            if additionalCmds:
+                string = additionalCmds
+            do_scaling( targetPath = outputDirectory, 
+                        pathToDatacard = datacard, 
+                        pathToRoofile = rootfile,
+                        pathToConfig = pathToConfig, 
+                        additionalCmds = additionalCmds)
+        else:
+            print "Could not find datacard", datacard
 
-                runScript(os.path.dirname(datacard) + "/noScaling", os.path.basename(datacard).replace(".txt", ""), datacard, inputRootFile, pathToConfig = pathToConfig, listOfMus = listOfSignalStrenghts)
-
-            else:
-                print "Could not find datacard", datacard
-    else:
-        sys.exit("Could not find root file in %s" % inputRootFile)
-
-#throwToys(sys.argv[1], sys.argv[2], sys.argv[3])
+throwToys(  wildcard = sys.argv[1], 
+            rootfile = sys.argv[2], 
+            pathToConfig = sys.argv[3],
+            additionalCmds = sys.argv[4])
 listOfPoisCombis = [
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
@@ -160,7 +181,7 @@ listOfPoisCombis = [
         #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         ]
 
-for pois in listOfPoisCombis:
-    tth_fit_stability(pois, sys.argv[1])
+# for pois in listOfPoisCombis:
+    # tth_fit_stability(pois, sys.argv[1])
 
 #JES_uncertainty_study(pathToDatacards = sys.argv[1], folderSuffix = sys.argv[2], additionalCmds = sys.argv[3])

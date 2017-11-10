@@ -15,6 +15,13 @@
 
 using namespace std;
 
+<<<<<<< HEAD
+=======
+bool fitBmustConverge_ = true;
+bool fitSBmustConverge_ = true;
+
+
+>>>>>>> 8f185d37d5a15580e676a358eda521b95acb4290
 TDirectoryFile* shapes(TFile* file, int mode =0)
 {
 	TDirectoryFile* Ddirect;
@@ -55,6 +62,10 @@ TDirectoryFile* shapes(TFile* file, int mode =0)
 		folder->Add(Ttemp);
 		List->RemoveLast();
 	}
+<<<<<<< HEAD
+=======
+	
+>>>>>>> 8f185d37d5a15580e676a358eda521b95acb4290
 	return folder;
 }
 
@@ -132,10 +143,44 @@ void change(TFile* file, int mod = 0, TDirectoryFile* Fpostb = NULL, TDirectoryF
 	}
 	Fpostb->Write();
 	Fcorr->Write();
+<<<<<<< HEAD
 }
 
+=======
+	delete Tnuisances;
+	delete Tcorr;
+}
+>>>>>>> 8f185d37d5a15580e676a358eda521b95acb4290
 
+bool checkFitStatus(TFile* file){
+  bool storeExperiment = true;
+  int fit_status=7;
+  TString fit_trees[2] = {"tree_fit_sb", "tree_fit_b"};
+  bool fit_flags[2] = {fitSBmustConverge_, fitBmustConverge_};
+  for(int nTrees=0; nTrees<2; nTrees++)
+  {
+    TTree* tree = (TTree*)file->Get(fit_trees[nTrees].Data());
+    if(tree != NULL)
+    {
+      if(tree->SetBranchAddress("fit_status",&fit_status)>= 0)
+      {
+        tree->GetEntry(0);
+        if((fit_status != 0)){
+          std::cout << "WARNING fit_status in " << fit_trees[nTrees].Data() << " did not converge!\n";
+          if(fit_flags[nTrees]) storeExperiment = false;
+        }
+      }
+      fit_status=7;
+    }
+    else{
+      std::cerr << "ERROR   could not load tree " << fit_trees[nTrees].Data() << " from file " << file->GetName() << std::endl;
+      storeExperiment = false;
+    }
+  }
+  return storeExperiment;
+}
 
+<<<<<<< HEAD
 int TConvert(TString filename = "mlfit")
 {
 	TString* readfile = new TString(filename);
@@ -163,4 +208,79 @@ int TConvert(TString filename = "mlfit")
 	
 	output->Close();
 	return 0;
+=======
+bool checkCovarianceMatrix(TFile* file){
+  bool accurateCovariance = false;
+  TString rooFitObjects[2] = {"fit_b", "fit_s"};
+  int quality = -1;
+  bool qualities[2] = {false, false};
+  for(int currentObject=0; currentObject < 2; currentObject++){
+    RooFitResult* fitObject = 0;
+    file->GetObject(rooFitObjects[currentObject].Data(),fitObject);
+    if( fitObject == 0 ) {
+      std::cerr << "ERROR getting '" << rooFitObjects[currentObject].Data() << "' from file '" << file->GetName() << "'" << std::endl;
+      //throw std::exception();
+    }
+    else{
+      quality=-1;
+      quality=fitObject->covQual();
+      if(debug_)
+      {
+        std::cout << "    DEBUG: quality of covariance matrix in " << rooFitObjects[currentObject].Data() << " is " << quality;
+        if(quality==-1) std::cout << rooFitObjects[currentObject].Data() << ": Unknown, matrix was externally provided\n";
+        if(quality==0) std::cout << rooFitObjects[currentObject].Data() << ": Not calculated at all\n";
+        if(quality==1) std::cout << rooFitObjects[currentObject].Data() << ": Approximation only, not accurate\n";
+        if(quality==2) std::cout << rooFitObjects[currentObject].Data() << ": Full matrix, but forced positive-definite\n";
+      }
+      if(quality==3) {
+        if(debug_) std::cout << rooFitObjects[currentObject].Data() << ": Full, accurate covariance matrix\n";
+        qualities[currentObject] = true;
+      }
+    }
+    delete fitObject;
+  }
+  if(!fitSBmustConverge_ && !fitBmustConverge_) return true;
+  if(fitBmustConverge_){
+    if(qualities[0]) accurateCovariance = true;
+  }
+  if(fitSBmustConverge_){
+    if(qualities[1]) accurateCovariance = true;
+    else accurateCovariance = false;
+  }
+  return accurateCovariance;
+}
+
+
+void TConvert(TString filename = "mlfit")
+{
+	TString readfile = filename;
+	readfile.Append(".root");
+	TFile* read = new TFile(readfile->Data());
+	if( file->IsOpen() && !file->IsZombie() && !file->TestBit(TFile::kRecovered)){
+		if( checkCovarianceMatrix(read) && checkFitStatus(read))
+		{
+			filename.Append("_test.root");
+			TFile* output = new TFile(filename.Data(),"RECREATE");
+			TDirectoryFile* Ffitpre;
+			TDirectoryFile* Ffitbac;
+			TDirectoryFile* Ffitsig;
+			TDirectoryFile* Fcorpre;
+			TDirectoryFile* Fcorbac;
+			TDirectoryFile* Fcorsig;
+			TDirectoryFile* Fshapepre = shapes(read,0);
+			TDirectoryFile* Fshapebac = shapes(read,1);
+			TDirectoryFile* Fshapesig = shapes(read,2);
+			change(read,0,Ffitpre,Fcorpre);
+			change(read,1,Ffitbac,Fcorbac);
+			change(read,2,Ffitsig,Fcorsig);
+		
+			Fshapepre->Write();
+			Fshapebac->Write();
+			Fshapesig->Write();
+			output->Close();
+
+		}
+		read->Close();
+	}
+>>>>>>> 8f185d37d5a15580e676a358eda521b95acb4290
 }

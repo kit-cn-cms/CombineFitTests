@@ -23,29 +23,32 @@
 #include "helperFuncs.h"
 #include "createLatexOutput.h"
 
-// double checkValues(double x){
-//     if(std::isnan(x)) return 0;
-//     else return x;
-// }
-
 void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const TString label){
-    TString outputName = label;
-    if(outputName.Contains(" = ")) outputName.ReplaceAll(" = ", "_");
-    if(outputName.Contains("=")) outputName.ReplaceAll("=","_");
-    if(outputName.Contains(" ")) outputName.ReplaceAll(" ", "_");
-    if(outputName.Contains(".")) outputName.ReplaceAll(".","p");
-    outputName.Prepend(outlabel);
-
-    TFile* output = TFile::Open(outputName+".root", "RECREATE");
-    TCanvas can;
-
-    can.SetMargin(0.25, 0.15, 0.15, 0.08);
-    correlationPlot->SetStats(kFALSE);
-    correlationPlot->Draw("coltzTEXTE");
-    correlationPlot->Write();
-    can.Write(outputName);
-    can.SaveAs(outputName+".pdf");
-    output->Close();
+    if(correlationPlot)
+    {
+        TString outputName = label;
+        if(outputName.Contains(" = ")) outputName.ReplaceAll(" = ", "_");
+        if(outputName.Contains("=")) outputName.ReplaceAll("=","_");
+        if(outputName.Contains(" ")) outputName.ReplaceAll(" ", "_");
+        if(outputName.Contains(".")) outputName.ReplaceAll(".","p");
+        outputName.Prepend(outlabel);
+    
+        TFile* output = TFile::Open(outputName+".root", "RECREATE");
+        TCanvas can;
+    
+        can.SetMargin(0.25, 0.15, 0.15, 0.08);
+        correlationPlot->SetStats(kFALSE);
+        // correlationPlot->Draw("coltzTEXTE");
+        correlationPlot->Draw("coltz");
+        correlationPlot->Write();
+        can.Write(outputName);
+        std::cout << "creating " << outputName << ".pdf\n";
+        can.SaveAs(outputName+".pdf");
+        output->Close();
+    }
+    else{
+        std::cerr << "was unable to load correlation matrix!\n";
+    }
 }
 
 void compareDistributions(const std::vector<TH1*>& hists,
@@ -460,7 +463,7 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
 
     std::cout << "comparing mean values for POI\n";
     compareMeanValues(hPOIs,hInit,labels,outLabel+"POImeans",hPOImedians);
-    createLatexOutput::writePOILatexTable(hPOIs, hPOImedians, hPOIwithFittedError, outLabel+"POI.tex", "Signal Strength Parameters", testName);
+    createLatexOutput::writePOILatexTable(hPOIs, hPOImedians, hPOIwithFittedError, outLabel+"POI.txt", "Signal Strength Parameters", testName);
     compareDistributions(hists,labels,outLabel+"POI",false);
 
     if(hPOIs != NULL) delete hPOIs;
@@ -700,8 +703,6 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
     if(injectedMu != -999) nominalMu = injectedMu;
     else
     {
-
-
         helper = containsSignalStrength;
         helper.Remove(0,helper.Index("sig")+3);
         if(helper.Length() > 3) helper.Remove(3, helper.Length());
@@ -743,8 +744,8 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   int ncolor=0;
   Color_t colors[5] = {kBlue, kRed, kBlack, kGreen, kOrange};
 
-  //if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
-  //std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
+  // if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
+  // std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
   TSystemDirectory dir(pathname.Data(), pathname.Data());
   if(pathname.Contains("PseudoExperiment")){
     loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
@@ -787,14 +788,27 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
     comparePOIs(expSet,outputPath, testName);
     compareNuisanceParameters(expSet,outputPath,true);
     compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+    TH2D* correlation;
     for(auto& exp : expSet){
       std::cout << "label " << exp() << std::endl;
       std::cout << "\tr = " << exp.muMean() << " +- " << exp.muMeanError() << " +- " << exp.muRMS() << " +- " << exp.muError() << std::endl;
+      // std::cout << "\tprinting correlation for Bonly fit\n";
+      // correlation = exp.getCorrelationPlotPostfitB();
+      // printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitB_" + exp());
+      // if(correlation) delete correlation;
+      
+      // std::cout << "\tprinting correlation for S+B fit\n";
+      // correlation = exp.getCorrelationPlotPostfitS();
+      // printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitS_" + exp());
+      // if(correlation) delete correlation;
     }
 
 
   }
   else std::cerr << "was unable to load any Pseudo Experiments!\n";
+  // expSet.push_back(PseudoExperiments("test", 1.0));
+  // expSet.back().addExperiments(pathname);
+  
 }
 
 
