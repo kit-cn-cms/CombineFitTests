@@ -10,12 +10,13 @@
 #include "PseudoDataGenerator.h"
 #include "StringOperations.h"
 
-const TString workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/PseudoDataTests/";
-const TString datacard = workdir+"datacards/limits_Spring17v2p2_ttbarincl_datacard_ljets_jge6_tge4_hdecay_ttHbb_ttbb.txt";
-const TString templatesNominal = workdir+"datacards/limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
-const TString templatesTTBB = workdir+"datacards/limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
+const TString workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v22/newkit_ljets_v22/";
+const TString datacard = workdir+"limits_All_v22_datacard_ljets_jge6_t3_hdecay_majorProcs_noBinByBin_theoryNP.txt";
+const TString templatesNominal = workdir+"common/ttH_hbb_13TeV_sl.root";
+// const TString templatesTTBB = workdir+"datacards/limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
+const TString templatesTTBB = templatesNominal;
 const TString CMSSW_BASE = "/nfs/dust/cms/user/pkeicher/CMSSW_7_4_7";
-const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.001 --saveNormalizations --saveShapes --freezeNuisances all";
+const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.00001 --saveNormalizations --saveShapes --minos all";
 
 
 void generatePseudoData(const TString& outdir,
@@ -24,9 +25,10 @@ void generatePseudoData(const TString& outdir,
 		      const double scanIntervallSize = 5.)
 {
 
-  std::vector<Category::Type> categories = { //Category::SL_44,
-					     //Category::SL_54,
-					     //Category::SL_63//,
+  std::vector<Category::Type> categories = { 
+               Category::SL_44,
+					     Category::SL_54,
+					     Category::SL_63,
 					     Category::SL_64
 					    };
 
@@ -43,12 +45,12 @@ void generatePseudoData(const TString& outdir,
     //processes.push_back( Process(Process::ttHzz,templatesNominal,expectSignal) );
   }
 
-  //processes.push_back( Process(Process::ttlf,templatesNominal) );
-  //processes.push_back( Process(Process::ttcc,templatesNominal) );
+  processes.push_back( Process(Process::ttlf,templatesNominal) );
+  processes.push_back( Process(Process::ttcc,templatesNominal) );
 
   processes.push_back( Process(Process::ttbb,templatesTTBB) );
-  //processes.push_back( Process(Process::ttb,templatesTTBB) );
-  //processes.push_back( Process(Process::tt2b,templatesTTBB) );
+  processes.push_back( Process(Process::ttb,templatesTTBB) );
+  processes.push_back( Process(Process::tt2b,templatesTTBB) );
 
   std::cout << "Reading processes" << std::endl;
   for(auto& category: categories) {
@@ -106,9 +108,11 @@ void generatePseudoData(const TString& outdir,
       out << "cd " << CMSSW_BASE << "/src\n";
       out << "eval `scram runtime -sh`\n";
       out << "cd -\n\n";
+      out << "cd " << experimentDir << "\n";
       out << "echo '" << finalCombineCmd << " " << datacardName << "'\n";
       out << finalCombineCmd << " " << datacardName << "\n";
       out << "rm higgsCombineTest.MaxLikelihoodFit*.root\n";
+      out << "cd -\n";
 
       out.close();
 
