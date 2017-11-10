@@ -13,7 +13,7 @@ parser.add_option("-d", "--datacard", help = "path to datacard to use for toy ge
 parser.add_option("-t", help = "number of toys in toysFile, -1 for asimov toys (default = -1)", dest = "t", type = "int", default = -1)
 parser.add_option("--addFitCommand", help = "add option to standard combine command 'MultiDimFit' (can be used multiple times)", dest = "addFitCommand", action = "append")
 parser.add_option("--addToyCommand", help = "add option to standard combine command 'GenerateOnly' (can be used multiple times)", dest = "addToyCommand", action = "append")
-parser.add_option("-x", "--xVariable", help = "variable for x axis", dest="x")
+parser.add_option("-x", "--xVariable", help = "variable for x axis", dest="x", default="r")
 parser.add_option("-y", "--yVariable", help = "variable for y axis (default = deltaNLL)", dest="y", default = "deltaNLL")
 parser.add_option("--scan2D", help = "perform 2D NLL scan", dest="scan2D", action="store_true", default=False)
 parser.add_option("-n", "--suffix", help = "add suffix to output name", dest = "suffix", default = "")
@@ -22,6 +22,8 @@ parser.add_option("--directlyDrawFrom", metavar = "path/to/scan/results", dest =
 parser.add_option("--points", dest = "points", metavar = "numberOfPoints", help = "number of points to scan (default = 1000)", type = "int", default = "1000")
 parser.add_option("--bonly", help = "perform background only fit (creates multiSignalModel where signal strength is not mapped to anything)", action = "store_true", default = False, dest = "bonly")
 parser.add_option("-w", "--workspace", dest = "workspace", metavar = "path/to/workspace", help = "path to workspace to use for fit")
+parser.add_option("--scanUnconstrained", dest = "unconstrained", action = "store_true", default = False, help = "Drop constraints for scaned parameters")
+parser.add_option("--floatR", dest = "floatR", action = "store_true", default = False, help = "keep other POIs (e.g. signal strength r) floating. If not set, r is fixed to one value (can be set via '--setPhysicsModelParameter r=Value', should be added to '--addFitCommand')")
 
 (options, args) = parser.parse_args()
 
@@ -37,6 +39,8 @@ nToys = options.t
 additionalCmds = options.addFitCommand
 additionalToyCmds = options.addToyCommand
 nPoints = options.points
+unconstrained = options.unconstrained
+float_r = options.floatR
 
 if directDrawPath == None:
     if toysFile == None:
@@ -103,14 +107,19 @@ if directDrawPath is None:
         print "starting toy generation"
         cmd = "combine -M GenerateOnly -m 125"
         cmd += " -t " + str(nToys)
-        cmd += " --saveToys -n " + suffix
+        cmd += " --saveToys"
+        if suffix:
+            cmd += " -n " + suffix
         if additionalToyCmds:
             cmd += " " + " ".join(additionalToyCmds)
         cmd += " " + datacard
         
         print cmd
         subprocess.call([cmd], shell=True)
-        toysFile = "higgsCombine" + suffix + ".GenerateOnly.mH125.123456.root"
+        if suffix:
+            toysFile = "higgsCombine" + suffix + ".GenerateOnly.mH125.123456.root"
+        else:
+            toysFile = "higgsCombineTest.GenerateOnly.mH125.123456.root"
         toysFile = os.path.abspath(toysFile)
         if not os.path.exists(toysFile):
             sys.exit("Could not generate toy file %s! Aborting" % toysFile)
@@ -142,7 +151,10 @@ if directDrawPath is None:
         if additionalToyCmds:
             multidimfitcmd += " " + " ".join(additionalToyCmds)
     multidimfitcmd += ' --rMin -10 --rMax 10 --saveFitResult'
-    multidimfitcmd += ' --saveInactivePOI 1 --floatOtherPOI 1'
+    multidimfitcmd += ' --saveInactivePOI 1'
+    
+    if float_r:
+        multidimfitcmd += ' --floatOtherPOIs 1'
     if not suffix == "":
         multidimfitcmd += ' -n ' + suffix
         fitresFile += suffix
@@ -151,6 +163,19 @@ if directDrawPath is None:
     if additionalCmds:
         for cmd in additionalCmds:
             multidimfitcmd += " " + cmd
+    if unconstrained:
+        if not xVar == "r":
+            multidimfitcmd += " --redefineSignalPOIs " + xVar
+            if not yVar == "deltaNLL":
+                multidimfitcmd += "," + yVar
+        else:
+            if not yVar == "deltaNLL":
+                multidimfitcmd += " --redefineSignalPOIs " + yVar
+    else:
+        if not xVar == "r":
+            multidimfitcmd += " -P " + xVar
+        if not yVar == "deltaNLL":
+            multidimfitcmd += " -P " + yVar
 
     print multidimfitcmd
     subprocess.call([multidimfitcmd], shell=True)
@@ -167,11 +192,11 @@ else:
 
 #======================================================================
 def find_crossing(graph, cl, start, stop):
-    stepsize = 0.001
+    stepsize = 0.0001
     deltabest = 9999
     epsilon = 1e-3
     print "looking for crossing at {0} in interval [{1}, {2}]".format(cl, start, stop)
-    xlast = start
+    xbest = start
     if stop >= start:
         for i in range(0, int(abs(start - stop)/stepsize)):
             x = start + i*stepsize
@@ -179,11 +204,14 @@ def find_crossing(graph, cl, start, stop):
             yval = graph.Eval(x)
             delta = abs(cl - yval)
             # print "\tcurrent delta =", delta
-            if delta > deltabest and deltabest <= epsilon:
-                print "found crossing at", xlast
-                return xlast
-            deltabest = delta
-            xlast = x
+            if delta < deltabest:
+                if deltabest <= epsilon:
+                    print "found crossing at", xbest
+                    return xbest
+                else:
+                    # print "setting deltabest to", deltabest
+                    deltabest = delta
+                    xbest = x
     else:
         for i in range(0, int(abs(start - stop)/stepsize)):
             x = start - i*stepsize
@@ -191,11 +219,14 @@ def find_crossing(graph, cl, start, stop):
             yval = graph.Eval(x)
             delta = abs(cl - yval)
             # print "\tcurrent delta =", delta
-            if delta > deltabest and deltabest <= epsilon:
-                print "found crossing at", xlast
-                return xlast
-            deltabest = delta
-            xlast = x
+            if delta < deltabest:
+                if deltabest <= epsilon:
+                    print "found crossing at", xbest
+                    return xbest
+                else:
+                    # print "setting deltabest to", deltabest
+                    deltabest = delta
+                    xbest = x
     print "could not find crossing in interval"
     return None
 
@@ -226,12 +257,14 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
         xmin = graph.GetXaxis().GetXmin()
         xmax = graph.GetXaxis().GetXmax()
         
-        parabel = ROOT.TF1("parabel", "[0]*(x*x*x*x - [1]*[1]*[1]*[1]) + [2]*(x*x*x - [1]*[1]*[1]) + [3]*(x*x - [1]*[1]) + [4]*(x - [1]) + [5]", xmin, xmax)
+        parabel = ROOT.TF1("parabel", "[0]*(x*x*x*x - [1]*[1]*[1]*[1]) + [2]*(x*x*x - [1]*[1]*[1]) + [3]*(x*x - [1]*[1]) + [4]*(x - [1]) + [5] + [6]*(x*x*x*x*x - [1]*[1]*[1]*[1]*[1]) + [7]*(x*x*x*x*x*x - [1]*[1]*[1]*[1]*[1]*[1])", xmin, xmax)
         parabel.SetParNames("a", "best fit val", "b", "c", "d", "best fit y")
         parabel.SetParameter(0, 0.5)
         parabel.SetParameter(2, 0.5)
         parabel.SetParameter(3, 0.5)
         parabel.SetParameter(4, 0.5)
+        parabel.SetParameter(6, 0.5)
+        parabel.SetParameter(7, 0.5)
         parabel.FixParameter(1, xbest)
         # parabel.SetParameter(1,xbest)
         if ybest:
@@ -240,6 +273,7 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
         else:
             print "got no best fit y!"
             parabel.SetParameter(5, 0.5)
+        parabel.SetNpx(1000)
         # parabel.SetParameter(1, xbest)
         parabel.SetLineStyle(3)
         parabel.SetLineColor(ROOT.kBlack)
