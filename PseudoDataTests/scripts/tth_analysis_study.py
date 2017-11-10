@@ -56,7 +56,7 @@ dest="pathToDatacard",
 help="path to datacard with original MC templates",
 metavar="path/to/orignal/datacard"
 )
-group_required.add_option("-r", "--rootfile",
+group_scalingOptions.add_option("-r", "--rootfile",
 dest="pathToRoofile",
 help="path to root file specified in the datacard for option '-d'",
 metavar = "path/to/root/file"
@@ -76,6 +76,11 @@ dest="additionalFitCmds",
 help = "add combine command for fit (-M MaxLikelihoodFit)(can be used multiple times)",
 action="append",
 )
+group_globalOptions.add_option("--skipRootGen",
+help = "skip the generation of the scaled input root files to run faster (default = false)",
+action = "store_true",
+dest = "skipRootGen",
+default = False)
 group_scalingOptions.add_option("--scaledDatacard",
 dest="pathToScaledDatacard",
 help="use this datacard to throw toys from",
@@ -91,7 +96,7 @@ dest = "listOfFormulae",
 help="comma-separated list of functions to scale processes with.\nBased on TF1 functionality. Requires same order as in option '--scaleProcesses'",
 metavar="FUNC1,FUNC2,..."
 )
-group_required.add_option("-c", "--config",
+group_scalingOptions.add_option("-c", "--config",
 dest = "config",
 #default = "config.py",
 help="path to config.py file specifying lists of signal processes, background processes and keys for templates in root file",
@@ -179,6 +184,7 @@ additionalToyCmds = options.additionalToyCmds
 additionalFitCmds = options.additionalFitCmds
 
 resetFolders = not options.folderReset
+skipRootGen = options.skipRootGen
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
@@ -247,6 +253,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     mlfitCmd += "-m 125 --minimizerStrategy 0 --minimizerTolerance 0.00001 "
     mlfitCmd += "--saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 "
     mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile --minos all "
+    # mlfitCmd += "--robustFit 1 "
     if additionalFitCmds is not None:
         for cmd in additionalFitCmds:
             mlfitCmd += cmd + " "
@@ -682,45 +689,45 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
 
     for key in listOfKeys:
         path=ROOT.gDirectory.GetPathStatic()
-        if key.IsFolder():
-            if not path.endswith("/"):
-                path = path + "/"
-            pathIntoKeyDir = path + key.GetName()
-            outputFile.mkdir(pathIntoKeyDir)
-            outputFile.cd(pathIntoKeyDir)
-            inputRootFile.cd(pathIntoKeyDir)
-            copyOrScaleElements(inputRootFile, outputFile, processScalingDic, ROOT.gDirectory.GetListOfKeys(), listOfNormRatios)
-            outputFile.cd(path)
-            inputRootFile.cd(path)
-        else:
-            keyName = key.GetName()
-            saved=False
-            for cat in config.categories:
+        # if key.IsFolder():
+            # if not path.endswith("/"):
+                # path = path + "/"
+            # pathIntoKeyDir = path + key.GetName()
+            # outputFile.mkdir(pathIntoKeyDir)
+            # outputFile.cd(pathIntoKeyDir)
+            # inputRootFile.cd(pathIntoKeyDir)
+            # copyOrScaleElements(inputRootFile, outputFile, processScalingDic, ROOT.gDirectory.GetListOfKeys(), listOfNormRatios)
+            # outputFile.cd(path)
+            # inputRootFile.cd(path)
+        # else:
+        keyName = key.GetName()
+        saved=False
+        for cat in config.categories:
+            if not saved:
+                if not cat in data_obs:
+                    histoCatKey = config.histoKey.replace("$CHANNEL", cat)
+                    data_obs_key = histoCatKey.replace("$PROCESS", "data_obs")
+                    temp = inputRootFile.Get(data_obs_key)
+                    if not isinstance(temp, ROOT.TH1):
+                        sys.exit("Unable to load data_obs with key %s! Aborting" % data_obs_key)
+
+                    data_obs[cat] = temp.Clone()
+                    data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
+                    data_obs[cat].Reset()
+
+                for signalHistoName in config.signalHistos[cat]:
+                    if keyName.startswith(signalHistoName):
+                        saveHistos(cat, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs)
+                        saved = True
+                        break
                 if not saved:
-                    if not cat in data_obs:
-                        histoCatKey = config.histoKey.replace("$CHANNEL", cat)
-                        data_obs_key = histoCatKey.replace("$PROCESS", "data_obs")
-                        temp = inputRootFile.Get(data_obs_key)
-                        if not isinstance(temp, ROOT.TH1):
-                            sys.exit("Unable to load data_obs with key %s! Aborting" % data_obs_key)
-
-                        data_obs[cat] = temp.Clone()
-                        data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
-                        data_obs[cat].Reset()
-
-                    for signalHistoName in config.signalHistos[cat]:
-                        if keyName.startswith(signalHistoName):
-                            saveHistos(cat, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs)
+                    for backgroundHistoName in config.backgroundHistos[cat]:
+                        if keyName.startswith(backgroundHistoName):
+                            saveHistos(cat, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs, (keyName == backgroundHistoName))
                             saved = True
                             break
-                    if not saved:
-                        for backgroundHistoName in config.backgroundHistos[cat]:
-                            if keyName.startswith(backgroundHistoName):
-                                saveHistos(cat, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs, (keyName == backgroundHistoName))
-                                saved = True
-                                break
-                else:
-                    break
+            else:
+                break
     for cat in data_obs:
         data_obs[cat].Write()
     print "\tdone with copying/scaling"
@@ -753,7 +760,36 @@ def checkForMSworkspace(pathToDatacard, POImap):
 
     return returnString
 
-def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath):
+def check_workspace(pathToDatacard):
+    workspacePath = ""
+    parts = pathToDatacard.split(".")
+    outputPath = ".".join(parts[:len(parts)-1]) + ".root"
+    if not os.path.exists(outputPath):
+        print "generating workspace for", pathToDatacard
+        
+        bashCmd = ["source {0}/setupCMSSW.txt ;".format(workdir)]
+        bashCmd.append("text2workspace.py -m 125 " + pathToDatacard)
+        bashCmd.append("-o " + outputPath)
+        print bashCmd
+        subprocess.call([" ".join(bashCmd)], shell = True)
+   
+    workspacePath = outputPath
+   
+    if os.path.exists(workspacePath):
+        f = ROOT.TFile(workspacePath)
+        if not (f.IsOpen() and not f.IsZombie() and not f.TestBit(ROOT.TFile.kRecovered)):
+            workspacePath = ""
+        else:
+            test = f.Get("w")
+            if not isinstance(test, ROOT.RooWorkspace):
+                print "could not find workspace in", workspacePath
+                workspacePath = ""
+    else:
+        print "could not find", workspacePath
+        workspacePath = ""
+    return workspacePath
+        
+def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath, pathToDatacard):
     print "outputPath in generateToysAndFit:", outputPath
     if not os.path.exists("temp"):
         os.makedirs("temp")
@@ -768,12 +804,16 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
         for processPair in processScalingDic:
             suffix = suffix+processPair[0].replace("*","")+"_"+processPair[1].replace("*","")+"_"
         newRootFileName = "temp_" + suffix + os.path.basename(inputRootFile.GetName())
-        outputFile = ROOT.TFile(newRootFileName,"RECREATE")
-
-
-        copyOrScaleElements(inputRootFile, outputFile, processScalingDic, inputRootFile.GetListOfKeys(), listOfNormsPrescale, listOfNormsPostscale)
-        outputFile.Close()
-
+        if not skipRootGen:
+            outputFile = ROOT.TFile(newRootFileName,"RECREATE")
+    
+    
+            copyOrScaleElements(inputRootFile, outputFile, processScalingDic, inputRootFile.GetListOfKeys(), listOfNormsPrescale, listOfNormsPostscale)
+            outputFile.Close()
+        
+        if not os.path.exists(newRootFileName):
+            sys.exit("Could not find root file with scaled input!")
+        
         datacardToUse = os.path.abspath(writeDatacard(pathToDatacard, newRootFileName, listOfProcesses))
 
         newRootFileName = "temp_shape_expectation.root"#_" + suffix + os.path.basename(inputRootFile.GetName())
@@ -792,7 +832,24 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
         pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
-        jobids = submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus = listOfMus)
+        print "checking if all datacards are workspaces"
+        
+        temp = check_workspace(pathToDatacard)
+        if temp:
+            pathToDatacard = temp
+        temp = check_workspace(datacardToUse)
+        if temp:
+            datacardToUse = temp
+        
+        
+        jobids = submitArrayJob(pathToDatacard = pathToDatacard, 
+                                datacardToUse = datacardToUse,
+                                outputDirectory = outputDirectory, 
+                                numberOfToys = numberOfToys, 
+                                numberOfToysPerJob = numberOfToysPerJob,
+                                toyMode = toyMode,
+                                pathToMSworkspace = pathToMSworkspace,
+                                listOfMus = listOfMus)
         print "waiting for toy generation to finish"
         # do_qstat(jobids)
         # os.chdir(workdir)
@@ -828,34 +885,38 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     newDatacard = open(newDatacardName, "w")
     listOfEntriesToChange = []
     print listOfProcesses
-    for line in datacard:
+    lines = datacard.read().splitlines()
+    for line in lines:
         entries = line.split()
-        if entries[0].startswith("#"): #skip lines that start with '#', as those are not considered in combine anyway
-            continue
-        if skipParameter(entries[0]): #skip line if parameter is to be ignored (as per definition in config file)
-            print "skipping line that starts with", entries[0]
-            continue
-
-        for i, entry in enumerate(entries):
-            #print "\t", i, "\t", entry
-            if entries[0] == "observation" and not i == 0:
-                entry = "-1"
-            if entries[0]=="process":
-                #print "first entry of line is process!"
-                if entry in listOfProcesses:
-                    #print "found match! Saving index of process", entry
-                    listOfEntriesToChange.append(i)
-            if entries[0]=="rate":
-                #print "first entry of line is rate!"
-
-                if i in listOfEntriesToChange:
-                    #print "found match!"
+        print entries
+        if len(entries) is not 0:
+            #skip lines that start with '#', as those are not considered in combine anyway
+            if line.startswith("#"):
+                continue
+            if skipParameter(entries[0]): #skip line if parameter is to be ignored (as per definition in config file)
+                print "skipping line that starts with", entries[0]
+                continue
+    
+            for i, entry in enumerate(entries):
+                #print "\t", i, "\t", entry
+                if entries[0] == "observation" and not i == 0:
                     entry = "-1"
-            if entry.endswith(".root"):
-                #print "\tfound entry for root file! Replacing", entry, "with", newRootFileName
-                entry = newRootFileName
-            newDatacard.write(entry+" ")
-        newDatacard.write("\n")
+                if entries[0]=="process":
+                    #print "first entry of line is process!"
+                    if entry in listOfProcesses:
+                        #print "found match! Saving index of process", entry
+                        listOfEntriesToChange.append(i)
+                if entries[0]=="rate":
+                    #print "first entry of line is rate!"
+    
+                    if i in listOfEntriesToChange:
+                        #print "found match!"
+                        entry = "-1"
+                if entry.endswith(".root"):
+                    #print "\tfound entry for root file! Replacing", entry, "with", newRootFileName
+                    entry = newRootFileName
+                newDatacard.write(entry+" ")
+            newDatacard.write("\n")
 
     newDatacard.close()
     datacard.close()
@@ -880,6 +941,10 @@ if os.path.exists(pathToDatacard):
     #print "outputDir after calling abspath:", outputDirectory
     os.chdir(outputDirectory)
     #print "outputDirectory after changing dirs:", outputDirectory
-    generateToysAndFit(inputRootFile, scalingDic, pathToScaledDatacard, outputDirectory)
+    generateToysAndFit( inputRootFile = inputRootFile, 
+                        processScalingDic = scalingDic, 
+                        pathToScaledDatacard = pathToScaledDatacard, 
+                        outputPath = outputDirectory,
+                        pathToDatacard = pathToDatacard)
 else:
     print "Incorrect paths to input datacard. Please make sure path to datacard is correct!"
