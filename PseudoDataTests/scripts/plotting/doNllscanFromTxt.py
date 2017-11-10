@@ -29,8 +29,8 @@ if os.path.exists(pathToDatacards):
 		print param
 		cmd = "python {0}/nllscan.py".format(scriptDir)
 		cmd += " -d {0}/{1}.root".format(pathToDatacards, datacardname)
-		cmd += ' -x {0} --addFitCommand "-P {0}"'.format(param)
-		
+		cmd += ' -x {0}'.format(param)
+		cmd += ' --floatR'
 		cmd += " -n _" + datacardname
 		if cmdList:
 		    cmd += " " + " ".join(cmdList)
