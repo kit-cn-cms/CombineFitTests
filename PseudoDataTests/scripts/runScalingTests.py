@@ -21,19 +21,19 @@ processDic = {
 # "ttbarPlusBBbar,ttbarPlus2B,ttbarPlusB": ["1.3", "1.8"]#["0.5", "0.8", "1.2", "1.5"]
 }
 
-# listOfPoisCombis = [
-        # #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
-        # #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        # #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
-        # #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
+listOfPoisCombis = [
+        #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]"},
+        #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
+        #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
         # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},
         # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        # #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]"},
-        # #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        # ]
-listOfPoisCombis = None
+        #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]"},
+        #{"r_ttBPlus2B" : "(ttbarPlusB|ttbarPlus2B):r_ttBPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
+        ]
+# listOfPoisCombis = None
 
 def runScript(targetPath, suffix, pathToDatacard, pathToRoofile = None, pois = None, key = None, factor = None, pathToConfig = None, listOfMus = None):
     # construct command string
@@ -77,8 +77,8 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
     if additionalCmds:
         string = additionalCmds
     runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
-    # if pathToSherpa:
-        # runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa)
+    if pathToSherpa:
+        runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
     # if pathToAMC:
         # runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
@@ -159,6 +159,7 @@ def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
         runScript(targetPath = targetPath, suffix = suffix + folderSuffix , pathToDatacard = datacard, key = additionalCmds)
 
 def throwToys(wildcard, rootfile = None, pathToConfig = None, additionalCmds = None, pois = None):
+    sherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v22/finalComb_v22_fresh/SL_BDTonly_645444635343_sherpa.txt"
     for datacard in glob.glob(wildcard):
         if os.path.exists(os.path.abspath(datacard)):
             datacard = os.path.abspath(datacard)
@@ -166,7 +167,12 @@ def throwToys(wildcard, rootfile = None, pathToConfig = None, additionalCmds = N
             rootfile = os.path.abspath(rootfile)
             parts = os.path.basename(datacard).split(".")
             
-            outputDirectory = targetPath + "/toys/" + ".".join(parts[:len(parts)-1])
+            outputDirectory = targetPath
+            if additionalCmds and "asimov" in additionalCmds:
+                outputDirectory += "/asimov/"
+            else:
+                outputDirectory += "/toys/" 
+            outputDirectory += ".".join(parts[:len(parts)-1])
             outputDirectory = os.path.abspath(outputDirectory)
             
             string = ""
@@ -181,13 +187,15 @@ def throwToys(wildcard, rootfile = None, pathToConfig = None, additionalCmds = N
                         pathToRoofile = rootfile,
                         pathToConfig = pathToConfig, 
                         additionalCmds = additionalCmds,
-                        pois = poi)
+                        pois = poi,
+                        pathToSherpa = sherpa)
             else:
                 do_scaling( targetPath = outputDirectory, 
                         pathToDatacard = datacard, 
                         pathToRoofile = rootfile,
                         pathToConfig = pathToConfig, 
-                        additionalCmds = additionalCmds)
+                        additionalCmds = additionalCmds,
+                        pathToSherpa = sherpa)
         else:
             print "Could not find datacard", datacard
 
