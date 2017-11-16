@@ -81,27 +81,6 @@ if workspace:
 
 
 if directDrawPath is None:
-    if bonly:
-        print "will perform background-only fit"
-        suffix += "_bonly"
-        
-        if not workspace:
-            print "creating b-only workspace"
-            pathToWorkspace = os.path.dirname(datacard) + "/"
-            filename = os.path.basename(datacard)
-            parts = filename.split(".")
-            filename = ".".join(parts[:len(parts) - 1])
-            pathToWorkspace += filename + "_bonly.root"
-            cmd = "text2workspace.py " + datacard
-            cmd += " -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel"
-            cmd += " --PO verbose  --PO 'map=.*/(0):r[1,-10,10]'"
-            cmd += " -o " + pathToWorkspace
-            
-            print cmd
-            subprocess.call([cmd], shell=True)
-            if not os.path.exists(pathToWorkspace):
-                sys.exit("Could not generate bonly workspace in %s! Aborting" % pathToWorkspace)
-            workspace = pathToWorkspace
     
     if not toysFile:
         print "starting toy generation"
@@ -155,11 +134,7 @@ if directDrawPath is None:
     
     if float_r:
         multidimfitcmd += ' --floatOtherPOIs 1'
-    if not suffix == "":
-        multidimfitcmd += ' -n ' + suffix
-        fitresFile += suffix
-    else:
-        fitresFile += "Test"
+    
     if additionalCmds:
         for cmd in additionalCmds:
             multidimfitcmd += " " + cmd
@@ -176,7 +151,16 @@ if directDrawPath is None:
             multidimfitcmd += " -P " + xVar
         if not yVar == "deltaNLL":
             multidimfitcmd += " -P " + yVar
-
+    if bonly:
+        print "will perform background-only fit"
+        suffix += "_bonly"
+        multidimfitcmd += " --setParameters r=0 --freezeParameters r"
+        
+    if not suffix == "":
+        multidimfitcmd += ' -n ' + suffix
+        fitresFile += suffix
+    else:
+        fitresFile += "Test"
     print multidimfitcmd
     subprocess.call([multidimfitcmd], shell=True)
     for workspace in glob.glob("roostat*.root"):
