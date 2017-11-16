@@ -7,7 +7,7 @@ from optparse import OptionParser
 
 ROOT.gROOT.SetBatch(True)
 
-filesToCheck = ["mlfit.root"]#, "mlfit_MS_mlfit.root"]
+filesToCheck = ["fitDiagnostics.root"]#, "mlfit_MS_mlfit.root"]
 
 
 parser = OptionParser()
