@@ -26,10 +26,10 @@ void generatePseudoData(const TString& outdir,
 {
 
   std::vector<Category::Type> categories = { 
-               Category::SL_44,
-					     Category::SL_54,
+               // Category::SL_44,
+					     // Category::SL_54,
 					     Category::SL_63,
-					     Category::SL_64
+					     // Category::SL_64
 					    };
 
   std::vector<Process> processes;
@@ -48,7 +48,7 @@ void generatePseudoData(const TString& outdir,
   processes.push_back( Process(Process::ttlf,templatesNominal) );
   processes.push_back( Process(Process::ttcc,templatesNominal) );
 
-  processes.push_back( Process(Process::ttbb,templatesTTBB) );
+  processes.push_back( Process(Process::ttbb,templatesTTBB, 1.3) );
   processes.push_back( Process(Process::ttb,templatesTTBB) );
   processes.push_back( Process(Process::tt2b,templatesTTBB) );
 
@@ -163,7 +163,7 @@ void createPseudoData(TString outdir,
 	double signalStrengths[2] = {0.0, 1.0};
 	TString outputDir;
 	if(outdir.EndsWith("/")) outdir.Chop();
-	for(int i=0; i<2;i++){
+	for(int i=1; i<2;i++){
 		outputDir.Form("/sig%0.1f", signalStrengths[i]);
 		outputDir.Prepend(outdir);
 		generatePseudoData(outputDir, nExperiments, signalStrengths[i], scanIntervallSize);
