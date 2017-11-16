@@ -7,6 +7,15 @@ import time
 import shutil
 import imp
 
+directory = os.path.dirname(os.path.abspath(sys.argv[0]))
+basefolder = os.path.abspath(os.path.join(directory, "base"))
+
+if not basefolder in sys.path:
+    sys.path.append(basefolder)
+
+from batchConfig import *
+batch = batchConfig(queue="short")
+
 from array import array
 from optparse import OptionParser
 from optparse import OptionGroup
@@ -14,7 +23,7 @@ from optparse import OptionGroup
 ROOT.gROOT.SetBatch(True)
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
-pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW.txt"
+pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
 
 
 parser = OptionParser()
@@ -226,7 +235,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard
 
     Command for MaxLikelihoodFit (both for simple fit and multi signal model):
-    combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.00001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
+    combine -M MaxLikelihoodFit -m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001  --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
 
     Keyword arguments:
 
@@ -250,7 +259,9 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     #create combine MaxLikelihoodFit command
 
     mlfitCmd = "combine -M MaxLikelihoodFit "
-    mlfitCmd += "-m 125 --minimizerStrategy 0 --minimizerTolerance 0.00001 "
+    mlfitCmd += "-m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 "
+    mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
+    mlfitCmd += "--cminDefaultMinimizerTolerance 1e-5 "
     mlfitCmd += "--saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 "
     mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile --minos all "
     # mlfitCmd += "--robustFit 1 "
@@ -380,79 +391,79 @@ def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript.append('fi')
     return shellscript
 
-def submitArrayToNAF(scripts, arrayscriptpath):
-    """
-    generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
+# def submitArrayToNAF(scripts, arrayscriptpath):
+    # """
+    # generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
 
-    Keyword arguments:
+    # Keyword arguments:
 
-    scripts         -- list of scripts to be submitted
-    arrayscriptpath -- path to safe script array in
-    """
-    submitclock=ROOT.TStopwatch()
-    submitclock.Start()
-    logdir = os.getcwd()+"/logs"
-    if os.path.exists(logdir):
-        print "emptying directory", logdir
-        shutil.rmtree(logdir)
+    # scripts         -- list of scripts to be submitted
+    # arrayscriptpath -- path to safe script array in
+    # """
+    # submitclock=ROOT.TStopwatch()
+    # submitclock.Start()
+    # logdir = os.getcwd()+"/logs"
+    # if os.path.exists(logdir):
+        # print "emptying directory", logdir
+        # shutil.rmtree(logdir)
 
-    os.makedirs(logdir)
+    # os.makedirs(logdir)
 
-    # get nscripts
-    nscripts=len(scripts)
-    tasknumberstring='1-'+str(nscripts)
+    # #get nscripts
+    # nscripts=len(scripts)
+    # tasknumberstring='1-'+str(nscripts)
 
-    #create arrayscript to be run on the birds. Depinding on $SGE_TASK_ID the script will call a different plot/run script to actually run
+    # #create arrayscript to be run on the birds. Depinding on $SGE_TASK_ID the script will call a different plot/run script to actually run
 
-    arrayscriptcode="#!/bin/bash \n"
-    arrayscriptcode+="subtasklist=(\n"
-    for scr in scripts:
-        arrayscriptcode+=scr+" \n"
+    # arrayscriptcode="#!/bin/bash \n"
+    # arrayscriptcode+="subtasklist=(\n"
+    # for scr in scripts:
+        # arrayscriptcode+=scr+" \n"
 
-    arrayscriptcode+=")\n"
-    arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
-    arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
-    arrayscriptcode+="echo \"${thescript}\n"
-    arrayscriptcode+="echo \"${thescriptbasename}\n"
-    arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
-    arrayscriptfile=open(arrayscriptpath,"w")
-    arrayscriptfile.write(arrayscriptcode)
-    arrayscriptfile.close()
-    st = os.stat(arrayscriptpath)
-    os.chmod(arrayscriptpath, st.st_mode | stat.S_IEXEC)
+    # arrayscriptcode+=")\n"
+    # arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
+    # arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
+    # arrayscriptcode+="echo \"${thescript}\n"
+    # arrayscriptcode+="echo \"${thescriptbasename}\n"
+    # arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
+    # arrayscriptfile=open(arrayscriptpath,"w")
+    # arrayscriptfile.write(arrayscriptcode)
+    # arrayscriptfile.close()
+    # st = os.stat(arrayscriptpath)
+    # os.chmod(arrayscriptpath, st.st_mode | stat.S_IEXEC)
 
-    print 'submitting',arrayscriptpath
-    #command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', logdir+'/dev/null', '-e', logdir+'/dev/null', arrayscriptpath]
-    command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', '/dev/null', '-e', '/dev/null', arrayscriptpath]
-    a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-    output = a.communicate()[0]
-    jobidstring = output
-    if len(jobidstring)<2:
-        sys.exit("something did not work with submitting the array job")
+    # print 'submitting',arrayscriptpath
+    # #command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', logdir+'/dev/null', '-e', logdir+'/dev/null', arrayscriptpath]
+    # command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', '/dev/null', '-e', '/dev/null', arrayscriptpath]
+    # a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+    # output = a.communicate()[0]
+    # jobidstring = output
+    # if len(jobidstring)<2:
+        # sys.exit("something did not work with submitting the array job")
 
-    jobidstring=jobidstring.split(".")[0]
-    print "the jobID", jobidstring
-    jobidint=int(jobidstring)
-    submittime=submitclock.RealTime()
-    print "submitted job", jobidint, " in ", submittime
-    return [jobidint]
+    # jobidstring=jobidstring.split(".")[0]
+    # print "the jobID", jobidstring
+    # jobidint=int(jobidstring)
+    # submittime=submitclock.RealTime()
+    # print "submitted job", jobidint, " in ", submittime
+    # return [jobidint]
 
-def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
-    jobids=[]
-    command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), pathToMSworkspace]
-    print command
-    a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-    output = a.communicate()[0]
-    #print output
-    jobidstring = output.split()
-    for jid in jobidstring:
-        if jid.isdigit():
-            jobid=int(jid)
-            print "this job's ID is", jobid
-            jobids.append(jobid)
-            continue
+# def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
+    # jobids=[]
+    # command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), pathToMSworkspace]
+    # print command
+    # a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+    # output = a.communicate()[0]
+    # #print output
+    # jobidstring = output.split()
+    # for jid in jobidstring:
+        # if jid.isdigit():
+            # jobid=int(jid)
+            # print "this job's ID is", jobid
+            # jobids.append(jobid)
+            # continue
 
-    return jobids
+    # return jobids
 
 def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus):
 
@@ -512,7 +523,8 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
             for command in commands:
                 print command
 
-            return submitArrayToNAF(commands, outputDirectory+"temp/arrayJobs.sh")
+            # return submitArrayToNAF(commands, outputDirectory+"temp/arrayJobs.sh")
+            return batch.submitArrayToBatch(commands, outputDirectory+"temp/arrayJobs.sh")
         else:
             print "Could not write folder generator!"
     else:
@@ -658,6 +670,7 @@ def scaleHistogram(key, category, inputRootFile, funcFormula, currentOutputDir, 
 
 def saveHistos(category, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs, bkg=False):
     index = -1
+    loadingDir = inputRootFile.GetDirectory(path)
     for entry in range(len(processScalingDic)):
         if key.GetName().startswith(processScalingDic[entry][0]+"_"):
             if verbose:
@@ -667,9 +680,9 @@ def saveHistos(category, key, processScalingDic, inputRootFile, outputFile, path
         if verbose:
             print "found match at index", index
 
-        tempObject = scaleHistogram(key, category, inputRootFile, processScalingDic[index][1], outputFile.GetDirectory(path), listOfNormsPrescale, listOfNormsPostscale)
+        tempObject = scaleHistogram(key, category, loadingDir, processScalingDic[index][1], outputFile.GetDirectory(path), listOfNormsPrescale, listOfNormsPostscale)
     else:
-        tempObject = inputRootFile.Get(key.GetName())
+        tempObject = loadingDir.Get(key.GetName())
         collectNorms(listOfNormsPrescale, tempObject, category)
         collectNorms(listOfNormsPostscale, tempObject, category)
 
@@ -678,9 +691,10 @@ def saveHistos(category, key, processScalingDic, inputRootFile, outputFile, path
             print "\tCopied", key.GetName(),"to new root file"
     if tempObject is not None:
         if verbose:
-            checkCopy(inputRootFile.Get(key.GetName()), tempObject)
+            checkCopy(loadingDir.Get(key.GetName()), tempObject)
         if bkg:
             data_obs[category].Add(tempObject)
+        outputFile.cd(path)
         tempObject.Write()
 
 def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys, listOfNormsPrescale, listOfNormsPostscale):
@@ -688,46 +702,86 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
     data_obs = {}
 
     for key in listOfKeys:
-        path=ROOT.gDirectory.GetPathStatic()
-        # if key.IsFolder():
-            # if not path.endswith("/"):
-                # path = path + "/"
-            # pathIntoKeyDir = path + key.GetName()
-            # outputFile.mkdir(pathIntoKeyDir)
-            # outputFile.cd(pathIntoKeyDir)
-            # inputRootFile.cd(pathIntoKeyDir)
-            # copyOrScaleElements(inputRootFile, outputFile, processScalingDic, ROOT.gDirectory.GetListOfKeys(), listOfNormRatios)
-            # outputFile.cd(path)
-            # inputRootFile.cd(path)
-        # else:
+        compath=ROOT.gDirectory.GetPathStatic()
+        filename, path = compath.split(":/")
         keyName = key.GetName()
-        saved=False
-        for cat in config.categories:
-            if not saved:
-                if not cat in data_obs:
-                    histoCatKey = config.histoKey.replace("$CHANNEL", cat)
-                    data_obs_key = histoCatKey.replace("$PROCESS", "data_obs")
-                    temp = inputRootFile.Get(data_obs_key)
-                    if not isinstance(temp, ROOT.TH1):
-                        sys.exit("Unable to load data_obs with key %s! Aborting" % data_obs_key)
-
-                    data_obs[cat] = temp.Clone()
-                    data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
-                    data_obs[cat].Reset()
-
-                for signalHistoName in config.signalHistos[cat]:
-                    if keyName.startswith(signalHistoName):
-                        saveHistos(cat, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs)
-                        saved = True
-                        break
+        if key.IsFolder():
+            if path:
+                if not path.endswith("/"):
+                    path += "/"
+                pathIntoKeyDir = path + keyName
+            else:
+                pathIntoKeyDir = keyName
+            outputFile.mkdir(pathIntoKeyDir)
+            outputFile.cd(pathIntoKeyDir)
+            inputRootFile.cd(pathIntoKeyDir)
+            copyOrScaleElements(inputRootFile = inputRootFile,
+                                outputFile = outputFile, 
+                                processScalingDic = processScalingDic,
+                                listOfKeys = ROOT.gDirectory.GetListOfKeys(),
+                                listOfNormsPrescale = listOfNormsPrescale,
+                                listOfNormsPostscale = listOfNormsPostscale)
+            outputFile.cd(path)
+            inputRootFile.cd(path)
+        else:
+            saved=False
+            for cat in config.categories:
                 if not saved:
-                    for backgroundHistoName in config.backgroundHistos[cat]:
-                        if keyName.startswith(backgroundHistoName):
-                            saveHistos(cat, key, processScalingDic, inputRootFile, outputFile, path, listOfNormsPrescale, listOfNormsPostscale, data_obs, (keyName == backgroundHistoName))
+                    if not cat in data_obs:
+                        histoCatKey = config.histoKey.replace("$CHANNEL", cat)
+                        data_obs_key = histoCatKey.replace("$PROCESS", "data_obs")
+                        temp = inputRootFile.Get(data_obs_key)
+                        if not isinstance(temp, ROOT.TH1):
+                            sys.exit("Unable to load data_obs with key %s! Aborting" % data_obs_key)
+    
+                        data_obs[cat] = temp.Clone()
+                        data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
+                        data_obs[cat].Reset()
+    
+                    for signalHistoName in config.signalHistos[cat]:
+                        parts = signalHistoName.split("/")
+                        pathFromKey = ""
+                        if len(parts) > 1:
+                            pathFromKey = "/".join(parts[:len(parts)-1])
+                        if not path == pathFromKey:
+                            continue
+                        comparestring = parts[-1]
+                        if keyName.startswith(comparestring):
+                            saveHistos( category = cat, 
+                                        key = key,
+                                        processScalingDic = processScalingDic,
+                                        inputRootFile = inputRootFile,
+                                        outputFile = outputFile,
+                                        path = path,
+                                        listOfNormsPrescale = listOfNormsPrescale,
+                                        listOfNormsPostscale = listOfNormsPostscale,
+                                        data_obs = data_obs)
                             saved = True
                             break
-            else:
-                break
+                    if not saved:
+                        for backgroundHistoName in config.backgroundHistos[cat]:
+                            parts = backgroundHistoName.split("/")
+                            pathFromKey = ""
+                            if len(parts) > 1:
+                                pathFromKey = "/".join(parts[:len(parts)-1])
+                            if not path == pathFromKey:
+                                continue
+                            comparestring = parts[-1]
+                            if keyName.startswith(comparestring):
+                                saveHistos( category = cat, 
+                                            key = key,
+                                            processScalingDic = processScalingDic,
+                                            inputRootFile = inputRootFile,
+                                            outputFile = outputFile,
+                                            path = path,
+                                            listOfNormsPrescale = listOfNormsPrescale,
+                                            listOfNormsPostscale = listOfNormsPostscale,
+                                            data_obs = data_obs,
+                                            bkg = (keyName == comparestring))
+                                saved = True
+                                break
+                else:
+                    break
     for cat in data_obs:
         data_obs[cat].Write()
     print "\tdone with copying/scaling"
@@ -744,7 +798,7 @@ def checkForMSworkspace(pathToDatacard, POImap):
         msworkspacePath = PathToMSDatacard.replace(".txt","_multisig.root")
         if os.path.exists(PathToMSDatacard):
             if not os.path.exists(msworkspacePath):
-                bashCmd = "source {0}/setupCMSSW.txt ;".format(workdir)
+                bashCmd = "source {0} ;".format(pathToCMSSWsetup)
                 bashCmd = bashCmd + "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose  --PO \'map=.*/(ttH_*):r[1,-10,10]\'"
                 for mapping in POImap:
                     bashCmd = bashCmd + " --PO \'map=.*/" + mapping + "\'"
@@ -767,7 +821,7 @@ def check_workspace(pathToDatacard):
     if not os.path.exists(outputPath):
         print "generating workspace for", pathToDatacard
         
-        bashCmd = ["source {0}/setupCMSSW.txt ;".format(workdir)]
+        bashCmd = ["source {0} ;".format(pathToCMSSWsetup)]
         bashCmd.append("text2workspace.py -m 125 " + pathToDatacard)
         bashCmd.append("-o " + outputPath)
         print bashCmd
