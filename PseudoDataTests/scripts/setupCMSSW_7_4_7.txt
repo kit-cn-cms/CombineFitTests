@@ -1,6 +1,6 @@
 temp=`echo $CMSSW_BASE`
 toset="/nfs/dust/cms/user/pkeicher/CMSSW_7_4_7"
-if  ( [ "$temp" -neq "$toset"] ); then
+if  ( [ "$temp" != "$toset" ] && [ -d "$toset" ] ); then
 
     CMSSW_BASE="$toset"
     export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch
