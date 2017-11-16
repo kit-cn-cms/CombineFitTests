@@ -596,7 +596,7 @@ void PseudoExperiments::readParamFolder(TFile* infile, const TString& folderName
           if(saveNps) 
           {
             std::cout << "saving nuisance parameter " << treeName << std::endl;
-            if(!(treeName.Contains("BDTbin") && noBinByBin_)) nps_.push_back(treeName);
+            if(!(treeName.Contains("prop_bin") && noBinByBin_)) nps_.push_back(treeName);
           }
           std::cout << "reading nuisance parameter " << treeName << std::endl;
           readParamTree(tree, hists, hErrors, hErrorsHi, hErrorsLo);
@@ -798,10 +798,10 @@ void PseudoExperiments::initContainers(TFile* file, const RooFitResult* result, 
     while( varName.Contains(",") ) {
       npName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
       
-      if(!(npName.Contains("BDTbin") && noBinByBin_)) nps_.push_back(npName);
+      if(!(npName.Contains("prop_bin") && noBinByBin_)) nps_.push_back(npName);
       varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
     }
-    if(!(varName.Contains("BDTbin") && noBinByBin_)) nps_.push_back(varName);
+    if(!(varName.Contains("prop_bin") && noBinByBin_)) nps_.push_back(varName);
   }
 
   createHistograms(npValuesPrefit_,nps_,"prefit");
@@ -974,14 +974,14 @@ void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,T
   while( varName.Contains(",") ) {
     paramName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
     if(debug_) std::cout << paramName << std::endl;
-    if(!(paramName.Contains("BDTbin") && noBinByBin_)) 
+    if(!(paramName.Contains("prop_bin") && noBinByBin_)) 
     {
       if(debug_)std::cout << "saving " << paramName << std::endl;
       values.push_back(paramName);
     }
     varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
   }
-  if(!(varName.Contains("BDTbin") && noBinByBin_)) values.push_back(varName);
+  if(!(varName.Contains("prop_bin") && noBinByBin_)) values.push_back(varName);
   if(debug_)std::cout << "\ndone" << std::endl;
   if(debug_)std::cout << "current size of correlation container: " << correlations.size() << std::endl;
   if(correlations.empty()){
