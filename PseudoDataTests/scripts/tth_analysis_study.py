@@ -122,6 +122,12 @@ dest = "folderReset",
 help = "reset only signal strength folders, not entire folder for this pseudo experiment (default = false)",
 action = "store_true",
 default = False)
+
+group_globalOptions.add_option("--doWorkspaces",
+help = "create workspaces, even if they already exist",
+dest = "doWorkspaces",
+action = "store_true",
+default = False)
 parser.add_option_group(group_required)
 parser.add_option_group(group_globalOptions)
 parser.add_option_group(group_scalingOptions)
@@ -194,6 +200,7 @@ additionalFitCmds = options.additionalFitCmds
 
 resetFolders = not options.folderReset
 skipRootGen = options.skipRootGen
+doWorkspaces = options.doWorkspaces
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
@@ -797,7 +804,7 @@ def checkForMSworkspace(pathToDatacard, POImap):
             PathToMSDatacard = PathToMSDatacard.replace(".txt", "_"+POIname+".txt")
         msworkspacePath = PathToMSDatacard.replace(".txt","_multisig.root")
         if os.path.exists(PathToMSDatacard):
-            if not os.path.exists(msworkspacePath):
+            if not os.path.exists(msworkspacePath) or doWorkspaces:
                 bashCmd = "source {0} ;".format(pathToCMSSWsetup)
                 bashCmd = bashCmd + "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose  --PO \'map=.*/(ttH_*):r[1,-10,10]\'"
                 for mapping in POImap:
@@ -818,7 +825,7 @@ def check_workspace(pathToDatacard):
     workspacePath = ""
     parts = pathToDatacard.split(".")
     outputPath = ".".join(parts[:len(parts)-1]) + ".root"
-    if not os.path.exists(outputPath):
+    if not os.path.exists(outputPath) or doWorkspaces:
         print "generating workspace for", pathToDatacard
         
         bashCmd = ["source {0} ;".format(pathToCMSSWsetup)]
