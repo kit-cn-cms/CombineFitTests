@@ -8,7 +8,7 @@ from copy import deepcopy
 
 class batchConfig:
 
-    def __init__(self, hostname=""):
+    def __init__(self, hostname="", queue = ""):
         if not hostname:
             a = subprocess.Popen(["hostname"], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
             output = a.communicate()[0]
@@ -26,7 +26,9 @@ class batchConfig:
             print "going to default - desy naf bird system"
             self.jobmode = "SGE"
             self.subname = "qsub"
-            self.subopts = "-q short.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
+            self.subopts = "-l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
+            if queue:
+                self.subopts += ("-q " + queue + ".q ").split()
             self.arraysubmit = True
 
     def construct_array_submit(self):
