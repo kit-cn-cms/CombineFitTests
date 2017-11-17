@@ -34,12 +34,12 @@ class batchConfig:
     def construct_array_submit(self):
         command = None
         if self.arraysubmit:
-                command = [self.subname, '-terse','-o', '/dev/null', '-e', '/dev/null']
-                command += self.subopts
+            command = [self.subname, '-terse','-o', '/dev/null', '-e', '/dev/null']
+            command += self.subopts
         return command
     
     
-    def submitArrayToBatch(self, scripts, arrayscriptpath):
+    def submitArrayToBatch(self, scripts, arrayscriptpath, jobid = None):
         """
         generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
         
@@ -47,6 +47,7 @@ class batchConfig:
         
         scripts         -- list of scripts to be submitted
         arrayscriptpath -- path to safe script array in
+        jobid           -- hold this job until job with jobid is done
         """
         submitclock=TStopwatch()
         submitclock.Start()
@@ -87,32 +88,47 @@ class batchConfig:
         # command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', '/dev/null', '-e', '/dev/null', arrayscriptpath]
         command = self.construct_array_submit()
         if command:
-                command.append('-t')
-                command.append(tasknumberstring)
-                command.append(arrayscriptpath)
-                print command
-                print " ".join(command)
-                a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-                output = a.communicate()[0]
-                jobidstring = output
-                if len(jobidstring)<2:
-                    sys.exit("something did not work with submitting the array job")
+            command.append('-t')
+            command.append(tasknumberstring)
+            if jobid:
+                command.append("-hold_jid " + jobid)
+            
+            command.append(arrayscriptpath)
+            print command
+            print " ".join(command)
+            a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+            output = a.communicate()[0]
+            jobidstring = output
+            if len(jobidstring)<2:
+                sys.exit("something did not work with submitting the array job")
                 
-                jobidstring=jobidstring.split(".")[0]
-                print "the jobID", jobidstring
-                jobidint=int(jobidstring)
-                submittime=submitclock.RealTime()
-                print "submitted job", jobidint, " in ", submittime
-                return [jobidint]
+            jobidstring=jobidstring.split(".")[0]
+            print "the jobID", jobidstring
+            jobidint=int(jobidstring)
+            submittime=submitclock.RealTime()
+            print "submitted job", jobidint, " in ", submittime
+            return jobidint
         else:
-                print "could not generate array submit command"
+            print "could not generate array submit command"
     
-    def submitJobToBatch(self, scripts):
+    def submitJobToBatch(self, script, jobid = None):
+        os.chmod(script, st.st_mode | stat.S_IEXEC)
         cmdlist = [self.subname]
         cmdlist += self.subopts
-        for script in scripts:
-            cmd = " ".join(cmdList)
-            cmd += " " + script
-            print cmd
-            subprocess.call([cmd], shell = True)
+        jobids = []
+        command = " ".join(cmdList)
+        command += " " + script
+        print command
+        a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+        output = a.communicate()[0]
+        #print output
+        jobidstring = output.split()
+        for jid in jobidstring:
+            if jid.isdigit():
+                jobid=int(jid)
+                print "this job's ID is", jobid
+                jobids.append(jobid)
+                continue
+        
+        return jobids
     
