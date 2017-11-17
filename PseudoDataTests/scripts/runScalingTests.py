@@ -78,7 +78,7 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
         string = additionalCmds
     runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
     if pathToSherpa:
-        runScript(targetPath, base_suffix+"sherpa_ol", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
+        runScript(targetPath, base_suffix+"sherpa_ol_wo_ttbarPlusB_ttbarPlus2B", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
     # if pathToAMC:
         # runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
