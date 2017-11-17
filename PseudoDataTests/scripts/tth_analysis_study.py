@@ -1,3 +1,6 @@
+from array import array
+from optparse import OptionParser
+from optparse import OptionGroup
 import ROOT
 import sys
 import os
@@ -6,6 +9,8 @@ import subprocess
 import time
 import shutil
 import imp
+ROOT.gROOT.SetBatch(True)
+ROOT.gDirectory.cd('PyROOT:/')
 
 directory = os.path.dirname(os.path.abspath(sys.argv[0]))
 basefolder = os.path.abspath(os.path.join(directory, "base"))
@@ -16,20 +21,18 @@ if not basefolder in sys.path:
 from batchConfig import *
 batch = batchConfig(queue="short")
 
-from array import array
-from optparse import OptionParser
-from optparse import OptionGroup
 
-ROOT.gROOT.SetBatch(True)
+
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
 
-
-parser = OptionParser()
+usage = "usage: %prog [options] path/to/datacard"
+parser = OptionParser(usage = usage)
 group_required = OptionGroup(parser, "Required Options")
 group_globalOptions = OptionGroup(parser, "Options Valid for All Option Groups")
 group_scalingOptions = OptionGroup(parser, "Scaling Related Options")
+
 group_required.add_option("-o", "--outputDirectory",
 dest="outputDirectory",
 help="save signal strength folders with PseudoExperiments here",
@@ -89,7 +92,8 @@ group_globalOptions.add_option("--skipRootGen",
 help = "skip the generation of the scaled input root files to run faster (default = false)",
 action = "store_true",
 dest = "skipRootGen",
-default = False)
+default = False
+)
 group_scalingOptions.add_option("--scaledDatacard",
 dest="pathToScaledDatacard",
 help="use this datacard to throw toys from",
@@ -137,8 +141,10 @@ parser.add_option_group(group_scalingOptions)
 
 if options.outputDirectory == None:
     parser.error("output directory has to be specified!")
-if options.pathToDatacard == None:
+if options.pathToDatacard == None and args == None:
     parser.error("Path to original MC template datacard has to be specified!")
+if args and len(args)>1:
+    parser.error("Cannot specify more than one datacard!")
 if options.pathToScaledDatacard and (options.listOfProcesses or options.listOfFormulae):
     parser.error("Cannot specify both path to datacard to throw toys from and list of processes to scale/ scaling functions!")
 if (not options.listOfProcesses and options.listOfFormulae) or (options.listOfProcesses and not options.listOfFormulae):
@@ -206,8 +212,10 @@ doWorkspaces = options.doWorkspaces
 
 outputDirectory = options.outputDirectory #path to store PseudoExperiments in
 print "input for outputDirectory:", outputDirectory
-pathToDatacard = options.pathToDatacard #path to unscaled datacard with data to be fitted to scaled toys
-
+if options.pathToDatacard:
+    pathToDatacard = options.pathToDatacard #path to unscaled datacard with data to be fitted to scaled toys
+else:
+    pathToDatacard = args[0]
 pathToInputRootfile = options.pathToRoofile #path to corresponding root file
 
 POImap = options.POIs
