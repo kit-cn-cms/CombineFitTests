@@ -49,6 +49,8 @@ else:
 #========functions======================================================
 
 def check_for_resubmit(folder):
+    if not os.path.exists(folder):
+	return True
     print "cd into", folder
     os.chdir(folder)
     toResub = []
