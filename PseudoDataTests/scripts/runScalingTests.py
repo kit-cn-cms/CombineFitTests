@@ -159,7 +159,8 @@ def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
         runScript(targetPath = targetPath, suffix = suffix + folderSuffix , pathToDatacard = datacard, key = additionalCmds)
 
 def throwToys(wildcard, rootfile = None, pathToConfig = None, additionalCmds = None, pois = None):
-    sherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v22/finalComb_v22_fresh/SL_BDTonly_645444635343_sherpa.txt"
+    # sherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v22/finalComb_v22_fresh/SL_BDTonly_645444635343_sherpa.txt"
+    sherpa = None
     for datacard in glob.glob(wildcard):
         if os.path.exists(os.path.abspath(datacard)):
             datacard = os.path.abspath(datacard)
