@@ -1,14 +1,15 @@
 import sys
 import os
-import ROOT
+# import ROOT
 import glob
-ROOT.gDirectory.cd('PyROOT:/')
-ROOT.gROOT.SetBatch(True)
+# ROOT.gDirectory.cd('PyROOT:/')
+# ROOT.gROOT.SetBatch(True)
 
 infiles=sys.argv[1]
 
-toRemove=['singlet', 'wjets', 'zjets', 'ttbarW', 'ttbarZ', 'diboson', "ttH_hcc", "ttH_hww", "ttH_hzz", "ttH_htt", "ttH_hgg", "ttH_hgluglu", "ttH_hzg"]
-
+# toRemove="ttH_hcc         ttH_htt         ttH_hgg         ttH_hgluglu     ttH_hww         ttH_hzz         ttH_hzg         ttbarZ          diboson                          ttbarW          singlet         wjets             zjets".split()
+# toRemove=["QCD"]
+toRemove="ttbarPlusB ttbarPlus2B".split()
 for inf in glob.glob(infiles):
     inf = os.path.abspath(inf)
     if os.path.exists(inf):
@@ -17,30 +18,35 @@ for inf in glob.glob(infiles):
         print "creating", outfname
         outf=open(outfname,"w")
         if os.path.exists(outfname):
-            inlist=list(infl)
+            # inlist=list(infl)
+            inlist = infl.read().splitlines()
             infprocs=[]
             for line in inlist:
                 if "process " in line and infprocs==[]:
                     print "found process line"
-                    sl=line.replace("\n","").replace("\t","").replace("  "," ").split(" ")
+                    # sl=line.replace("\n","").replace("\t","").replace("  "," ").split(" ")
+                    sl = line.split()
                     print sl
                     for pl in sl[1:]:
                         infprocs.append(pl)
 
                     print infprocs
-
+            
             for line in inlist:
-                sl=line.replace("\n","").replace("\t","").replace("  "," ").split(" ")
+                # sl=line.replace("\n","").replace("\t","").replace("  "," ").split(" ")
+                sl = line.split()
                 print sl
                 if len(sl)<len(infprocs):
-                    outf.write(line)
+                    if sl[0] == "jmax" or sl[0] == "imax":
+                        sl[1] = "*"
+                    outf.write(" ".join(sl) + "\n")
                 else:
                     if ("bin" in line or "process" in line or "rate" in line) and not ( "shape" in line or "Combin" in line):
                         newline=sl[0]
                         for im,m in enumerate(sl[1:]):
                             print im, m
                             if infprocs[im] in toRemove:
-                                print "remove ", infprocs[im], " in ", sl[0]
+                                print "remove ", infprocs[im], " in ", sl
                                 newline+=""
                             else:
                                 newline+=" "+m
@@ -59,7 +65,7 @@ for inf in glob.glob(infiles):
                         newline+="\n"
 
                     else:
-                        newline=line
+                        newline=line + "\n"
 
                     outf.write(newline)
 

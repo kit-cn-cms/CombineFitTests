@@ -39,6 +39,8 @@ void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const
         can.SetMargin(0.25, 0.15, 0.15, 0.08);
         correlationPlot->SetStats(kFALSE);
         // correlationPlot->Draw("coltzTEXTE");
+        correlationPlot->GetXaxis()->SetLabelSize(0.5*correlationPlot->GetXaxis()->GetLabelSize());
+        correlationPlot->GetYaxis()->SetLabelSize(0.5*correlationPlot->GetYaxis()->GetLabelSize());
         correlationPlot->Draw("coltz");
         correlationPlot->Write();
         can.Write(outputName);
@@ -99,7 +101,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
     //   signalStrength = helperFuncs::convertTStringToDouble(helper);
     //   helper = outLabel;
     //   helper.Remove(helper.Last('/'), helper.Length());
-    //   linePath.Form("%s/sig%.0f/asimov/mlfit.root", helper.Data(), signalStrength);
+    //   linePath.Form("%s/sig%.0f/asimov/fitDiagnostics.root", helper.Data(), signalStrength);
     //   if(whichfit.EqualTo("POI")) lines.push_back(helperFuncs::createLine(linePath, "fit_s", "r"));
     //   else lines.push_back(helperFuncs::createLine(linePath, whichfit, hists.front()->GetXaxis()->GetTitle()));
     //   if(lines.back() != NULL){
@@ -696,7 +698,7 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
 
 }
 
-void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSignalStrength, std::vector<PseudoExperiments>& expSet, Color_t color = kBlue, double injectedMu = -999, const TString suffix = "", const TString sourceFile = "mlfit.root"){
+void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSignalStrength, std::vector<PseudoExperiments>& expSet, Color_t color = kBlue, double injectedMu = -999, const TString suffix = "", const TString sourceFile = "fitDiagnostics.root"){
     double nominalMu=0;
     TString helper;
     std::cout << "in 'loadPseudoExperiments': injectedMu = " << injectedMu << std::endl;
@@ -750,12 +752,12 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   if(pathname.Contains("PseudoExperiment")){
     loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
     ncolor++;
-    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
     ncolor++;
   }
   else{
     TList *folders = dir.GetListOfFiles();
-    //if folders are found, go through each one an look for the mlfitFile
+    //if folders are found, go through each one an look for the fitDiagnosticsFile
     if (folders) {
       TSystemFile *folder;
       TString folderName;
@@ -766,13 +768,13 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
         if (folder->IsDirectory() && folderName.Contains("sig")) {
           loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
           ncolor++;
-          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
           ncolor++;
         }
         if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
           loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
           ncolor++;
-          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "mlfit_MS_mlfit.root");
+          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
           ncolor++;
           break;
         }
@@ -812,10 +814,10 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
 }
 
 
- # ifndef __CINT__
- int main(int argc, char *argv[])
- {
-   plotResults(argv[0], argv[1], argv[2]);
-   return 0;
- }
-# endif
+ // # ifndef __CINT__
+ // int main(int argc, char *argv[])
+ // {
+   // plotResults(argv[0], argv[1], argv[2]);
+   // return 0;
+ // }
+// # endif
