@@ -39,6 +39,14 @@ help="process this many toys at once on bird system (default = 30)",
 default = 30 ,
 type="int"
 )
+group_globalOptions.add_option(
+"--startSeed",
+dest = "startSeed",
+help = "start random seed counter here",
+type = "int",
+default = 0
+
+)
 group_globalOptions.add_option("--asimov",
 action="store_true",
 dest="asimov",
@@ -179,6 +187,7 @@ additionalToyCmds = options.additionalToyCmds
 additionalFitCmds = options.additionalFitCmds
 
 resetFolders = not options.folderReset
+startSeed = options.startSeed
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
@@ -361,7 +370,7 @@ def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript.append('\t\tif [[ -d PseudoExperiment$i ]]; then')
     shellscript.append('\t\t\tcd PseudoExperiment$i\n')
 
-    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
+    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $((i+' + startSeed + ')) $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
 
     shellscript.append('\t\t\tcd ../\n')
     shellscript.append('\t\telse')
