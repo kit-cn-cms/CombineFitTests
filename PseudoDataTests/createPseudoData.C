@@ -10,21 +10,23 @@
 #include "StringOperations.h"
 
 
-const TString datacard = "limits_Spring17v2p2_ttbarincl/noCSV63445464.txt";
-const TString templatesNominal = "limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
-const TString templatesTTBB = "limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
-const TString CMSSW_BASE = "/afs/desy.de/user/m/matsch/CMSSW_7_4_7";
-const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.1 --rMin=-10 --rMax=10 --saveNormalizations --saveShapes";
+//const TString datacard = "limits_All_v24_datacard_ljets/datacard_jge6_tge4_high_hdecay.txt";
+const TString templatesNominal = "limits_All_v24_datacard_ljets/ttH_hbb_13TeV_sl.root";
+const TString CMSSW_BASE = "/afs/desy.de/user/m/matsch/CMSSW_8_1_0";
+const TString combineCmd = "combine -M FitDiagnostics --rMin -10 --rMax 10 --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.001 --saveNormalizations --saveShapes";
 
 
-void createPseudoData(const TString& outdir,
+void createPseudoData(const TString& datacard,
+		      const TString& outdir,
 		      const int nExperiments,
 		      const double expectSignal=1.) {
 
-  std::vector<Category::Type> categories = { Category::SL_44,
-					     Category::SL_54,
-					     Category::SL_63,
-					     Category::SL_64  };
+  std::vector<Category::Type> categories = {
+    // Category::SL_44,
+    // Category::SL_54,
+    // Category::SL_63,
+    Category::SL_64h
+  };
 
   std::vector<Process> processes;
 
@@ -42,9 +44,9 @@ void createPseudoData(const TString& outdir,
   processes.push_back( Process(Process::ttlf,templatesNominal) );
   processes.push_back( Process(Process::ttcc,templatesNominal) );
 
-  processes.push_back( Process(Process::ttbb,templatesTTBB) );
-  processes.push_back( Process(Process::ttb,templatesTTBB) );
-  processes.push_back( Process(Process::tt2b,templatesTTBB) );
+  processes.push_back( Process(Process::ttbb,templatesNominal) );
+  processes.push_back( Process(Process::ttb,templatesNominal) );
+  processes.push_back( Process(Process::tt2b,templatesNominal) );
 
   std::cout << "Reading processes" << std::endl;
   for(auto& category: categories) {
@@ -102,7 +104,7 @@ void createPseudoData(const TString& outdir,
       out << "cd -\n\n";
       out << "echo '" << combineCmd << " " << datacardName << "'\n";
       out << combineCmd << " " << datacardName << "\n";
-      out << "rm higgsCombineTest.MaxLikelihoodFit*.root\n";
+      out << "rm higgsCombineTest.FitDiagnostics.mH*.root\n";
       
       out.close();
       

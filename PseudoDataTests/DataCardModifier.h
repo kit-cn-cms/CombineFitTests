@@ -24,17 +24,19 @@ public:
 private:
   std::vector<TString> lines_;
   int imax_;
+  bool debug_;
 };
 
 
 DataCardModifier::DataCardModifier(const TString& fileName) {
   lines_.clear();
   imax_ = -1;
+  debug_ = false;
 
   std::ifstream file;
   file.open(fileName.Data());
-  if( file.is_open() ) {
-    //std::cout << "DataCard: reading " << fileName << std::endl;
+  if( file.is_open() && file.good() ) {
+    if( debug_ ) std::cout << "DataCard: reading " << fileName << std::endl;
     std::string line;
     while( std::getline(file,line) ) {
       TString lineTmp(line.c_str());
@@ -43,7 +45,7 @@ DataCardModifier::DataCardModifier(const TString& fileName) {
 	const TString imax = words.at(1);
 	if( imax.IsDigit() ) {
 	  imax_ = imax.Atoi();
-	  //std::cout << "DataCard: found imax = " << imax_ << std::endl;
+	  if( debug_ ) std::cout << "DataCard: found imax = " << imax_ << std::endl;
 	}
       }
       lines_.push_back( TString(line.c_str()) );

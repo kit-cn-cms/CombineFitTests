@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "TH1.h"
+#include "TRandom.h"
 #include "TRandom3.h"
 #include "TString.h"
 
@@ -18,7 +19,12 @@ public:
     : outputDir_("."),
       outputDirPerExpSuffix_("PseudoData"),
       outputFileSuffix_("Data_Obs"),
-      usePoissonStatistics_(true) {}
+      usePoissonStatistics_(true),
+      rand_(new Trandom3(1)) {}
+
+  ~PseudoDataGenerator() {
+    delete rand_;
+  }
   
   void setOutputDirectory(const TString& dir) {
     outputDir_ = dir;
@@ -44,7 +50,7 @@ private:
   TString outputDirPerExpSuffix_;
   TString outputFileSuffix_;
   bool usePoissonStatistics_;
-  mutable TRandom3 rand_;
+  mutable TRandom* rand_;
 };
 
 
@@ -94,8 +100,8 @@ std::vector<TString> PseudoDataGenerator::run(const std::vector<Category::Type>&
       for(unsigned int iBin = 0; iBin < nBins; ++iBin) {
 	const double mean = meansPerCategory[category].at(iBin);
 	// convert into int
-	const int meanInt = rand_.Uniform()>0.5 ? ceil(mean) : floor(mean);
-	const double val = usePoissonStatistics_ ? rand_.Poisson(meanInt) : mean;
+	const int meanInt = rand_->Uniform()>0.5 ? ceil(mean) : floor(mean);
+	const double val = usePoissonStatistics_ ? rand_->Poisson(meanInt) : mean;
 	pseudoDataHist->SetBinContent(iBin+1,val);
       }
       pseudoDataHists.push_back(pseudoDataHist);

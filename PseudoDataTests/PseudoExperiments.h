@@ -38,6 +38,9 @@ public:
   double muMean() const {
     return muValues_->GetMean();
   }
+  double muMeanError() const {
+    return muValues_->GetMeanError();
+  }
   double muRMS() const {
     return muValues_->GetRMS();
   }
@@ -169,11 +172,23 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
   // store nuisance parameter values
   if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
   if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
-  storeRooArgSetResults(npValuesPrefit_,file,"nuisances_prefit");
+  try {
+    storeRooArgSetResults(npValuesPrefit_,file,"nuisances_prefit");
+  } catch (...) {
+    std::cerr << "WARNING: no 'nuisances_prefit' object in '" << mlfit << "'" << std::endl;
+  }
   if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
-  storeRooFitResults(npValuesPostfitB_,file,"fit_b");
+  try {
+    storeRooFitResults(npValuesPostfitB_,file,"fit_b");
+  } catch (...) {
+    std::cerr << "WARNING: no 'fit_b' object in '" << mlfit << "'" << std::endl;
+  }
   if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
-  storeRooFitResults(npValuesPostfitS_,file,"fit_s");
+  try {
+    storeRooFitResults(npValuesPostfitS_,file,"fit_s");
+  } catch (...) {
+    std::cerr << "WARNING: no 'fit_s' object in '" << mlfit << "'" << std::endl;
+  }
   if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
   
   file.Close();
@@ -233,9 +248,10 @@ void PseudoExperiments::storeRooArgSetResults(std::map<TString,TH1*>& hists, TFi
   if( result == 0 ) {
     std::cerr << "ERROR getting '" << name << "' from file '" << file.GetName() << "'" << std::endl;
     throw std::exception();
-  }
-  for(auto& it: hists) {
-    it.second->Fill( result->getRealValue(it.first) );
+  } else {
+    for(auto& it: hists) {
+      it.second->Fill( result->getRealValue(it.first) );
+    }
   }
 }
 
@@ -246,10 +262,11 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, TFile&
   if( result == 0 ) {
     std::cerr << "ERROR getting '" << name << "' from file '" << file.GetName() << "'" << std::endl;
     throw std::exception();
-  }
-  for(auto& it: hists) {
-    const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find( it.first ) );
-    it.second->Fill(var->getVal());
+  } else {
+    for(auto& it: hists) {
+      const RooRealVar* var = static_cast<RooRealVar*>( result->floatParsFinal().find( it.first ) );
+      it.second->Fill(var->getVal());
+    }
   }
 }
 

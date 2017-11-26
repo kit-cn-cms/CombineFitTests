@@ -72,7 +72,8 @@ void compareDistributions(const std::vector<TH1*>& hists,
 }
 
 
-void compareMeanValues(TH1* hFittedValues,
+void compareMeanValues(TH1* hFittedValuesMeanError,
+		       TH1* hFittedValuesRMS,
 		       TH1* hInitValues,
 		       const std::vector<TString>& labels,
 		       const TString& outLabel) {
@@ -80,8 +81,11 @@ void compareMeanValues(TH1* hFittedValues,
   can->SetBottomMargin(0.25);
   can->cd();
 
-  hFittedValues->SetMarkerColor(kBlack);
-  hFittedValues->SetMarkerStyle(24);
+  hFittedValuesMeanError->SetMarkerColor(kBlack);
+  hFittedValuesMeanError->SetMarkerStyle(24);
+
+  hFittedValuesRMS->SetMarkerColor( hFittedValuesMeanError->GetMarkerColor() );
+  hFittedValuesRMS->SetMarkerStyle( hFittedValuesMeanError->GetMarkerStyle() );
 
   hInitValues->SetLineColor(kBlack);
   hInitValues->SetLineWidth(2);
@@ -94,7 +98,8 @@ void compareMeanValues(TH1* hFittedValues,
   
 
   hInitValues->Draw("HIST");
-  hFittedValues->Draw("PE1same");
+  hFittedValuesRMS->Draw("PEsame");
+  hFittedValuesMeanError->Draw("PE1same");
 
   can->SaveAs(outLabel+".pdf");
 
@@ -147,8 +152,9 @@ void compareNuisanceParameters(const std::vector<PseudoExperiments>& exps,
 void comparePOIs(const std::vector<PseudoExperiments>& exps,
 		 const TString& outLabel) {
   // mean values and distributions of POIs
-  TH1* hPOIs = new TH1D("hPOIs",";;#mu",exps.size(),0,exps.size());
-  TH1* hInit = static_cast<TH1*>(hPOIs->Clone("hInit"));
+  TH1* hPOIsMeanError = new TH1D("hPOIsMeanError",";;#mu",exps.size(),0,exps.size());
+  TH1* hPOIsRMS = static_cast<TH1*>(hPOIsMeanError->Clone("hPOIsRMS"));
+  TH1* hInit = static_cast<TH1*>(hPOIsMeanError->Clone("hInit"));
   std::vector<TH1*> hists;
   std::vector<TString> labels;
 
@@ -156,8 +162,10 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
     const int bin = iE+1;
     const PseudoExperiments& exp = exps.at(iE);
 
-    hPOIs->SetBinContent(bin,exp.muMean());
-    hPOIs->SetBinError(bin,exp.muRMS());
+    hPOIsMeanError->SetBinContent(bin,exp.muMean());
+    hPOIsRMS->SetBinContent(bin,exp.muMean());
+    hPOIsMeanError->SetBinError(bin,exp.muMeanError());
+    hPOIsRMS->SetBinError(bin,exp.muRMS());
     hInit->SetBinContent(bin,exp.muInjected());
 
     hists.push_back( exp.mu() );
@@ -171,10 +179,11 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
   }
   hInit->GetYaxis()->SetRangeUser(-1.1,3.1);
 
-  compareMeanValues(hPOIs,hInit,labels,outLabel+"_POImeans");
+  compareMeanValues(hPOIsMeanError,hPOIsRMS,hInit,labels,outLabel+"_POImeans");
   compareDistributions(hists,labels,outLabel+"_POI",false);
   
-  delete hPOIs;
+  delete hPOIsMeanError;
+  delete hPOIsRMS;
   delete hInit;
   for(auto& h: hists) {
     delete h;
@@ -189,18 +198,9 @@ void plotResults() {
   // set inputs
   std::vector<PseudoExperiments> expSet;
 
-  expSet.push_back( PseudoExperiments("nominal S=0",0.) );
-  expSet.back().addExperiments("test_Sig0/PseudoExperiment*/mlfit.root",100);
-  expSet.back().setColor(kBlack);
-
-  expSet.push_back( PseudoExperiments("nominal S=1",1.) );
-  expSet.back().addExperiments("test_Sig1/PseudoExperiment*/mlfit.root",100);
+  expSet.push_back( PseudoExperiments("64h",1.) );
+  expSet.back().addExperiments("toys_nominal_64h/PseudoExperiment*/fitDiagnostics.root",500);
   expSet.back().setColor(kBlue);
-
-  expSet.push_back( PseudoExperiments("nominal S=2",2.) );
-  expSet.back().addExperiments("test_Sig2/PseudoExperiment*/mlfit.root",100);
-  expSet.back().setColor(kRed);
-
 
   comparePOIs(expSet,"test");
   //compareNuisanceParameters(expSet,"test",true);
