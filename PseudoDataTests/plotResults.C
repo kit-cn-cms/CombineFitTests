@@ -50,15 +50,20 @@ void compareDistributions(const std::vector<TH1*>& hists,
     hNorm->SetFillColor(kGray);
   }
 
+  hists.front()->GetYaxis()->SetRangeUser( 0., 2.*(hists.front()->GetBinContent(hists.front()->GetMaximumBin())) );
   hists.front()->Draw("HIST");
   if( superimposeNorm ) hNorm->Draw("HISTsame");
   for(auto& h: hists) {
     h->Draw("HISTsame");
   }
 
-  TLegend* leg = LabelMaker::legend(labels.size(),0.4);
+  TLegend* leg = LabelMaker::legendTL(labels.size(),1.);
   for(size_t iH = 0; iH < hists.size(); ++iH) {
-    leg->AddEntry(hists.at(iH),labels.at(iH),"L");
+    const double meanval = hists.at(iH)->GetMean();
+    const double meanerr = hists.at(iH)->GetMeanError();
+    char text[200];
+    sprintf(text,"%s: %.2f #pm %.2f",labels.at(iH).Data(),meanval,meanerr);
+    leg->AddEntry(hists.at(iH),text,"L");
   }
   leg->Draw("same");
 
@@ -169,6 +174,7 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
     hInit->SetBinContent(bin,exp.muInjected());
 
     hists.push_back( exp.mu() );
+    hists.back()->Sumw2();
     hists.back()->GetXaxis()->SetTitle("#mu");
     hists.back()->SetTitle("");
     hists.back()->SetLineColor( exp.color() );
@@ -200,8 +206,33 @@ void plotResults() {
 
   expSet.push_back( PseudoExperiments("64h",1.) );
   expSet.back().addExperiments("toys_nominal_64h/PseudoExperiment*/fitDiagnostics.root",500);
-  expSet.back().setColor(kBlue);
+  expSet.back().setColor(kBlack);
 
+  expSet.push_back( PseudoExperiments("64h_no50pc",1.) );
+  expSet.back().addExperiments("toys_nominal_64h_no50pc/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.back().setColor(kBlue);
+  
+  expSet.push_back( PseudoExperiments("64h_noISR",1.) );
+  expSet.back().addExperiments("toys_nominal_64h_noISR/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.back().setColor(kRed);
+  
+  expSet.push_back( PseudoExperiments("64h_noCSV",1.) );
+  expSet.back().addExperiments("toys_nominal_64h_noCSV/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.back().setColor(kSpring);
+  
+  expSet.push_back( PseudoExperiments("64h_noJEC",1.) );
+  expSet.back().addExperiments("toys_nominal_64h_noJEC/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.back().setColor(kMagenta);
+  
+  expSet.push_back( PseudoExperiments("64h_onlyLumi",1.) );
+  expSet.back().addExperiments("toys_nominal_64h_onlyLumi/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.back().setColor(kOrange);
+  
+  expSet.push_back( PseudoExperiments("64h_onlyttbar",1.) );
+  expSet.back().addExperiments("toys_nominal_64h_onlyttbar/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.back().setColor(kYellow);
+
+  
   comparePOIs(expSet,"test");
   //compareNuisanceParameters(expSet,"test",true);
 }
