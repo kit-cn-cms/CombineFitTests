@@ -57,6 +57,10 @@ private:
 std::vector<TString> PseudoDataGenerator::run(const std::vector<Category::Type>& categories,
 					      const std::vector<Process>& processes,
 					      const unsigned int nExperiments) const {
+  
+  if( !usePoissonStatistics_ ) {
+    std::cerr << "\n\n!!! WARNING: will create Asimov toys (no Poisson smearing) !!!\n" << std::endl;
+  }
 
   // check for consistent binning
   for(auto& category: categories) {

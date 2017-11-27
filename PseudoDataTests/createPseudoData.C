@@ -32,13 +32,13 @@ void createPseudoData(const TString& datacard,
 
   if( expectSignal > 0 ) {
     processes.push_back( Process(Process::ttHbb,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHcc,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHgg,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHgluglu,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHtt,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHww,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHzg,templatesNominal,expectSignal) );
-    processes.push_back( Process(Process::ttHzz,templatesNominal,expectSignal) );
+    // processes.push_back( Process(Process::ttHcc,templatesNominal,expectSignal) );
+    // processes.push_back( Process(Process::ttHgg,templatesNominal,expectSignal) );
+    // processes.push_back( Process(Process::ttHgluglu,templatesNominal,expectSignal) );
+    // processes.push_back( Process(Process::ttHtt,templatesNominal,expectSignal) );
+    // processes.push_back( Process(Process::ttHww,templatesNominal,expectSignal) );
+    // processes.push_back( Process(Process::ttHzg,templatesNominal,expectSignal) );
+    // processes.push_back( Process(Process::ttHzz,templatesNominal,expectSignal) );
   }
     
   processes.push_back( Process(Process::ttlf,templatesNominal) );
@@ -59,7 +59,7 @@ void createPseudoData(const TString& datacard,
   // create pseudo data
   std::cout << "Creating pseudo data" << std::endl;
   PseudoDataGenerator generator;
-  //  generator.usePoissonStatistics(false); // for debugging, do not smear
+  //generator.usePoissonStatistics(false); // for debugging, do not smear
 
   generator.setOutputDirectory(outdir);
   generator.setOutputDirectoryPerExperimentSuffix("PseudoExperiment");

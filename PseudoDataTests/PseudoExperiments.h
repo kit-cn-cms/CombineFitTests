@@ -121,7 +121,7 @@ private:
 PseudoExperiments::PseudoExperiments(const TString& label, const double injectedMu)
   : debug_(false),
     label_(label), injectedMu_(injectedMu), color_(kGray),
-    nBins_(400), min_(-20), max_(20),
+    nBins_(4000), min_(-20), max_(20),
     muValues_(0) {
   if( debug_ ) std::cout << "DEBUG " << this << ": constructor" << std::endl;
 }

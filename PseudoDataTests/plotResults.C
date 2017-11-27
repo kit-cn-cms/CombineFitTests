@@ -204,33 +204,46 @@ void plotResults() {
   // set inputs
   std::vector<PseudoExperiments> expSet;
 
-  expSet.push_back( PseudoExperiments("64h",1.) );
-  expSet.back().addExperiments("toys_nominal_64h/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.push_back( PseudoExperiments("64h_onlyttbar_onlyLumi_onlyHbb",1.) );
+  expSet.back().addExperiments("toys_nominal_64h_onlyttbar_onlyLumi_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
   expSet.back().setColor(kBlack);
 
-  expSet.push_back( PseudoExperiments("64h_no50pc",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_no50pc/PseudoExperiment*/fitDiagnostics.root",500);
-  expSet.back().setColor(kBlue);
-  
-  expSet.push_back( PseudoExperiments("64h_noISR",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_noISR/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.push_back( PseudoExperiments("64h_onlyttbar_onlyHbb",1.) );
+  expSet.back().addExperiments("toys_nominal_64h_onlyttbar_onlyHbb//PseudoExperiment*/fitDiagnostics.root",500);
   expSet.back().setColor(kRed);
+
+  expSet.push_back( PseudoExperiments("64h_onlyttbar_only50pc_onlyHbb",1.) );
+  expSet.back().addExperiments("toys_nominal_64h_onlyttbar_only50pc_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.back().setColor(kBlue);
+
+  // expSet.push_back( PseudoExperiments("64h_onlyttbar",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_onlyttbar/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kYellow);
   
-  expSet.push_back( PseudoExperiments("64h_noCSV",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_noCSV/PseudoExperiment*/fitDiagnostics.root",500);
-  expSet.back().setColor(kSpring);
   
-  expSet.push_back( PseudoExperiments("64h_noJEC",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_noJEC/PseudoExperiment*/fitDiagnostics.root",500);
-  expSet.back().setColor(kMagenta);
+  // expSet.push_back( PseudoExperiments("64h",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kBlack);
+
+  // expSet.push_back( PseudoExperiments("64h_no50pc",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_no50pc/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kBlue);
   
-  expSet.push_back( PseudoExperiments("64h_onlyLumi",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_onlyLumi/PseudoExperiment*/fitDiagnostics.root",500);
-  expSet.back().setColor(kOrange);
+  // expSet.push_back( PseudoExperiments("64h_noISR",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_noISR/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kRed);
   
-  expSet.push_back( PseudoExperiments("64h_onlyttbar",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_onlyttbar/PseudoExperiment*/fitDiagnostics.root",500);
-  expSet.back().setColor(kYellow);
+  // expSet.push_back( PseudoExperiments("64h_noCSV",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_noCSV/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kSpring);
+  
+  // expSet.push_back( PseudoExperiments("64h_noJEC",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_noJEC/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kMagenta);
+  
+  // expSet.push_back( PseudoExperiments("64h_onlyLumi",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_onlyLumi/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kOrange);
 
   
   comparePOIs(expSet,"test");
