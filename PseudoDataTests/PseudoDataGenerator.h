@@ -19,8 +19,12 @@ public:
     : outputDir_("."),
       outputDirPerExpSuffix_("PseudoData"),
       outputFileSuffix_("Data_Obs"),
-      usePoissonStatistics_(true),
-      rand_(new TRandom3(1)) {}
+      usePoissonStatistics_(true) {
+
+    TUUID id;
+    rand_ = new TRandom3();
+
+  }
 
   ~PseudoDataGenerator() {
     delete rand_;

@@ -13,6 +13,8 @@
 //const TString datacard = "limits_All_v24_datacard_ljets/datacard_jge6_tge4_high_hdecay.txt";
 const TString templatesNominal = "limits_All_v24_datacard_ljets/ttH_hbb_13TeV_sl.root";
 const TString CMSSW_BASE = "/afs/desy.de/user/m/matsch/CMSSW_8_1_0";
+const TString PWD = "/afs/desy.de/user/m/matsch/ttH/CombineFitTests/PseudoDataTests";
+
 const TString combineCmd = "combine -M FitDiagnostics --rMin -10 --rMax 10 --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.001 --saveNormalizations --saveShapes";
 
 
@@ -22,9 +24,15 @@ void createPseudoData(const TString& datacard,
 		      const double expectSignal=1.) {
 
   std::vector<Category::Type> categories = {
-    // Category::SL_44,
-    // Category::SL_54,
-    // Category::SL_63,
+    Category::SL_43,
+    Category::SL_44l,
+    Category::SL_44h,
+    Category::SL_53,
+    Category::SL_54l,
+    Category::SL_54h,
+    Category::SL_63l,
+    Category::SL_63h,
+    Category::SL_64l,
     Category::SL_64h
   };
 
@@ -101,7 +109,7 @@ void createPseudoData(const TString& datacard,
       out << "source $VO_CMS_SW_DIR/cmsset_default.sh\n";
       out << "cd " << CMSSW_BASE << "/src\n";
       out << "eval `scram runtime -sh`\n";
-      out << "cd -\n\n";
+      out << "\ncd " << PWD << "/" << experimentDir << "\n";
       out << "echo '" << combineCmd << " " << datacardName << "'\n";
       out << combineCmd << " " << datacardName << "\n";
       out << "rm higgsCombineTest.FitDiagnostics.mH*.root\n";
