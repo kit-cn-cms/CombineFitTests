@@ -87,7 +87,7 @@ void compareMeanValues(TH1* hFittedValuesMeanError,
   can->cd();
 
   hFittedValuesMeanError->SetMarkerColor(kBlack);
-  hFittedValuesMeanError->SetMarkerStyle(24);
+  hFittedValuesMeanError->SetMarkerStyle(7);
 
   hFittedValuesRMS->SetMarkerColor( hFittedValuesMeanError->GetMarkerColor() );
   hFittedValuesRMS->SetMarkerStyle( hFittedValuesMeanError->GetMarkerStyle() );
@@ -172,7 +172,7 @@ void comparePOIs(const std::vector<PseudoExperiments>& exps,
     hPOIsMeanError->SetBinError(bin,exp.muMeanError());
     hPOIsRMS->SetBinError(bin,exp.muRMS());
     hInit->SetBinContent(bin,exp.muInjected());
-
+    
     hists.push_back( exp.mu() );
     hists.back()->Sumw2();
     hists.back()->GetXaxis()->SetTitle("#mu");
@@ -204,23 +204,36 @@ void plotResults() {
   // set inputs
   std::vector<PseudoExperiments> expSet;
 
-  expSet.push_back( PseudoExperiments("64h_onlyttbar_onlyLumi_onlyHbb",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_onlyttbar_onlyLumi_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.push_back( PseudoExperiments("no syst",1.) );
+  expSet.back().addExperiments("toys_combined_ttbar_noSysts/PseudoExperiment*/fitDiagnostics.root",500);
   expSet.back().setColor(kBlack);
 
-  expSet.push_back( PseudoExperiments("64h_onlyttbar_only50pc_onlyHbb",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_onlyttbar_only50pc_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.push_back( PseudoExperiments("all syst",1.) );
+  expSet.back().addExperiments("toys_combined_ttbar/PseudoExperiment*/fitDiagnostics.root",500);
   expSet.back().setColor(kBlue);
 
-  expSet.push_back( PseudoExperiments("64h_onlyttbar_onlyTheory_onlyHbb",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_onlyttbar_onlyTheory_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
-  expSet.back().setColor(kSpring);
-
-  expSet.push_back( PseudoExperiments("64h_onlyttbar_onlyHbb",1.) );
-  expSet.back().addExperiments("toys_nominal_64h_onlyttbar_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
+  expSet.push_back( PseudoExperiments("no exp syst",1.) );
+  expSet.back().addExperiments("toys_combined_ttbar_noExpSyst/PseudoExperiment*/fitDiagnostics.root",500);
   expSet.back().setColor(kRed);
 
   
-  comparePOIs(expSet,"test");
+  // expSet.push_back( PseudoExperiments("64h_onlyttbar_onlyLumi_onlyHbb",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_onlyttbar_onlyLumi_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kBlack);
+
+  // expSet.push_back( PseudoExperiments("64h_onlyttbar_only50pc_onlyHbb",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_onlyttbar_only50pc_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kBlue);
+
+  // expSet.push_back( PseudoExperiments("64h_onlyttbar_onlyTheory_onlyHbb",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_onlyttbar_onlyTheory_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kSpring);
+
+  // expSet.push_back( PseudoExperiments("64h_onlyttbar_onlyHbb",1.) );
+  // expSet.back().addExperiments("toys_nominal_64h_onlyttbar_onlyHbb/PseudoExperiment*/fitDiagnostics.root",500);
+  // expSet.back().setColor(kRed);
+
+  
+  comparePOIs(expSet,"toys_ttbar_2DSL-combined");
   //compareNuisanceParameters(expSet,"test",true);
 }

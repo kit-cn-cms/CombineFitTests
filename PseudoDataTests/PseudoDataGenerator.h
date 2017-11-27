@@ -21,9 +21,8 @@ public:
       outputFileSuffix_("Data_Obs"),
       usePoissonStatistics_(true) {
 
-    TUUID id;
-    rand_ = new TRandom3();
-
+    const TUUID id;
+    rand_ = new TRandom3(id.Hash());
   }
 
   ~PseudoDataGenerator() {

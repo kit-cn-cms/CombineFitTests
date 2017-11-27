@@ -167,29 +167,35 @@ void PseudoExperiments::addExperiment(const TString& mlfit) {
       // if called the first time, get list of NPs
       if( nps_.empty() ) {
 	if( debug_ ) std::cout << "  DEBUG: initialize NPs" << std::endl;
-	initContainers(file);
+	try {
+	  initContainers(file);
+	} catch (...) {
+	  std::cerr << "WARNING: no 'nuisances_prefit' object in '" << mlfit << "'" << std::endl;
+	}
       }
-      // store nuisance parameter values
-      if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
-      if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
-      try {
-	storeRooArgSetResults(npValuesPrefit_,file,"nuisances_prefit");
-      } catch (...) {
-	std::cerr << "WARNING: no 'nuisances_prefit' object in '" << mlfit << "'" << std::endl;
+      if( !nps_.empty() ) {
+	// store nuisance parameter values
+	if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
+	if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
+	try {
+	  storeRooArgSetResults(npValuesPrefit_,file,"nuisances_prefit");
+	} catch (...) {
+	  std::cerr << "WARNING: no 'nuisances_prefit' object in '" << mlfit << "'" << std::endl;
+	}
+	if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
+	try {
+	  storeRooFitResults(npValuesPostfitB_,file,"fit_b");
+	} catch (...) {
+	  std::cerr << "WARNING: no 'fit_b' object in '" << mlfit << "'" << std::endl;
+	}
+	if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
+	try {
+	  storeRooFitResults(npValuesPostfitS_,file,"fit_s");
+	} catch (...) {
+	  std::cerr << "WARNING: no 'fit_s' object in '" << mlfit << "'" << std::endl;
+	}
+	if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
       }
-      if( debug_ ) std::cout << "    DEBUG: postfit B NPs" << std::endl;
-      try {
-	storeRooFitResults(npValuesPostfitB_,file,"fit_b");
-      } catch (...) {
-	std::cerr << "WARNING: no 'fit_b' object in '" << mlfit << "'" << std::endl;
-    }
-      if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
-      try {
-	storeRooFitResults(npValuesPostfitS_,file,"fit_s");
-      } catch (...) {
-	std::cerr << "WARNING: no 'fit_s' object in '" << mlfit << "'" << std::endl;
-      }
-      if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
     }
     
     file.Close();

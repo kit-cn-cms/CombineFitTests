@@ -23,6 +23,10 @@ void createPseudoData(const TString& datacard,
 		      const int nExperiments,
 		      const double expectSignal=1.) {
 
+  // Note: order must be the same in:
+  // - this vector
+  // - datacard input file list
+  // - datacard channel columns
   std::vector<Category::Type> categories = {
     Category::SL_43,
     Category::SL_44l,
@@ -123,31 +127,33 @@ void createPseudoData(const TString& datacard,
   }
 
   // create submission script
-  const TString nameSubScript = outdir+"_sub.sh";
-  std::ofstream out(nameSubScript);
-  if( out.is_open() ) {
+  // Not needed, using scripts/submitAsArray.py instead
+  // const TString nameSubScript = outdir+"_sub.sh";
+  // std::ofstream out(nameSubScript);
+  // if( out.is_open() ) {
       
-    out << "#!/bin/bash\n\n";
-    out << "for i in";
-    for(auto& experimentDir: experimentDirs) {
-      out << " " << experimentDir;
-    }
-    out << "; do\n";
-    out << "    cd ${i}\n";
-    out << "    qsub -q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V -o log.out -e log.err " << nameRunScript << "\n";
-    out << "    cd -\n";
-    out << "done\n";
+  //   out << "#!/bin/bash\n\n";
+  //   out << "for i in";
+  //   for(auto& experimentDir: experimentDirs) {
+  //     out << " " << experimentDir;
+  //   }
+  //   out << "; do\n";
+  //   out << "    cd ${i}\n";
+  //   out << "    qsub -q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V -o log.out -e log.err " << nameRunScript << "\n";
+  //   out << "    cd -\n";
+  //   out << "done\n";
 
-    out.close();
+  //   out.close();
       
-  } else {
-    std::cerr << "ERROR: unable to open '" << nameRunScript << "' for writing" << std::endl;
-    throw std::exception();
-  }
-  gSystem->Exec("chmod u+x "+nameSubScript);
+  // } else {
+  //   std::cerr << "ERROR: unable to open '" << nameRunScript << "' for writing" << std::endl;
+  //   throw std::exception();
+  // }
+  // gSystem->Exec("chmod u+x "+nameSubScript);
 
   
   std::cout << "Done" << std::endl;
   std::cout << "  project in " << outdir << std::endl;
-  std::cout << "  submit fits with './" << nameSubScript << "'" << std::endl;
+  //  std::cout << "  submit fits with './" << nameSubScript << "'" << std::endl;
+  std::cout << "  submit fits with 'python scripts/submitAsArray.py " << outdir << "/PseudoExperiment*/run_fit.sh'" << std::endl;
 }
