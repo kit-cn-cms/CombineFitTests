@@ -20,7 +20,7 @@ pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests
 
 mu = sys.argv[1]
 wildcards = sys.argv[2:]
-paramgroups = ["all", "exp", "thy", "syst", "btag", "jes"]
+paramgroups = ["all", "exp", "thy", "syst", "btag", "jes", "bgn", "ps"]
 
 #=======================================================================
 def check_workspace(pathToDatacard):
@@ -52,7 +52,8 @@ def check_workspace(pathToDatacard):
         workspacePath = ""
     return workspacePath
 
-def create_fit_cmd(mdfout, paramgroup, outfolder, mu = mu):
+def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
+			mu = mu):
 	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
 	script.append("  source " + pathToCMSSWsetup)
 	script.append("  if [ -d " + outfolder + " ]; then")
@@ -61,12 +62,14 @@ def create_fit_cmd(mdfout, paramgroup, outfolder, mu = mu):
 	script.append('    echo "statOnly folder does not exist!"')
 	script.append("  fi")
 	script.append("    if [ -f " + mdfout + " ]; then")
-	cmd = ["combine -M FitDiagnostics -w w"]
-	cmd.append('--snapshotName "MultiDimFit"')
+	cmd = ["combine -M FitDiagnostics"]
+	if paramgroup:
+            cmd.append('-w w --snapshotName "MultiDimFit"')
 	cmd.append("-n _" + suffix)
 	cmd.append("--cminDefaultMinimizerStrategy 0")
 	cmd.append("--cminDefaultMinimizerTolerance 1e-5")
-	cmd.append("--rMin -10 --rMax 10 -t -1 --expectSignal " + str(mu))
+	cmd.append("--rMin -10 --rMax 10 -t -1 --expectSignal")
+	cmd.append(str(mu))
 	cmd.append("--freezeParameters " + paramgroup)
 	cmd.append("--minos all")
 	cmd.append(mdfout)
@@ -79,13 +82,38 @@ def create_fit_cmd(mdfout, paramgroup, outfolder, mu = mu):
 	script.append('  echo "Could not find CMSSW setup file!')
 	script.append("fi")
 	
-	outscript = "script_"+paramgroup + ".sh"
+	if paramgroup:
+	    outscript = "script_"+paramgroup + ".sh"
+	else:
+	    outscript = "script_fit_all.sh"
 	with open(outscript, "w") as out:
 		out.write("\n".join(script))
 	if os.path.exists(outscript):
 		return outscript
 	else:
 		return ""
+
+def create_folders( foldername, combineInput, paramgroup, suffix,
+                    mu, scripts):
+    if paramgroup:
+        outfolder = "group_" + paramgroup
+    else:
+        outfolder = "all_errors"
+    
+    suffix += outfolder
+    
+    if os.path.exists(outfolder):
+        shutil.rmtree(outfolder)
+    os.makedirs(outfolder)
+    outfolder = os.path.join(foldername, outfolder)
+            
+    path = create_fit_cmd( 	mdfout = ws,
+            paramgroup = paramgroup,
+            suffix = suffix,
+            mu = mu,
+            outfolder = outfolder)		
+    if path:
+        scripts.append(path)
 
 def submit_fit_cmds(ws, paramgroups = ["all"], mu = mu):
     if os.path.exists(ws):
@@ -94,12 +122,7 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = mu):
 	if not os.path.exists(foldername):
 	    os.makedirs(foldername)
 	os.chdir(foldername)
-	outfolder = "splitted_errors"
-	suffix = os.path.basename(foldername)
-	if os.path.exists(outfolder):
-	    shutil.rmtree(outfolder)
-	os.makedirs(outfolder)
-	outfolder = os.path.join(foldername, outfolder)
+	
 	scripts = []
 	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
 	script.append("  source " + pathToCMSSWsetup)
@@ -108,8 +131,8 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = mu):
 	cmd = ["combine -M MultiDimFit --saveWorkspace -n"]
 	cmd.append("-n _prefit_" + suffix)
 	cmd.append("--cminDefaultMinimizerStrategy 0")
-	cmd.append("--cminDefaultMinimizerTolerance 1e-5"
-	cmd.append("--rMin -10 --rMax 10 -t -1 --expectSignal"
+	cmd.append("--cminDefaultMinimizerTolerance 1e-5")
+	cmd.append("--rMin -10 --rMax 10 -t -1 --expectSignal")
 	cmd.append(str(mu))
 	cmd.append("--saveFitResult")
 	
@@ -133,30 +156,41 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = mu):
 	    scripts = []
 	    mdfout = "higgsCombine_prefit_" + suffix + ".MultiDimFit.mH120.root"
 	    for group in paramgroups:
-		path = create_fit_cmd(	mdfout = mdfout,
-					paramgroup = group,
-					mu = mu,
-					outfolder = outfolder)
-		if path:
-		    scripts.append(path)
+            
+            create_folders( foldername = foldername, 
+                            combineInput = mdfout,
+                            paramgroup = group,
+                            suffix = suffix,
+                            mu = mu, scripts = scripts)
+        
+        create_folders( foldername = foldername,
+                        combineInput = ws,
+                        paramgroup = "",
+                        suffix = suffix,
+                        mu = mu, scripts = scripts)           
+		
 	    if(len(scripts) > 0):
-		return batch_fits.submitArrayToBatch(	scripts = scripts,
+            return batch_fits.submitArrayToBatch(	scripts = scripts,
 						arrayscriptpath = "arrayJob.sh",
 						jobid = jobid )
         return -1
 
 
 #=======================================================================
-base = os.getcwd()
-for wildcard in wildcards:
-    for d in glob.glob(wildcard):
-	d = os.path.abspath(d)
-	if os.path.exists(d):
-	    d = check_workspace(d)
-	    arrayid = submit_fit_cmds(	ws = d,
-					paramgroups = paramgroups,
-					mu = mu)
-		
+
+if __name__ == '__main__':
+
+    base = os.getcwd()
+    for wildcard in wildcards:
+        for d in glob.glob(wildcard):
+        d = os.path.abspath(d)
+        if os.path.exists(d):
+            d = check_workspace(d)
+            arrayid = submit_fit_cmds(	ws = d,
+                        paramgroups = paramgroups,
+                        mu = mu)
+            if arrayid != -1:
+                print "all fits submitted to batch"
 			
 			
 			
