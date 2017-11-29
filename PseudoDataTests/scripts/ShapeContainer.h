@@ -14,14 +14,18 @@
 #include <TClass.h>
 #include <TROOT.h>
 
+#include "helperFuncs.h"
+
 class ShapeContainer{
 public:
   ShapeContainer(const TString& category);
   ~ShapeContainer();
   //void setHistogram(const TH1D* histo, const TString& keyName) const;
-  void loadShape(const TH1D* histo, const TString& signalStrength);
+  void loadShape(const TH1D* histo);
   void loadShapes(TFile& file, const TString& folderName, const TString& signalStrength);
+  void loadShapes(TTree* tree, const TString& signalStrength);
   void checkShapeContainer() const;
+  void createShapeHistos(const TString& signalStrength);
   TString getName() const;
   int getNumberOfProcesses() const;
   std::vector<TString> getListOfProcesses() const;
@@ -34,6 +38,7 @@ public:
 private:
   bool debug_;
   std::map<TString, TH1D*> shapeHistos_;
+  std::map<TString, std::vector<Double_t> > normValues_;
   TString categoryName_;
 
 };
@@ -53,54 +58,74 @@ ShapeContainer::~ShapeContainer()
   for(std::map<TString, TH1D*>::const_iterator it = shapeHistos_.begin(); it!= shapeHistos_.end(); it++) delete it->second;
 }
 
-void ShapeContainer::loadShape(const TH1D* histo, const TString& signalStrength){
+// void ShapeContainer::loadShape(const TH1D* histo, const TString& signalStrength){
+  // if(debug_) std::cout << "DEBUG    reading " << histo->GetName() << std::endl;
+  // std::map<TString, TH1D*>::const_iterator it = shapeHistos_.find(histo->GetName());
+  // double integral = histo->Integral();
+  // if(debug_) std::cout << "\t integral value: " << integral << std::endl;
+  // if(debug_) checkShapeContainer();
+  // double lowerBound = 0;
+  // double upperBound = 10;
+  // int nBins = 0;
+  // if(it == shapeHistos_.end())
+  // {
+    // if(debug_) std::cout << "DEBUG    creating new histogram\n";
+    // TString tempHistoName;
+    // tempHistoName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), histo->GetName());
+
+    // if(integral == 0)
+    // {
+      // lowerBound = -500.;
+      // upperBound = 500.;
+    // }
+    // else
+    // {
+      // lowerBound = -10*integral;
+      // upperBound = 10*integral;
+    // }
+    // nBins = int((upperBound - lowerBound)/0.5);
+
+    // //if(lowerBound>-2) lowerBound = -2;
+    // if(nBins <= 0) nBins = 1000;
+    // TH1D* hTemp = new TH1D(tempHistoName, "; Integral; Frequency", nBins, lowerBound, upperBound);
+    // hTemp->SetDirectory(0);
+    // if(debug_)
+    // {
+      // std::cout << "DEBUG    new histogram parameters:\n";
+      // std::cout << "\tname: " << hTemp->GetName() << std::endl;
+      // std::cout << "\tnBins: " << hTemp->GetNbinsX() << " (input: 400)\n";
+      // std::cout << "\tlower Bound: " << hTemp->GetBinLowEdge(1) << " (input: " << lowerBound <<")\n";
+      // std::cout << "\tupper Bound: " << hTemp->GetBinCenter(hTemp->GetNbinsX()) + hTemp->GetBinWidth(hTemp->GetNbinsX())/2 << " (input: " << upperBound <<")\n";
+
+    // }
+    // hTemp->Fill(integral);
+    // shapeHistos_[histo->GetName()] = hTemp;
+  // }
+  // else{
+    // if(debug_) std::cout << "DEBUG    found matching histogram! Filling...\n";
+
+    // it->second->Fill(integral);
+  // }
+// }
+
+void ShapeContainer::loadShape(const TH1D* histo){
   if(debug_) std::cout << "DEBUG    reading " << histo->GetName() << std::endl;
-  std::map<TString, TH1D*>::const_iterator it = shapeHistos_.find(histo->GetName());
   double integral = histo->Integral();
   if(debug_) std::cout << "\t integral value: " << integral << std::endl;
-  if(debug_) checkShapeContainer();
-  double lowerBound = 0;
-  double upperBound = 10;
-  int nBins = 0;
-  if(it == shapeHistos_.end())
-  {
-    if(debug_) std::cout << "DEBUG    creating new histogram\n";
-    TString tempHistoName;
-    tempHistoName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), histo->GetName());
+  normValues_[histo->GetName()].push_back(integral);
+  
+}
 
-    if(integral == 0)
-    {
-      lowerBound = -500.;
-      upperBound = 500.;
-    }
-    else
-    {
-      lowerBound = -10*integral;
-      upperBound = 10*integral;
-    }
-    nBins = int((upperBound - lowerBound)/0.5);
-
-    //if(lowerBound>-2) lowerBound = -2;
-    if(nBins <= 0) nBins = 1000;
-    TH1D* hTemp = new TH1D(tempHistoName, "; Integral; Frequency", nBins, lowerBound, upperBound);
-    hTemp->SetDirectory(0);
-    if(debug_)
-    {
-      std::cout << "DEBUG    new histogram parameters:\n";
-      std::cout << "\tname: " << hTemp->GetName() << std::endl;
-      std::cout << "\tnBins: " << hTemp->GetNbinsX() << " (input: 400)\n";
-      std::cout << "\tlower Bound: " << hTemp->GetBinLowEdge(1) << " (input: " << lowerBound <<")\n";
-      std::cout << "\tupper Bound: " << hTemp->GetBinCenter(hTemp->GetNbinsX()) + hTemp->GetBinWidth(hTemp->GetNbinsX())/2 << " (input: " << upperBound <<")\n";
-
-    }
-    hTemp->Fill(integral);
-    shapeHistos_[histo->GetName()] = hTemp;
+void ShapeContainer::createShapeHistos(const TString& signalStrength){
+  TString tempHistoName;
+  TString processName;
+  for(std::map<TString, std::vector<Double_t> >::const_iterator it = normValues_.begin(); it != normValues_.end(); it++){
+    processName = it->first.Data();
+    TUUID id;
+    tempHistoName.Form("%s_%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), processName.Data(), id.AsString());
+    shapeHistos_[processName] = helperFuncs::createHistoFromVector(tempHistoName, it->second);
   }
-  else{
-    if(debug_) std::cout << "DEBUG    found matching histogram! Filling...\n";
-
-    it->second->Fill(integral);
-  }
+  normValues_.clear();
 }
 
 void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TString& signalStrength){
@@ -113,7 +138,7 @@ void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TS
   TKey* key;
   while ((key = (TKey*)nextHistoObject()) && (!key->IsFolder()) ) {
     TClass *cl = gROOT->GetClass(key->GetClassName());
-    if(cl->InheritsFrom("TH1") && !cl->InheritsFrom("TH2")) loadShape((TH1D*)key->ReadObj(), signalStrength);
+    if(cl->InheritsFrom("TH1") && !cl->InheritsFrom("TH2")) loadShape((TH1D*)key->ReadObj());
     else{
       if(debug_) std::cout << "DEBUG    object " << key->GetName() << " does not inherit from TH1, skipping\n";
     }
@@ -124,6 +149,24 @@ void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TS
   if(debug_) std::cout << "DEBUG    done saving normalisations for category " << categoryName_.Data() << std::endl;
   if(debug_) checkShapeContainer();
 }
+
+void ShapeContainer::loadShapes(TTree* tree, const TString& signalStrength){
+  TString histName;
+  TString processName;
+  TString title;
+  TObjArray* array = tree->GetListOfBranches();
+  std::cout << "Normalizations for process " << categoryName_ << ":\n";
+  for(int i=0; i<array->GetEntries(); i++){
+    const TUUID id;
+    processName = array->At(i)->GetName();
+    histName.Form("%s_%s_%s_intDist", signalStrength.Data(), categoryName_.Data(), processName.Data());
+    title.Form(";integral %s;Frequency", processName.Data());
+    
+    shapeHistos_[processName] = helperFuncs::branch2histo(tree, processName, title, histName);
+    
+  }
+}
+
 
 void ShapeContainer::checkShapeContainer()const{
   std::cout << "Checking Container for category " << this->getName() << std::endl;

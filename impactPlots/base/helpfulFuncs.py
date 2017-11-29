@@ -1,4 +1,5 @@
 import ROOT
+
 def getLatex(x,y,text):
     tests = ROOT.TLatex(x, y,text)
     tests.SetTextFont(42)
@@ -40,3 +41,4 @@ def setupPad(p):
 
 def lnn(beta,err):
     return pow(1.+err,beta)
+    

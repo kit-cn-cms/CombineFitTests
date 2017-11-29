@@ -2,17 +2,74 @@
 #define HELPER_FUNCS_H
 
 #include "TH1.h"
+#include "TH1D.h"
+#include "TTree.h"
 #include "TString.h"
 #include "TColor.h"
 #include "TLine.h"
 #include "TFile.h"
+#include "TObjArray.h"
 #include "RooFitResult.h"
 #include "RooRealVar.h"
 #include <TMath.h>
 #include <vector>
 
 namespace helperFuncs{
-
+  
+  TH1D* createHistoFromVector(const TString& histName, const std::vector<Double_t>& vec, const TString& title=""){
+    int position = std::distance(vec.begin(), std::min_element(vec.begin(), vec.end()));
+    double minVal = vec[position];
+    position = std::distance(vec.begin(), std::max_element(vec.begin(), vec.end()));
+    double maxVal = vec[position];
+    if(minVal == maxVal){
+      minVal = minVal - 5;
+      maxVal = maxVal + 5;
+    }
+    int nBins = 2000;
+    TH1D* histo = new TH1D(histName, title.Data(), nBins, minVal, maxVal);
+    for(int i=0; i<int(vec.size()); i++) histo->Fill(vec[i]);
+    return histo;
+  }
+  
+  void saveTreeVals(TTree* tree, const TString& branchName, std::vector<Double_t>& vec){
+    double value = 0;
+    std::cout << "reading branch " << branchName << std::endl;
+    tree->SetBranchAddress(branchName.Data(), &value);
+    for(int i = 0; i< tree->GetEntries(); i++){
+      tree->GetEntry(i);
+      std::cout << "\t" << value << std::endl;
+      vec.push_back(value);
+    }
+  }
+  
+  void saveTreeVals(TTree* tree, const TString& branchName, std::map<TString,TH1*>& vec, const TString& histName, const int nbins = 400, const double xmin = -1, const double xmax = 1){
+    std::map<TString, TH1*>::const_iterator it = vec.find(branchName.Data());
+    if(it == vec.end()){
+      vec[branchName] = new TH1D(histName.Data(), "", nbins, xmin, xmax);
+      vec[branchName]->SetDirectory(0);      
+    }
+    double value = 0;
+    tree->SetBranchAddress(branchName.Data(), &value);
+    for(int i = 0; i< tree->GetEntries(); i++){
+      std::cout << "\t" << branchName << ":\t" << value << std::endl;
+      tree->GetEntry(i);
+      vec[branchName]->Fill(value);
+    }
+  }
+  
+  
+  TH1D* branch2histo(TTree* tree, const TString& branchName, const TString& title = "", const TString& hName = ""){
+    std::vector<Double_t> vec;
+    saveTreeVals(tree, branchName, vec);
+    const TUUID id;
+    TString histoName = hName;
+    if(histoName.EqualTo(""))
+    {
+      histoName.Form("%s_%s_%s", tree->GetName(), branchName.Data(), id.AsString());
+    }
+    return createHistoFromVector(histoName, vec, title);
+  }
+  
   Double_t checkValues(Double_t x, Double_t cut = 100000000){
       if(std::isnan(x) || std::isinf(x) || x>cut) {
         std::cout << "WARNING:\tchecked value is either nan, inf or > "<< cut;
@@ -21,8 +78,9 @@ namespace helperFuncs{
       else return x;
   }
 
-  double findMaxValue(const std::vector<TH1*> histos, const TString mode = "y")
+  double findMaxValue(const std::vector<TH1*>& histos, const TString mode = "y")
   {
+    std::cout << "looking for maximum value; comparing " << histos.size() << " histos; mode: " << mode << std::endl;
     double maxVal = -999;
     double current = 0;
     if(mode.EqualTo("y"))
@@ -45,11 +103,14 @@ namespace helperFuncs{
         }
       }
     }
+    std::cout << "found maximum at " << maxVal << std::endl;
     return maxVal;
   }
 
-  double findMinValue(const std::vector<TH1*> histos, const TString mode = "y")
+  double findMinValue(const std::vector<TH1*>& histos, const TString mode = "y")
   {
+    std::cout << "looking for minimum value; comparing " << histos.size() << " histos; mode: " << mode << std::endl;
+
     double minVal = 999;
     double current = 0;
     if(mode.EqualTo("y"))
@@ -71,6 +132,7 @@ namespace helperFuncs{
         }
       }
     }
+    std::cout << "found minimum at " << minVal << std::endl;
     return minVal;
   }
 

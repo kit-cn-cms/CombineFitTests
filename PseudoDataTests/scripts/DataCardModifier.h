@@ -65,16 +65,16 @@ void DataCardModifier::setInputsPath(const TString& path) {
       const TString oldInputFull = words.at(3); // looks like 'some/path/file.root'
       const TString fileName = oldInputFull.Contains("/") ? str::split(oldInputFull,"/").back() : oldInputFull;
       if( !fileName.EndsWith(".root") ) {
-	std::cerr << "ERROR DataCard: input file not found" << std::endl;
-	std::cerr << "  in file '" << fileName << "'" << std::endl;
-	std::cerr << "  in line '" << line << "'" << std::endl;	
-	throw std::exception();
+        std::cerr << "ERROR DataCard: input file not found" << std::endl;
+        std::cerr << "  in file '" << fileName << "'" << std::endl;
+        std::cerr << "  in line '" << line << "'" << std::endl;	
+        throw std::exception();
       }
       TString newLine = "";
       for(size_t i = 0; i < words.size(); ++i) {
-	if( i == 3 ) newLine += path+"/"+fileName+" ";
-	else         newLine += words.at(i)+" ";
-      }
+        if( i == 3 ) newLine += path+"/"+fileName+" ";
+        else         newLine += words.at(i)+" ";
+            }
       newLines.push_back(newLine);
 
     } else {
@@ -105,10 +105,14 @@ void DataCardModifier::setObservation(const TString& fileNameDataObs, const TStr
       const TString dataLine = "shapes data_obs "+channel+" "+dataObsInCard+" "+nominal+" "+systematic;
       newLines.push_back(line);
       newLines.push_back(dataLine);
-
-      TH1* h = reader(fileNameDataObs,nominal);
-      yields.push_back(h->Integral());
-      delete h;
+      
+      if(!nominal.Contains("$"))
+      {
+        TH1* h = reader(fileNameDataObs,nominal);
+        yields.push_back(h->Integral());
+        delete h;
+      }
+      else yields.push_back(-1);
 
     } else {
       newLines.push_back(line);
