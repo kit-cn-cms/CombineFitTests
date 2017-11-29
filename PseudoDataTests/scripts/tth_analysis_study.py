@@ -9,6 +9,7 @@ import subprocess
 import time
 import shutil
 import imp
+
 ROOT.gROOT.SetBatch(True)
 ROOT.gDirectory.cd('PyROOT:/')
 
@@ -20,9 +21,6 @@ if not basefolder in sys.path:
 
 from batchConfig import *
 batch = batchConfig(queue="short")
-
-
-
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
