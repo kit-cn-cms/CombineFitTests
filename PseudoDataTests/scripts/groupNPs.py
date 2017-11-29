@@ -46,7 +46,7 @@ def save_val(dic, group, val):
 
 groupDict = {
 
-"bgnorm" : ['bgnorm_*'],
+"bgn" : ['bgnorm_*'],
 "syst" : "CMS* QCD* bgnorm* lumi* pdf*".split(),
 "thy" : "QCD* bgnorm* *HDAMP* *UE* *ISR* *pdf* *scaleMu* *FSR*".split(),
 "btag" : ["*btag*"],
@@ -74,13 +74,14 @@ for wildcard in datacards:
                                             group = group, val = word)       
                             continue
                         key = words[0]
-                        for group in groupDict:
-                            if check_wildcard(  key = key,
-                                                nuisancelist = groupDict[group]
-                                                ):
-                                print "found match for group", group
-                                save_val(   dic = finaldict,
-                                            group = group, val = key)
+                        if not all(x == "-" for x in words[2:]):
+                            for group in groupDict:
+                                if check_wildcard(  key = key,
+                                                    nuisancelist = groupDict[group]
+                                                    ):
+                                    print "found match for group", group
+                                    save_val(   dic = finaldict,
+                                                group = group, val = key)
                 newlines.append(line)
         for group in finaldict:
             l = finaldict[group]
