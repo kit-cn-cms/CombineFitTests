@@ -95,8 +95,8 @@ def loadVariable(pathToLoad, takeTree = False):
                     return val, error
                 ROOT.gDirectory.cd('PyROOT:/')
                 for entry in tree:
-                    val = entry.mu
-                    error = entry.muErr
+                    val = entry.r
+                    error = entry.rErr
             results.Close()
     else:
         print "Could not load file", pathToLoad
@@ -318,6 +318,13 @@ def getDataObss(pathToPseudoExps, dataObsFile, pdfOutputPath = "./", suffix = No
             canvas = ROOT.TCanvas()
 
             data_obs_dic[cat][i].Draw()
+            fit = ROOT.TF1("fit", "[0]*TMath::Poisson(x, [1]) + [2]", data_obs_dic[cat][i].GetBinCenter(1), data_obs_dic[cat][i].GetBinCenter(data_obs_dic[cat][i].GetNbinsX()))
+            fit.SetParNames("Amp", "Mean", "Offset")
+            fit.SetParameters(data_obs_dic[cat][i].GetEntries(), data_obs_dic[cat][i].GetMean(), 0)
+            fit.SetNpx(500)
+            
+            data_obs_dic[cat][i].Fit(fit,"R")
+            fit.Draw("Same")
             name = data_obs_dic[cat][i].GetName()
             parts = name.split("_")
             name = "_".join(parts[0:len(parts)-2])
@@ -333,11 +340,6 @@ def getDataObss(pathToPseudoExps, dataObsFile, pdfOutputPath = "./", suffix = No
                 line.Draw("Same")
                 leg.Draw("Same")
                 
-                fit = ROOT.TF1("fit", "[0]*TMath::Poisson(x, [1]) + [2]", data_obs_dic[cat][i].GetBinCenter(1), data_obs_dic[cat][i].GetBinCenter(data_obs_dic[cat][i].GetNbinsX()))
-                fit.SetParNames("Amp", "Mean", "Offset")
-                fit.SetParameters(data_obs_dic[cat][i].GetEntries(), data_obs_dic[cat][i].GetMean(), 0)
-                
-                data_obs_dic[cat][i].Fit(fit,"R")
                 
             elif isinstance(orig_data_obs, ROOT.TH1) and isinstance(i, str):
                 print "saving distribution for toy yields"
