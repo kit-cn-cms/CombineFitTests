@@ -26,7 +26,7 @@ listOfPoisCombis = [
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
         #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
+        # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
         # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},
         # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
@@ -75,10 +75,13 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
 
     string = ""
     if additionalCmds:
-        string = additionalCmds
+        if isinstance(additionalCmds, list):
+            string = " ".join(additionalCmds)
+        else:
+            string = additionalCmds
     runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
     if pathToSherpa:
-        runScript(targetPath, base_suffix+"sherpa_ol_wo_ttbarPlusB_ttbarPlus2B", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
+        runScript(targetPath, base_suffix+"sherpa_normedto_ttbarPlusBBbar", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
     # if pathToAMC:
         # runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
@@ -101,17 +104,20 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
 
             string = "--scaleProcesses " + key
             if additionalCmds:
-                string += " " + additionalCmds
+                if isinstance(additionalCmds, list):
+                    string += " " + " ".join(additionalCmds)
+                else:
+                    string += " " + additionalCmds
 
 
-            runScript(  targetPath  = targetPath,
-                        suffix      = suffix,
-                        pathToDatacard = pathToDatacard,
-                        pathToRoofile = pathToRoofile,
-                        pois = pois,
-                        key = string,
-                        factor = "--scaleFuncs " + factor,
-                        pathToConfig = pathToConfig)
+            # runScript(  targetPath  = targetPath,
+                        # suffix      = suffix,
+                        # pathToDatacard = pathToDatacard,
+                        # pathToRoofile = pathToRoofile,
+                        # pois = pois,
+                        # key = string,
+                        # factor = "--scaleFuncs " + factor,
+                        # pathToConfig = pathToConfig)
 
 
 def tth_fit_stability(pois, additionalCmds = None):
@@ -158,8 +164,11 @@ def JES_uncertainty_study(pathToDatacards, folderSuffix, additionalCmds):
 
         runScript(targetPath = targetPath, suffix = suffix + folderSuffix , pathToDatacard = datacard, key = additionalCmds)
 
-def throwToys(wildcard, rootfile = None, pathToConfig = None, additionalCmds = None, pois = None):
+def throwToys(  wildcard, suffix = None, rootfile = None, 
+                pathToConfig = None, additionalCmds = None, 
+                pois = None):
     # sherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v22/finalComb_v22_fresh/SL_BDTonly_645444635343_sherpa.txt"
+    # sherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v24/SL_DNN_sherpa_normedto_ttbarPlusXB.txt"
     sherpa = None
     for datacard in glob.glob(wildcard):
         if os.path.exists(os.path.abspath(datacard)):
@@ -175,7 +184,8 @@ def throwToys(wildcard, rootfile = None, pathToConfig = None, additionalCmds = N
                 outputDirectory += "/toys/" 
             outputDirectory += ".".join(parts[:len(parts)-1])
             outputDirectory = os.path.abspath(outputDirectory)
-            
+            if suffix:
+                outputDirectory += "_" + suffix
             string = ""
             if additionalCmds:
                 string = additionalCmds
@@ -199,15 +209,46 @@ def throwToys(wildcard, rootfile = None, pathToConfig = None, additionalCmds = N
                         pathToSherpa = sherpa)
         else:
             print "Could not find datacard", datacard
+            
+def test_systematics(   wildcard, npsToTest, rootfile = None,
+                        additionalCmds = None, pois = None, pathToConfig = None, ):
+    cmds = additionalCmds[:]
+    cmds.append('--addFitCommand "-S 0"')
+    throwToys(  wildcard = wildcard, 
+                rootfile = rootfile, 
+                pathToConfig = pathToConfig,
+                additionalCmds = cmds,
+                pois = pois, suffix = "fit_no_systematics")
+    for np in npsToTest:
+        cmds = additionalCmds[:]
+        cmds.append('--addFitCommand "--freezeParameters ^'+ np + '"')
+        throwToys(  wildcard = wildcard, 
+                    rootfile = rootfile, 
+                    pathToConfig = pathToConfig,
+                    additionalCmds = cmds,
+                    pois = pois, suffix = "noNps_" + np)
+    
 
-throwToys(  wildcard = sys.argv[1], 
-            rootfile = sys.argv[2], 
-            pathToConfig = sys.argv[3],
-            additionalCmds = sys.argv[4],
-            pois = listOfPoisCombis)
+if __name__ == '__main__':
+    
+    paramgroups = ["all","exp", "thy", "syst", "btag", "jes", "bgn", "ps"]
+    
+    test_systematics(   wildcard = sys.argv[1], 
+                        rootfile = sys.argv[2], 
+                        pathToConfig = sys.argv[3],
+                        additionalCmds = sys.argv[4:],
+                        pois = listOfPoisCombis,
+                        npsToTest = paramgroups)
+    
+    # throwToys(  wildcard = sys.argv[1], 
+                # rootfile = sys.argv[2], 
+                # pathToConfig = sys.argv[3],
+                # additionalCmds = sys.argv[4:],
+                # pois = listOfPoisCombis)
 
 
-# for pois in listOfPoisCombis:
-    # tth_fit_stability(pois, sys.argv[1])
-
-#JES_uncertainty_study(pathToDatacards = sys.argv[1], folderSuffix = sys.argv[2], additionalCmds = sys.argv[3])
+    # for pois in listOfPoisCombis:
+        # tth_fit_stability(pois, sys.argv[1])
+    
+    #JES_uncertainty_study(pathToDatacards = sys.argv[1], folderSuffix = sys.argv[2], additionalCmds = sys.argv[3])
+    
