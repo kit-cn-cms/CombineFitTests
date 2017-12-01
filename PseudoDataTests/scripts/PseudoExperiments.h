@@ -278,11 +278,11 @@ private:
   void readRooRealVar(std::map<TString,std::vector<Double_t> >& histVecs, std::map<TString,std::vector<Double_t> >& hErrorVecs, std::map<TString,std::vector<Double_t> >& hErrorsHiVecs, std::map<TString, std::vector<Double_t> >& hErrorsLoVecs, TIter it) const;
   void readRooRealVar(TH1* hist, const RooFitResult* result, const TString& currentVarName) const;
   void readRooRealVar(std::vector<Double_t>& histVec, const RooFitResult* result, const TString& currentVarName) const;
-  void readCorrFolder(TFile* infile, const TString& folderName, std::map<TString, std::map<TString,TH1*> >& correlations);
+  bool readCorrFolder(TFile* infile, const TString& folderName, std::map<TString, std::map<TString,TH1*> >& correlations);
   void readCorrTree(TTree* tree, std::map<TString, std::map<TString,TH1*> >& correlations);
-  void readParamFolder(TFile* infile, const TString& folderName, std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo);
+  bool readParamFolder(TFile* infile, const TString& folderName, std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo);
   void readParamTree(TTree* tree, std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo);
-  void readShapeFolder(TFile* infile, const TString& folderName, std::vector<ShapeContainer*>& shapeVec);
+  bool readShapeFolder(TFile* infile, const TString& folderName, std::vector<ShapeContainer*>& shapeVec);
   void readShapeTree(TTree* tree, std::vector<ShapeContainer*>& shapeVec);
   
   
@@ -302,7 +302,7 @@ void printTime(TStopwatch& watch, TString text){
 
 PseudoExperiments::PseudoExperiments(const TString& label, const Double_t injectedMu, const bool noBinByBin)
 : debug_(false),
-fitBmustConverge_(true),
+fitBmustConverge_(false),
 fitSBmustConverge_(true),
 accurateCovariance_(true),
 noBinByBin_(noBinByBin),
@@ -534,7 +534,7 @@ void PseudoExperiments::readCorrTree(TTree* tree, std::map<TString, std::map<TSt
   }
 }
 
-void PseudoExperiments::readCorrFolder(TFile* infile, const TString& folderName, std::map<TString, std::map<TString,TH1*> >& correlations){
+bool PseudoExperiments::readCorrFolder(TFile* infile, const TString& folderName, std::map<TString, std::map<TString,TH1*> >& correlations){
   if(infile->cd(folderName.Data())){
     std::cout << "loading correlations from folder " << folderName << std::endl;
     TList* listOfTrees = gDirectory->GetListOfKeys();
@@ -551,9 +551,11 @@ void PseudoExperiments::readCorrFolder(TFile* infile, const TString& folderName,
       }
     }
     infile->cd();
+    return true;
   }
   else{
     std::cerr << "ERROR:\tFolder " << folderName << " does not exist in source file!\n";
+    return false;
   }
 }
 
@@ -573,7 +575,7 @@ void PseudoExperiments::readParamTree(TTree* tree, std::map<TString,TH1*>& hists
   }
 }
 
-void PseudoExperiments::readParamFolder(TFile* infile, const TString& folderName, std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo){
+bool PseudoExperiments::readParamFolder(TFile* infile, const TString& folderName, std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo){
   if(infile->cd(folderName.Data())){
     std::cout << "saving parameter values in folder " << folderName.Data() << std::endl;
     bool saveNps = nps_.empty();
@@ -603,9 +605,11 @@ void PseudoExperiments::readParamFolder(TFile* infile, const TString& folderName
         }
       }
     }
+    return true;
   }
   else{
     std::cerr << "ERROR:\tFolder " << folderName << " does not exist in source file!\n";
+    return false;
   }
 }
 
@@ -621,7 +625,7 @@ void PseudoExperiments::readShapeTree(TTree* tree, std::vector<ShapeContainer*>&
   }
 }
 
-void PseudoExperiments::readShapeFolder(TFile* infile, const TString& folderName, std::vector<ShapeContainer*>& shapeVec){
+bool PseudoExperiments::readShapeFolder(TFile* infile, const TString& folderName, std::vector<ShapeContainer*>& shapeVec){
   if(infile->cd(folderName.Data())){
     std::cout << "loading shapes from folder " << folderName << std::endl;
     TList* listOfTrees = gDirectory->GetListOfKeys();
@@ -636,6 +640,11 @@ void PseudoExperiments::readShapeFolder(TFile* infile, const TString& folderName
         readShapeTree(tree, shapeVec);
       }
     }
+    return true;
+  }
+  else{
+      std::cerr << "ERROR:\tFolder " << folderName << " does not exist in source file!\n";
+      return false;
   }
 }
 
@@ -644,15 +653,15 @@ bool PseudoExperiments::addExperimentFromTree(const TString& mlfit){
     TFile* infile = TFile::Open(mlfit);
     if(infile->IsOpen() && !infile->IsZombie() && !infile->TestBit(TFile::kRecovered))
     {
-      readCorrFolder(infile, "Correlation_sig", correlationsPostfitS_);
-      readCorrFolder(infile, "Correlation_bac", correlationsPostfitB_);
+      if(!(readCorrFolder(infile, "Correlation_sig", correlationsPostfitS_)) ) return false;
+      if(!(readCorrFolder(infile, "Correlation_bac", correlationsPostfitB_)) ) return false;
       
-      readParamFolder(infile, "signal", npValuesPostfitS_, npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_);
-      readParamFolder(infile, "background", npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_);
-      readParamFolder(infile, "Prefit", npValuesPrefit_, npValuesPrefiterrors_, npValuesPrefiterrorHi_, npValuesPrefiterrorLo_);
-      readShapeFolder(infile, "shapes_fit_s", postfitSshapes_);
-      readShapeFolder(infile, "shapes_fit_b", postfitBshapes_);
-      readShapeFolder(infile, "shapes_prefit", prefitShapes_);
+      if(!(readParamFolder(infile, "signal", npValuesPostfitS_, npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_))) return false;
+      if(!(readParamFolder(infile, "background", npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_))) return false;
+      if(!(readParamFolder(infile, "Prefit", npValuesPrefit_, npValuesPrefiterrors_, npValuesPrefiterrorHi_, npValuesPrefiterrorLo_))) return false;
+      if(!(readShapeFolder(infile, "shapes_fit_s", postfitSshapes_)) ) return false;
+      if(!(readShapeFolder(infile, "shapes_fit_b", postfitBshapes_)) ) return false;
+      if(!(readShapeFolder(infile, "shapes_prefit", prefitShapes_))) return false;
       return true;
     }
   }
@@ -672,6 +681,7 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
   if(sourceDir.EndsWith(".root")){
     std::cout << "loading all experiment data from " << sourceDir.Data() << std::endl;
     if(!addExperimentFromTree(sourceDir)){
+        std::cout << "failed to find TTree with values, will try to load directly from RooFitResult next\n";
       addExperimentFromRoofit(sourceDir);
       }
   }
