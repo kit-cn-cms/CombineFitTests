@@ -736,12 +736,6 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
 
   std::vector<PseudoExperiments> expSet;
   if(pathname.EndsWith("/")) pathname.Chop();
-  TString outputPath = pathname;
-  if(outputPath.Contains("/")) outputPath.Remove(0, outputPath.Last('/')+1);
-  TString testName = outputPath;
-  if(outputPath.Contains(".")) outputPath.ReplaceAll(".", "p");
-  outputPath.Prepend(pathname + "/");
-  outputPath.Append("_");
 
   int ncolor=0;
   Color_t colors[5] = {kBlue, kRed, kBlack, kGreen, kOrange};
@@ -749,44 +743,63 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   // if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
   // std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
   TSystemDirectory dir(pathname.Data(), pathname.Data());
-  if(pathname.Contains("PseudoExperiment")){
-    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
-    ncolor++;
-    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
-    ncolor++;
+  if(pathname.EndsWith(".root")){
+      std::cout << "will use " << pathname << " as input\n";
+      // TString filename = pathname(pathname.Last('/')+1, pathname.Length() - pathname.Last('/'));
+      
+      loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+      ncolor++;
+      pathname.Remove(pathname.Last('/'), pathname.Length()-pathname.Last('/'));
   }
-  else{
-    TList *folders = dir.GetListOfFiles();
-    //if folders are found, go through each one an look for the fitDiagnosticsFile
-    if (folders) {
-      TSystemFile *folder;
-      TString folderName;
-      TIter next(folders);
-      while ((folder=(TSystemFile*)next())) {
-        folderName = folder->GetName();
-        if(ncolor > 4) ncolor = 0;
-        if (folder->IsDirectory() && folderName.Contains("sig")) {
-          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
-          ncolor++;
-          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
-          ncolor++;
-        }
-        if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
-          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
-          ncolor++;
-          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
-          ncolor++;
-          break;
+  else
+  {
+      
+      if(pathname.Contains("PseudoExperiment")){
+        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+        ncolor++;
+        // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
+        // ncolor++;
+      }
+      else{
+        TList *folders = dir.GetListOfFiles();
+        //if folders are found, go through each one an look for the fitDiagnosticsFile
+        if (folders) {
+          TSystemFile *folder;
+          TString folderName;
+          TIter next(folders);
+          while ((folder=(TSystemFile*)next())) {
+            folderName = folder->GetName();
+            if(ncolor > 4) ncolor = 0;
+            if (folder->IsDirectory() && folderName.Contains("sig")) {
+              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
+              ncolor++;
+              // loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
+              // ncolor++;
+            }
+            if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
+              loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+              ncolor++;
+              // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
+              // ncolor++;
+              break;
+            }
+          }
         }
       }
-    }
   }
   // set inputs
   std::cout << "loaded Experiments: " << expSet.size() << std::endl;
   if(expSet.size() != 0)
   {
+      TString outputPath = pathname;
+      if(outputPath.EndsWith(".root")) outputPath.Remove(outputPath.Last('/'), outputPath.Length()-outputPath.Last('/'));
+      if(outputPath.Contains("/")) outputPath.Remove(0, outputPath.Last('/')+1);
+      TString testName = outputPath;
+      if(outputPath.Contains(".")) outputPath.ReplaceAll(".", "p");
+      outputPath.Prepend(pathname + "/");
+      outputPath.Append("_");
     pathname += "/";
-
+    std::cout << "saving experiments in directory " << outputPath << std::endl;
     comparePOIs(expSet,outputPath, testName);
     compareNuisanceParameters(expSet,outputPath,true);
     compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
@@ -794,6 +807,7 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
     for(auto& exp : expSet){
       std::cout << "label " << exp() << std::endl;
       std::cout << "\tr = " << exp.muMean() << " +- " << exp.muMeanError() << " +- " << exp.muRMS() << " +- " << exp.muError() << std::endl;
+      std::cout << "\tmedian = " << helperFuncs::getMedian(exp.mu()) << std::endl;
       // std::cout << "\tprinting correlation for Bonly fit\n";
       // correlation = exp.getCorrelationPlotPostfitB();
       // printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitB_" + exp());
