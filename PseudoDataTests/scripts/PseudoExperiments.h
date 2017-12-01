@@ -598,7 +598,7 @@ bool PseudoExperiments::readParamFolder(TFile* infile, const TString& folderName
           if(saveNps) 
           {
             std::cout << "saving nuisance parameter " << treeName << std::endl;
-            if(!(treeName.Contains("prop_bin") && noBinByBin_)) nps_.push_back(treeName);
+            if(!((treeName.Contains("prop_bin")||treeName.Contains("bin") )&& noBinByBin_)) nps_.push_back(treeName);
           }
           std::cout << "reading nuisance parameter " << treeName << std::endl;
           readParamTree(tree, hists, hErrors, hErrorsHi, hErrorsLo);

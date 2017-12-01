@@ -262,7 +262,8 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
         parabel.SetLineStyle(3)
         parabel.SetLineColor(ROOT.kBlack)
         graph.Fit(parabel, "R")
-        print "fitted parabola with #chi^2/ndf =", parabel.GetChisquare()/parabel.GetNDF()
+        if parabel.GetNDF() != 0:
+            print "fitted parabola with #chi^2/ndf =", parabel.GetChisquare()/parabel.GetNDF()
         parabel.Draw("same")
     for cl in clStyles:
         if isinstance(parabel, ROOT.TF1):
