@@ -3,16 +3,21 @@ import os
 import sys
 import glob
 import subprocess
+import imp
 from optparse import OptionParser
 
+basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
+helperpath = os.path.join(basedir, "../base")
+helperpath += "/helpfulFuncs.py"
+if os.path.exists(helperpath):
+    helperfuncs = imp.load_source('helpfulFuncs', helperpath)
+else:
+    sys.exit("Could not load helperfuncs from %s" % helperpath)
 ROOT.gROOT.SetBatch(True)
 
 parser = OptionParser()
-parser.add_option("--toysFile", help= "file with toys that datacard is supposed to be fitted to", dest = "toysFile", metavar = "path/to/toys/file")
 parser.add_option("-d", "--datacard", help = "path to datacard to use for toy generation (and fit if no workspace is given)", dest = "datacard", metavar = "path/to/datacard")
-parser.add_option("-t", help = "number of toys in toysFile, -1 for asimov toys (default = -1)", dest = "t", type = "int", default = -1)
-parser.add_option("--addFitCommand", help = "add option to standard combine command 'MultiDimFit' (can be used multiple times)", dest = "addFitCommand", action = "append")
-parser.add_option("--addToyCommand", help = "add option to standard combine command 'GenerateOnly' (can be used multiple times)", dest = "addToyCommand", action = "append")
+parser.add_option("-a","--addCommand", help = "add option to standard combine command 'MultiDimFit' (can be used multiple times)", dest = "addCommand", action = "append")
 parser.add_option("-x", "--xVariable", help = "variable for x axis", dest="x", default="r")
 parser.add_option("-y", "--yVariable", help = "variable for y axis (default = deltaNLL)", dest="y", default = "deltaNLL")
 parser.add_option("--scan2D", help = "perform 2D NLL scan", dest="scan2D", action="store_true", default=False)
@@ -33,23 +38,15 @@ if directDrawPath is not None:
     if not os.path.exists(directDrawPath):
         parser.error("File with scan results does not exist!")
 
-toysFile = options.toysFile
 datacard = options.datacard
-nToys = options.t
-additionalCmds = options.addFitCommand
-additionalToyCmds = options.addToyCommand
+additionalCmds = options.addCommand
+
 nPoints = options.points
 unconstrained = options.unconstrained
 float_r = options.floatR
 
 if directDrawPath == None:
-    if toysFile == None:
-        print "will generate toys on the fly"
-    else:
-        toysFile = os.path.abspath(toysFile)
-        if not os.path.exists(toysFile):
-            parser.error("toy file does not exist!")
-
+    
     if datacard == None:
         parser.error("datacard for toy generation/fitting must be specified!")
     else:
@@ -81,28 +78,7 @@ if workspace:
 
 
 if directDrawPath is None:
-    
-    if not toysFile:
-        print "starting toy generation"
-        cmd = "combine -M GenerateOnly -m 125"
-        cmd += " -t " + str(nToys)
-        cmd += " --saveToys"
-        if suffix and not suffix == "":
-            cmd += " -n " + suffix
-        if additionalToyCmds:
-            cmd += " " + " ".join(additionalToyCmds)
-        cmd += " " + datacard
         
-        print cmd
-        subprocess.call([cmd], shell=True)
-        if suffix:
-            toysFile = "higgsCombine" + suffix + ".GenerateOnly.mH125.123456.root"
-        else:
-            toysFile = "higgsCombineTest.GenerateOnly.mH125.123456.root"
-        toysFile = os.path.abspath(toysFile)
-        if not os.path.exists(toysFile):
-            sys.exit("Could not generate toy file %s! Aborting" % toysFile)
-    
     if workspace:
         datacard = workspace
 
@@ -110,12 +86,8 @@ if directDrawPath is None:
 
 
     basepath = os.getcwd()
-    fitresFile = "higgsCombine"
-    if toysFile:
-        fitresFile = os.path.dirname(toysFile) + "/" + fitresFile
-        print "changing into directory", os.path.dirname(toysFile)
-        os.chdir(os.path.dirname(toysFile))
-
+    fitresFile = outputDirectory + "/higgsCombine"
+    
     multidimfitcmd = 'combine -M MultiDimFit ' + datacard
     multidimfitcmd += ' --algo=grid --points=' + str(nPoints)
     # multidimfitcmd += ' --minimizerStrategy 1 --minimizerTolerance 0.3'
@@ -123,21 +95,17 @@ if directDrawPath is None:
     # multidimfitcmd += ' --cminFallbackAlgo "Minuit2,migrad,0:0.3"'
     # multidimfitcmd += ' --cminOldRobustMinimize=0'
     # multidimfitcmd += ' --X-rtd MINIMIZER_MaxCalls=9999999'
-    multidimfitcmd += ' -m 125 -t ' + str(nToys)
-    if toysFile:
-        multidimfitcmd += ' --toysFile ' + toysFile
-    else:
-        if additionalToyCmds:
-            multidimfitcmd += " " + " ".join(additionalToyCmds)
+    multidimfitcmd += ' -m 125 --saveWorkspace'
+    if additionalCmds:
+        multidimfitcmd += " " + " ".join(additionalCmds)
+        
     multidimfitcmd += ' --rMin -10 --rMax 10 --saveFitResult'
     multidimfitcmd += ' --saveInactivePOI 1'
     
     if float_r:
         multidimfitcmd += ' --floatOtherPOIs 1'
     
-    if additionalCmds:
-        for cmd in additionalCmds:
-            multidimfitcmd += " " + cmd
+    
     if unconstrained:
         if not xVar == "r":
             multidimfitcmd += " --redefineSignalPOIs " + xVar
@@ -175,47 +143,82 @@ else:
 #________________________________________________________________
 
 #======================================================================
-def find_crossing(graph, cl, start, stop):
-    stepsize = 0.0001
-    deltabest = 9999
-    epsilon = 1e-3
-    print "looking for crossing at {0} in interval [{1}, {2}]".format(cl, start, stop)
-    xbest = start
-    if stop >= start:
-        for i in range(0, int(abs(start - stop)/stepsize)):
-            x = start + i*stepsize
-            # print "\tx =", x
-            yval = graph.Eval(x)
-            delta = abs(cl - yval)
-            # print "\tcurrent delta =", delta
-            if delta < deltabest:
-                if deltabest <= epsilon:
-                    print "found crossing at", xbest
-                    return xbest
-                else:
-                    # print "setting deltabest to", deltabest
-                    deltabest = delta
-                    xbest = x
+
+def get_cl_value(cl):
+    infile = ROOT.TFile(fitresFile)
+    w = infile.Get("w")
+    npois = 1
+    if isinstance(w, ROOT.RooWorkspace):
+        mc = w.obj("ModelConfig")
+        if isinstance(mc, ROOT.RooStats.ModelConfig):
+            npois = mc.GetParametersOfInterest().getSize()
+    
+    cldict = {
+        1: {
+            "68%" : 1,
+            "95%" : 4
+        },
+        2: {
+            "68%" : 2.297,
+            "95%" : 5.991
+        }
+    }
+    
+    if npois in cldict:
+        cls = cldict[npois]
+        if cl in cls:
+            return cls[cl]
+        else:
+            print "WARNING:\tunknown confidence level! Cannot compute errors"
     else:
-        for i in range(0, int(abs(start - stop)/stepsize)):
-            x = start - i*stepsize
-            # print "\tx =", x
-            yval = graph.Eval(x)
-            delta = abs(cl - yval)
-            # print "\tcurrent delta =", delta
-            if delta < deltabest:
-                if deltabest <= epsilon:
-                    print "found crossing at", xbest
-                    return xbest
-                else:
-                    # print "setting deltabest to", deltabest
-                    deltabest = delta
-                    xbest = x
+        print "WARNING:\tconfidence levels for {0} POIs are unknown, cannot compute errors".format(npois)
+    return None
+        
+
+
+def find_crossing(graph, clname, start, stop):
+    cl = get_cl_value(clname)
+    if graph and cl:
+        stepsize = 0.0001
+        deltabest = 9999
+        epsilon = 1e-3
+        print "looking for crossing at {0} in interval [{1}, {2}]".format(cl, start, stop)
+        xbest = start
+        if stop >= start:
+            for i in range(0, int(abs(start - stop)/stepsize)):
+                x = start + i*stepsize
+                # print "\tx =", x
+                yval = graph.Eval(x)
+                delta = abs(cl - yval)
+                # print "\tcurrent delta =", delta
+                if delta < deltabest:
+                    if deltabest <= epsilon:
+                        print "found crossing at", xbest
+                        return xbest
+                    else:
+                        # print "setting deltabest to", deltabest
+                        deltabest = delta
+                        xbest = x
+        else:
+            for i in range(0, int(abs(start - stop)/stepsize)):
+                x = start - i*stepsize
+                # print "\tx =", x
+                yval = graph.Eval(x)
+                delta = abs(cl - yval)
+                # print "\tcurrent delta =", delta
+                if delta < deltabest:
+                    if deltabest <= epsilon:
+                        print "found crossing at", xbest
+                        return xbest
+                    else:
+                        # print "setting deltabest to", deltabest
+                        deltabest = delta
+                        xbest = x
     print "could not find crossing in interval"
     return None
 
 def create_straight_line(val, minVal, maxVal, style, mode = "horizontal"):
-    if val and minVal and maxVal:
+    if not val == None and not minVal == None and not maxVal == None:
         print "drawing {0} line at {1} from {2} to {3}".format(mode, val, minVal, maxVal)
         if mode is "horizontal":
             line = ROOT.TLine(minVal, val, maxVal, val)
@@ -228,11 +231,14 @@ def create_straight_line(val, minVal, maxVal, style, mode = "horizontal"):
             return None
         return line
     else:
+        if not val:
+            print "received no value to draw line for!"
+        if not minVal or not maxVal:
+            print "received no bounds for line to draw in!"
         return None
 
 def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None):
-    lines = []
-    vals = []
+    
     clresults = {}
     
     parabel = None
@@ -242,7 +248,7 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
         xmax = graph.GetXaxis().GetXmax()
         
         parabel = ROOT.TF1("parabel", "[0]*(x*x*x*x - [1]*[1]*[1]*[1]) + [2]*(x*x*x - [1]*[1]*[1]) + [3]*(x*x - [1]*[1]) + [4]*(x - [1]) + [5] + [6]*(x*x*x*x*x - [1]*[1]*[1]*[1]*[1]) + [7]*(x*x*x*x*x*x - [1]*[1]*[1]*[1]*[1]*[1])", xmin, xmax)
-        parabel.SetParNames("a", "best fit val", "b", "c", "d", "best fit y")
+        parabel.SetParNames("a", "best fit x", "b", "c", "d", "best fit y")
         parabel.SetParameter(0, 0.5)
         parabel.SetParameter(2, 0.5)
         parabel.SetParameter(3, 0.5)
@@ -251,7 +257,7 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
         parabel.SetParameter(7, 0.5)
         parabel.FixParameter(1, xbest)
         # parabel.SetParameter(1,xbest)
-        if ybest:
+        if not ybest == None:
             parabel.FixParameter(5, ybest)
             # parabel.SetParameter(5,ybest)
         else:
@@ -265,20 +271,30 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
         print "fitted parabola with #chi^2/ndf =", parabel.GetChisquare()/parabel.GetNDF()
         parabel.Draw("same")
     for cl in clStyles:
+        lines = []
+        vals = []
         if isinstance(parabel, ROOT.TF1):
             x_down = None
             x_up = None
-            if xbest:
+            if not xbest == None:
                 x_down = find_crossing( graph = parabel,
-                                        cl = cl, 
+                                        clname = cl, 
                                         start = xbest, 
                                         stop = xmin)
+                if not x_down == None:
+                    vals.append(x_down)
+                else:
+                    vals.append("none")
                 x_up = find_crossing(   graph = parabel,
-                                        cl = cl, 
+                                        clname = cl, 
                                         start = xbest, 
                                         stop = xmax)
-                vals.append([x_down, x_up])
-            line_hor = create_straight_line(val = cl,
+                if not x_up == None:
+                    vals.append(x_up)
+                else:
+                    vals.append("none")
+                print vals
+            line_hor = create_straight_line(val = get_cl_value(cl),
                                             minVal = xmin,
                                             maxVal = xmax,
                                             mode = "horizontal",
@@ -315,8 +331,8 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
     return clresults
             
 def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
-    cls = { 1 : 2,  #68%
-            4 : 3}  #95%     
+    cls = { "68%" : 2,  #68%
+            "95%" : 3}  #95%     
     xVals = []
     yVals = []
     xbest = None
@@ -324,20 +340,23 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     for e in limit:
         x = eval("e." + xVar)
         y = eval("e." + yVar)
-        #print "current values: {0}, {1}".format(x, y)
-
+        print "current values: {0}, {1}".format(x, y)
+        
         if yVar == "deltaNLL":
-            if y > 0 and y < 10:
-                #print "saving values {0}, {1}".format(x, 2*y)
+            if y >= 0 and y < 10:
+                print "\tsaving values {0}, {1}".format(x, 2*y)
                 xVals.append(x)
                 yVals.append(2*y)
-                if y < ybest:
-                    xbest = x
-                    ybest = y
         else:
             xVals.append(x)
             yVals.append(y)
-
+            
+        if yVals[-1] < ybest:
+            xbest = xVals[-1]
+            ybest = yVals[-1]
+    
+    print "found best fit point at (x, y) = ({0}, {1})".format(xbest, ybest)
+    # c = helperfuncs.getCanvas()
     c = ROOT.TCanvas()
     graph = ROOT.TGraph(len(xVals))
     for i in range(len(xVals)):
@@ -350,28 +369,51 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     xmax = max(xVals)
     ymin = min(yVals)
     ymax = max(yVals)
+    leg = helperfuncs.getLegend()
     print "creating TF1 in range [{0}, {1}]".format(xmin,xmax)
+    print "y-axis range: [{0}, {1}]".format(ymin, ymax)
     graph.GetYaxis().SetTitle(yVar)
     graph.SetTitle("Scan of {0} over {1}".format(yVar, xVar))
     graph.Sort()
     graph.Draw()
+    
+    
     results = create_lines( graph = graph, xbest = xbest, clStyles = cls,
                             ymin = ymin, ymax = ymax, ybest = ybest)
     
     
     for cl in results:
         lines = results[cl]["lines"]
-        for line in lines:
+        vals = results[cl]["vals"]
+        
+        # print lines
+        for i, line in enumerate(lines):
+            if i == 0:
+                label = "{0}: {1}_{2}^+{3}".format(cl, xbest, vals[0], vals[1])
+                label = label.replace("_", "_{")
+                label = label.replace("^", "}^{")
+                label += "}"
+                leg.AddEntry(line, label, "l")
             line.Draw("Same")
+    bestfit = ROOT.TGraph(1)
+    bestfit.SetPoint(0, xbest, ybest)
+
+    bestfit.SetMarkerStyle(34)
+    bestfit.SetMarkerSize(1.5)
+    bestfit.Sort()
+    bestfit.Draw("Same")
+    c.Modified()
+    leg.AddEntry(bestfit, "Best Fit Value", "p")
     
+    leg.Draw("Same")
     filename = ("nllscan_{0}_{1}{2}").format(xVar,yVar.replace("#", "x"), suffix)
     filename = filename.replace(" ", "_")
     c.SaveAs(outputDirectory + "/" + filename + ".pdf")
     graph.SaveAs(outputDirectory + "/" + filename + ".root")
 
 def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
-    cls = { 2.297 : 2,  #68%
-            5.991 : 3}  #95%
+    cls = { "68%" : 2,  #68%
+            "95%" : 3}  #95%
     xVals = []
     yVals = []
     zVals = []
@@ -416,9 +458,13 @@ if os.path.exists(fitresFile):
             print "loaded limit TTree with {0} events".format(limit.GetEntries())
 
             if scan2D:
-                do2DScan(limit, xVar = xVar, yVar = yVar, outputDirectory = outputDirectory, suffix = suffix)
+                do2DScan(   limit, xVar = xVar, yVar = yVar, 
+                            outputDirectory = outputDirectory, 
+                            suffix = suffix)
             else:
-                do1DScan(limit, xVar = xVar, yVar = yVar, outputDirectory = outputDirectory, suffix = suffix)
+                do1DScan(   limit, xVar = xVar, yVar = yVar, 
+                            outputDirectory = outputDirectory, 
+                            suffix = suffix)
 
 
         else:
