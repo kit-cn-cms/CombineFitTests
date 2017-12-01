@@ -219,19 +219,34 @@ def test_systematics(   wildcard, npsToTest, rootfile = None,
                 pathToConfig = pathToConfig,
                 additionalCmds = cmds,
                 pois = pois, suffix = "fit_no_systematics")
+    throwToys(  wildcard = wildcard, 
+                    rootfile = rootfile, 
+                    pathToConfig = pathToConfig,
+                    additionalCmds = additionalCmds,
+                    pois = pois, suffix = "fit_all_systematics")
     for np in npsToTest:
         cmds = additionalCmds[:]
-        cmds.append('--addFitCommand "--freezeParameters ^'+ np + '"')
+        cmds.append('--addFitCommand "--freezeNuisanceGroups ^'+ np + '"')
         throwToys(  wildcard = wildcard, 
                     rootfile = rootfile, 
                     pathToConfig = pathToConfig,
                     additionalCmds = cmds,
                     pois = pois, suffix = "noNps_" + np)
-    
+    with open("/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v24/impacts/sig1.0/SL_2D/onesidedNPs.txt") as npfilter:
+        nps = npfilter.read().splitlines()
+        nps = [x.replace(" ", "") for x in nps]
+        nps = [x.replace("\n", "") for x in nps]
+        cmds = additionalCmds[:]
+        cmds.append('--addFitCommand "--freezeParameters ' + ",".join(nps) + '"')
+        throwToys(  wildcard = wildcard, 
+                    rootfile = rootfile, 
+                    pathToConfig = pathToConfig,
+                    additionalCmds = cmds,
+                    pois = pois, suffix = "noOnesidedNps")
 
 if __name__ == '__main__':
     
-    paramgroups = ["all","exp", "thy", "syst", "btag", "jes", "bgn", "ps"]
+    paramgroups = ["exp", "thy", "syst", "btag", "jes", "bgn", "ps"]
     
     test_systematics(   wildcard = sys.argv[1], 
                         rootfile = sys.argv[2], 
