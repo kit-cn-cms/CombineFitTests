@@ -4,7 +4,7 @@ import sys
 import subprocess
 import stat
 import shutil
-from copy import deepcopy
+import time
 
 class batchConfig:
 
@@ -131,4 +131,26 @@ class batchConfig:
                 continue
         
         return jobids
+        
+    def do_qstat(self, jobids):
+        allfinished=False
+        while not allfinished:
+            time.sleep(10)
+            a = subprocess.Popen(['qstat'], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+            qstat=a.communicate()[0]
+            lines=qstat.split('\n')
+            nrunning=0
+            for line in lines:
+                words=line.split()
+                for jid in words:
+                    if jid.isdigit():
+                        jobid=int(jid)
+                        if jobid in jobids:
+                            nrunning+=1
+                            break
+    
+            if nrunning>0:
+                print nrunning,'jobs running'
+            else:
+                allfinished=True
     
