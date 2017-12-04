@@ -65,4 +65,3 @@ test*
 createNewDataObs.py
 runScalingTests.py
 plotResults.C
-config*.py
