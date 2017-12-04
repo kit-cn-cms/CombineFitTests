@@ -1,4 +1,5 @@
 import ROOT
+ROOT.PyConfig.IgnoreCommandLineOptions = True
 import os
 import sys
 import glob
@@ -19,96 +20,8 @@ if os.path.exists(helperpath):
 else:
     sys.exit("Could not load helperfuncs from %s" % helperpath)
 ROOT.gROOT.SetBatch(True)
-
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
 
-parser = OptionParser()
-parser.add_option("-d", "--datacard", help = "path to datacard to use for toy generation (and fit if no workspace is given)", dest = "datacard", metavar = "path/to/datacard")
-parser.add_option("-a","--addCommand", help = "add option to standard combine command 'MultiDimFit' (can be used multiple times)", dest = "addCommand", action = "append")
-parser.add_option("-x", "--xVariable", help = "variable for x axis", dest="x", default="r")
-parser.add_option("-y", "--yVariable", help = "variable for y axis (default = deltaNLL)", dest="y", default = "deltaNLL")
-parser.add_option("--scan2D", help = "perform 2D NLL scan (default is 1D scan of x)", dest="scan2D", action="store_true", default=False)
-parser.add_option("--plot2D", help = "make 2D plot (default is 1D plot)", dest = "plot2D", action="store_true", default = False)
-parser.add_option("-n", "--suffix", help = "add suffix to output name", dest = "suffix", default = "")
-parser.add_option("-o", "--outputDirectory", metavar = "path/to/save/plots/in", dest = "outputDirectory", help = "path to save output plots in (default = here)", default = "./")
-parser.add_option("--directlyDrawFrom", metavar = "path/to/scan/results", dest = "directDraw", help = "skip multi dim fit and draw plots directly from this file (needs to contain limit tree)")
-parser.add_option("--points", dest = "points", metavar = "numberOfPoints", help = "number of points to scan (default = 1000)", type = "int", default = "1000")
-parser.add_option("--nPointsPerJob", dest = "nPointsPerJob", type = "int", default = 30, help = "number of points that is calculated per job (default = 30)")
-parser.add_option("--bonly", help = "perform background only fit (creates multiSignalModel where signal strength is not mapped to anything)", action = "store_true", default = False, dest = "bonly")
-parser.add_option("-w", "--workspace", dest = "workspace", metavar = "path/to/workspace", help = "path to workspace to use for fit")
-parser.add_option("--scanUnconstrained", dest = "unconstrained", action = "store_true", default = False, help = "Drop constraints for scaned parameters")
-# parser.add_option("--floatR", dest = "floatR", action = "store_true", default = False, help = "keep other POIs (e.g. signal strength r) floating. If not set, r is fixed to one value (can be set via '--setPhysicsModelParameter r=Value', should be added to '--addFitCommand')")
-parser.add_option("-p", "--paramsToScan", metavar = "par1,par2,...", dest = "paramsToScan", help = "scan these parameters. Default is scanning x (and y if '--scan2D'). Can be used multiple times", action = append)
-(options, args) = parser.parse_args()
-
-directDrawPath = options.directDraw
-if directDrawPath is not None:
-    directDrawPath = os.path.abspath(directDrawPath)
-    if not os.path.exists(directDrawPath):
-        parser.error("File with scan results does not exist!")
-
-datacard = options.datacard
-additionalCmds = options.addCommand
-
-nPoints = options.points
-nPointsPerJob = options.nPointsPerJob
-unconstrained = options.unconstrained
-paramsToScan = options.paramsToScan
-
-if directDrawPath == None:
-    
-    if datacard == None:
-        parser.error("datacard for toy generation/fitting must be specified!")
-    else:
-        datacard = os.path.abspath(datacard)
-        if not os.path.exists(datacard):
-            parser.error("datacard does not exist!")
-
-xVar = options.x
-if xVar == None:
-    parser.error("variable for x axis of scan needs to be specified!")
-
-yVar = options.y
-scan2D = options.scan2D
-params = []
-if not paramsToScan == None:
-    temp = ",".join(paramsToScan)
-    params = temp.split(",")
-    if "deltaNLL" in params:
-        params.pop(params.index("deltaNLL"))
-else:
-    params.append(xVar)
-    if yVar != "deltaNLL" and scan2D:
-        params.append(yVar) 
-
-suffix = options.suffix
-outputDirectory = os.path.abspath(options.outputDirectory)
-if not os.path.exists(outputDirectory):
-    parser.error("output directory does not exist!")
-
-
-if scan2D and not len(params)>1:
-    parser.error("Both x and y variable must be defined for 2D NLL scan!")
-
-bonly = options.bonly
-workspace = options.workspace
-if workspace:
-    workspace = os.path.abspath(workspace)
-    if not os.path.exists(workspace):
-        print "Could not find workspace, will ignore input"
-        workspace = None
-
-plot2D = options.plot2D
-if workspace:
-    datacard = workspace
-else:
-    check_workspace(datacard)
-if directDrawPath is None or not os.path.exists(directDrawPath):
-    do_fits()
-else:
-    fitresFile = directDrawPath
-
-#________________________________________________________________
 
 #======================================================================
 
@@ -141,7 +54,8 @@ def check_workspace(pathToDatacard):
         workspacePath = ""
     return workspacePath
 
-def make_mdf_command():
+def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
+                        yVar, bonly, suffix, additionalCmds = None):
     
 
 #______________combine stuff_____________________________________
@@ -161,7 +75,7 @@ def make_mdf_command():
         multidimfitcmd.append(" ".join(additionalCmds))
         
     multidimfitcmd.append('--rMin -10 --rMax 10 --saveFitResult')
-    multidimfitcmd.append(' --saveInactivePOI 1')
+    multidimfitcmd.append('--saveInactivePOI 1')
         
     if unconstrained:
         multidimfitcmd.append("--redefineSignalPOIs " + ",".join(params))
@@ -177,35 +91,132 @@ def make_mdf_command():
         multidimfitcmd.append("--setParameters r=0 --freezeParameters r")
         
     if not suffix == "":
-        multidimfitcmd += ' -n ' + suffix
+        multidimfitcmd.append("-n " + suffix)
         fitresFile += suffix
     else:
         fitresFile += "Test"
     mdfcmd = " ".join(multidimfitcmd)
+    mdfcmd = mdfcmd.replace("  ", " ")
     print mdfcmd
     # subprocess.call([multidimfitcmd], shell=True)
     # for workspace in glob.glob("roostat*.root"):
         # os.remove(workspace)
     # if os.path.exists(fitresFile + ".MultiDimFit.mH125.123456.root"):
         # os.remove(fitresFile + ".MultiDimFit.mH125.123456.root")
-    # fitresFile = os.path.abspath(fitresFile + ".MultiDimFit.mH125.root")
+    fitresFile = os.path.abspath(fitresFile + ".MultiDimFit.mH125.root")
     return fitresFile, mdfcmd
 
-def make_script(cmd, low, up):
+def make_script(low, up, datacard, nPoints, unconstrained, params, xVar,
+                yVar, bonly, suffix, additionalCmds = None):
     
+    print "creating script for points {0} to {1}".format(low, up)
+    currentSuffix = suffix + "_{0}_to_{1}".format(low, up)
+    print currentSuffix
+    currentCmds = ["--firstPoint=" + str(low)]
+    currentCmds.append("--lastPoint="+ str(up))
+    if additionalCmds:
+        currentCmds += additionalCmds
+    script = "do_fits" + currentSuffix + ".sh"
+    result, mdfcmd = make_mdf_command(  datacard = datacard, 
+                                        nPoints = nPoints, 
+                                        unconstrained = unconstrained, 
+                                        params = params, xVar = xVar,
+                                        yVar = yVar, bonly = bonly,
+                                        suffix = currentSuffix, 
+                                        additionalCmds = currentCmds)
+    
+    lines = ["#!/bin/bash"]
+    lines.append("pathToCMSSW="+pathToCMSSWsetup)
+    lines.append('if [ -f "$pathToCMSSW" ]; then')
+    lines.append('  source "$pathToCMSSW"')
+    lines.append('  echo "' + mdfcmd + '"')
+    lines.append('  eval "' + mdfcmd + '"')
+    # lines.append('  if [ -f roostat*.root ]; then')
+    # lines.append('    rm roostat*.root')
+    # lines.append('  fi')
+    # lines.append('  if [ -f roostat*.root ]; then')
+    # lines.append('    rm roostat*.root')
+    # lines.append('  fi')
+    lines.append('else')
+    lines.append('  echo "could not find CMSSW source path!"')
+    lines.append('fi')
+    
+    with open(script, "w") as output:
+        output.write("\n".join(lines))
+    
+    return result, script
 
 def do_fits():
-    foldername = "fit_scripts"
-    fitresFile, mdfcmd = make_mdf_command()
+    foldername = "fit_parts"
     if os.path.exists(foldername):
         print "resetting folder for scripts"
         shutil.rmtree(foldername)
     os.makedirs(foldername)
     base = os.getcwd()
     os.chdir(foldername)
-    for i in range((nPoints % nPointsPerJob)-1):
-        
+    scripts = []
+    results = []
+    devision = int(nPoints / nPointsPerJob)
+    print range(devision)
+    for i in range(devision):
+        low = nPointsPerJob*i
+        up = nPointsPerJob*(i+1)
+        resfile, script = make_script(  low = low, up = up,
+                                        datacard = datacard,
+                                        nPoints = nPoints, 
+                                        unconstrained = unconstrained,
+                                        params = params, xVar = xVar,
+                                        yVar = yVar, bonly = bonly, 
+                                        suffix = suffix, 
+                                        additionalCmds = additionalCmds)
+        results.append(resfile)
+        if os.path.exists(script):
+            scripts.append(script)
+    low = devision * nPointsPerJob
+    up = low + nPoints % nPointsPerJob
+    if low != up:
+        resfile, script = make_script(  low = low, up = up,
+                                        datacard = datacard,
+                                        nPoints = nPoints, 
+                                        unconstrained = unconstrained,
+                                        params = params, xVar = xVar,
+                                        yVar = yVar, bonly = bonly, 
+                                        suffix = suffix, 
+                                        additionalCmds = additionalCmds)
+        results.append(resfile)
+        if os.path.exists(script):
+            scripts.append(script)
+    if len(scripts) != 0:
+        arrayid = batch.submitArrayToBatch( scripts = scripts, 
+                                        arrayscriptpath = "arrayJob.sh")
+    else:
+        sys.exit("Unable to create any scripts!")
+    batch.do_qstat([arrayid])
     
+    existingResults = []
+    for result in results:
+        if os.path.exists(result):
+            existingResults.append(result)
+        else:
+            print "could not find file %s, you should run the corresponding script again" % result
+    os.chdir(base)
+    fitresFile, mdfcmd = make_mdf_command(  datacard = datacard, 
+                                        nPoints = nPoints, 
+                                        unconstrained = unconstrained, 
+                                        params = params, xVar = xVar,
+                                        yVar = yVar, bonly = bonly,
+                                        suffix = suffix, 
+                                        additionalCmds = additionalCmds)
+    if len(existingResults) > 0:
+        cmd = "hadd " + fitresFile + " "
+        cmd += " ".join([foldername + "/" + x for x in existingResults])
+        subprocess.call([cmd], shell = True)
+        if os.path.exists(fitresFile):
+            return fitresFile
+        else:
+            sys.exit("Could not find fit result file %s! Aborting" % fitresFile)
+    else:
+        sys.exit("Could not find any parts to hadd! Aborting")
 
 def get_cl_value(cl):
     infile = ROOT.TFile(fitresFile)
@@ -510,26 +521,118 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
 
 #=======================================================================
 
-if os.path.exists(fitresFile):
-    infile = ROOT.TFile(fitresFile)
-
-    if infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(ROOT.TFile.kRecovered):
-        limit = infile.Get("limit")
-        if isinstance(limit, ROOT.TTree):
-            print "loaded limit TTree with {0} events".format(limit.GetEntries())
-
-            if plot2D:
-                do2DScan(   limit, xVar = xVar, yVar = yVar, 
-                            outputDirectory = outputDirectory, 
-                            suffix = suffix)
-            else:
-                do1DScan(   limit, xVar = xVar, yVar = yVar, 
-                            outputDirectory = outputDirectory, 
-                            suffix = suffix)
-
-
+if __name__ == '__main__':
+    
+    parser = OptionParser()
+    parser.add_option("-d", "--datacard", help = "path to datacard to use for toy generation (and fit if no workspace is given)", dest = "datacard", metavar = "path/to/datacard")
+    parser.add_option("-a","--addCommand", help = "add option to standard combine command 'MultiDimFit' (can be used multiple times)", dest = "addCommand", action = "append")
+    parser.add_option("-x", "--xVariable", help = "variable for x axis", dest="x", default="r")
+    parser.add_option("-y", "--yVariable", help = "variable for y axis (default = deltaNLL)", dest="y", default = "deltaNLL")
+    parser.add_option("--scan2D", help = "perform 2D NLL scan (default is 1D scan of x)", dest="scan2D", action="store_true", default=False)
+    parser.add_option("--plot2D", help = "make 2D plot (default is 1D plot)", dest = "plot2D", action="store_true", default = False)
+    parser.add_option("-n", "--suffix", help = "add suffix to output name", dest = "suffix", default = "")
+    parser.add_option("-o", "--outputDirectory", metavar = "path/to/save/plots/in", dest = "outputDirectory", help = "path to save output plots in (default = here)", default = "./")
+    parser.add_option("--directlyDrawFrom", metavar = "path/to/scan/results", dest = "directDraw", help = "skip multi dim fit and draw plots directly from this file (needs to contain limit tree)")
+    parser.add_option("--points", dest = "points", metavar = "numberOfPoints", help = "number of points to scan (default = 1000)", type = "int", default = "1000")
+    parser.add_option("--nPointsPerJob", dest = "nPointsPerJob", type = "int", default = 30, help = "number of points that is calculated per job (default = 30)")
+    parser.add_option("--bonly", help = "perform background only fit (creates multiSignalModel where signal strength is not mapped to anything)", action = "store_true", default = False, dest = "bonly")
+    parser.add_option("-w", "--workspace", dest = "workspace", metavar = "path/to/workspace", help = "path to workspace to use for fit")
+    parser.add_option("--scanUnconstrained", dest = "unconstrained", action = "store_true", default = False, help = "Drop constraints for scaned parameters")
+    parser.add_option("--doWorkspaces", dest = "doWorkspaces", action = "store_true", default = False, help = "Force creation of workspaces even if they exist already (default = false)")
+    parser.add_option("-p", "--paramsToScan", metavar = "par1,par2,...", dest = "paramsToScan", help = "scan these parameters. Default is scanning x (and y if '--scan2D'). Can be used multiple times", action = "append")
+    (options, args) = parser.parse_args()
+    
+    directDrawPath = options.directDraw
+    if directDrawPath is not None:
+        directDrawPath = os.path.abspath(directDrawPath)
+        if not os.path.exists(directDrawPath):
+            parser.error("File with scan results does not exist!")
+    
+    datacard = options.datacard
+    additionalCmds = options.addCommand
+    doWorkspaces = options.doWorkspaces
+    
+    nPoints = options.points
+    nPointsPerJob = options.nPointsPerJob
+    unconstrained = options.unconstrained
+    paramsToScan = options.paramsToScan
+    
+    if directDrawPath == None:
+        
+        if datacard == None:
+            parser.error("datacard for toy generation/fitting must be specified!")
         else:
-            print "Could not load limit tree!"
-        infile.Close()
-else:
-    print "Could not find multidim fit output", fitresFile
+            datacard = os.path.abspath(datacard)
+            if not os.path.exists(datacard):
+                parser.error("datacard does not exist!")
+    
+    xVar = options.x
+    if xVar == None:
+        parser.error("variable for x axis of scan needs to be specified!")
+    
+    yVar = options.y
+    scan2D = options.scan2D
+    params = []
+    if not paramsToScan == None:
+        temp = ",".join(paramsToScan)
+        params = temp.split(",")
+        if "deltaNLL" in params:
+            params.pop(params.index("deltaNLL"))
+    else:
+        params.append(xVar)
+        if yVar != "deltaNLL" and scan2D:
+            params.append(yVar) 
+    
+    suffix = options.suffix
+    outputDirectory = os.path.abspath(options.outputDirectory)
+    if not os.path.exists(outputDirectory):
+        parser.error("output directory does not exist!")
+    
+    
+    if scan2D and not len(params)>1:
+        parser.error("Both x and y variable must be defined for 2D NLL scan!")
+    
+    bonly = options.bonly
+    workspace = options.workspace
+    if workspace:
+        workspace = os.path.abspath(workspace)
+        if not os.path.exists(workspace):
+            print "Could not find workspace, will ignore input"
+            workspace = None
+    
+    plot2D = options.plot2D
+    if workspace:
+        datacard = workspace
+    else:
+        check_workspace(datacard)
+    if directDrawPath is None or not os.path.exists(directDrawPath):
+        fitresFile = do_fits()
+    else:
+        fitresFile = directDrawPath
+    
+    #________________________________________________________________
+
+    if os.path.exists(fitresFile):
+        infile = ROOT.TFile(fitresFile)
+    
+        if infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(ROOT.TFile.kRecovered):
+            limit = infile.Get("limit")
+            if isinstance(limit, ROOT.TTree):
+                print "loaded limit TTree with {0} events".format(limit.GetEntries())
+    
+                if plot2D:
+                    do2DScan(   limit, xVar = xVar, yVar = yVar, 
+                                outputDirectory = outputDirectory, 
+                                suffix = suffix)
+                else:
+                    do1DScan(   limit, xVar = xVar, yVar = yVar, 
+                                outputDirectory = outputDirectory, 
+                                suffix = suffix)
+    
+    
+            else:
+                print "Could not load limit tree!"
+            infile.Close()
+    else:
+        print "Could not find multidim fit output", fitresFile
+    
