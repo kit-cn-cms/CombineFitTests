@@ -2,6 +2,7 @@ from array import array
 from optparse import OptionParser
 from optparse import OptionGroup
 import ROOT
+ROOT.PyConfig.IgnoreCommandLineOptions = True
 import sys
 import os
 import stat
@@ -130,6 +131,13 @@ help = "create workspaces, even if they already exist",
 dest = "doWorkspaces",
 action = "store_true",
 default = False)
+
+group_globalOptions.add_option("--range",
+help = "set range for fit. Set to 0 to omit the --rMin/Max option (default = 10)",
+dest = "range",
+default = "10.0"
+)
+
 parser.add_option_group(group_required)
 parser.add_option_group(group_globalOptions)
 parser.add_option_group(group_scalingOptions)
@@ -163,6 +171,7 @@ if options.asimov and options.numberOfToys:
 
 verbose = options.verbose
 asimov = options.asimov
+murange = options.range
 listOfMus = options.signalStrengths
 if listOfMus == None:
     listOfMus = [0.,1.]
@@ -240,7 +249,7 @@ if listOfProcessesString and scaleFuncList:
 #----------------------------------------------------------------------------------------------------------------------------------------------
 
 def generateShellScript(targetDatacard, toyDatacard, numberOfToysPerExperiment,
-pathToMSworkspace, additionalToyCmds, additionalFitCmds):
+pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     """
     generate bash script to generate toys and perform maximum likelihood fits.
 
@@ -275,7 +284,9 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     mlfitCmd += "-m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 "
     mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
     mlfitCmd += "--cminDefaultMinimizerTolerance 1e-5 "
-    mlfitCmd += "--saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 "
+    mlfitCmd += "--saveNormalizations --saveShapes "
+    if murange:
+        mlfitCmd += "--rMin=$(($signalStrength-{0})) --rMin=$(($signalStrength+{0})) ".format(murange)
     mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile --minos all "
     # mlfitCmd += "--robustFit 1 "
     if additionalFitCmds is not None:
@@ -404,93 +415,20 @@ def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript.append('fi')
     return shellscript
 
-# def submitArrayToNAF(scripts, arrayscriptpath):
-    # """
-    # generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
-
-    # Keyword arguments:
-
-    # scripts         -- list of scripts to be submitted
-    # arrayscriptpath -- path to safe script array in
-    # """
-    # submitclock=ROOT.TStopwatch()
-    # submitclock.Start()
-    # logdir = os.getcwd()+"/logs"
-    # if os.path.exists(logdir):
-        # print "emptying directory", logdir
-        # shutil.rmtree(logdir)
-
-    # os.makedirs(logdir)
-
-    # #get nscripts
-    # nscripts=len(scripts)
-    # tasknumberstring='1-'+str(nscripts)
-
-    # #create arrayscript to be run on the birds. Depinding on $SGE_TASK_ID the script will call a different plot/run script to actually run
-
-    # arrayscriptcode="#!/bin/bash \n"
-    # arrayscriptcode+="subtasklist=(\n"
-    # for scr in scripts:
-        # arrayscriptcode+=scr+" \n"
-
-    # arrayscriptcode+=")\n"
-    # arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
-    # arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
-    # arrayscriptcode+="echo \"${thescript}\n"
-    # arrayscriptcode+="echo \"${thescriptbasename}\n"
-    # arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
-    # arrayscriptfile=open(arrayscriptpath,"w")
-    # arrayscriptfile.write(arrayscriptcode)
-    # arrayscriptfile.close()
-    # st = os.stat(arrayscriptpath)
-    # os.chmod(arrayscriptpath, st.st_mode | stat.S_IEXEC)
-
-    # print 'submitting',arrayscriptpath
-    # #command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', logdir+'/dev/null', '-e', logdir+'/dev/null', arrayscriptpath]
-    # command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', '/dev/null', '-e', '/dev/null', arrayscriptpath]
-    # a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-    # output = a.communicate()[0]
-    # jobidstring = output
-    # if len(jobidstring)<2:
-        # sys.exit("something did not work with submitting the array job")
-
-    # jobidstring=jobidstring.split(".")[0]
-    # print "the jobID", jobidstring
-    # jobidint=int(jobidstring)
-    # submittime=submitclock.RealTime()
-    # print "submitted job", jobidint, " in ", submittime
-    # return [jobidint]
-
-# def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
-    # jobids=[]
-    # command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), pathToMSworkspace]
-    # print command
-    # a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-    # output = a.communicate()[0]
-    # #print output
-    # jobidstring = output.split()
-    # for jid in jobidstring:
-        # if jid.isdigit():
-            # jobid=int(jid)
-            # print "this job's ID is", jobid
-            # jobids.append(jobid)
-            # continue
-
-    # return jobids
-
-def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus):
+def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus, murange):
 
     generatorScript = os.path.abspath(outputDirectory + "/temp/generateToysAndFits.sh")
     folderGeneratorScript = os.path.abspath(outputDirectory + "/temp/generateFolders.sh")
 
     genScript = open(generatorScript, "w")
     genScript.write("\n".join(generateShellScript(
-    targetDatacard = pathToDatacard,
-    toyDatacard = datacardToUse,
-    numberOfToysPerExperiment = toyMode,
-    pathToMSworkspace = pathToMSworkspace,
-    additionalFitCmds = additionalFitCmds,
-    additionalToyCmds = additionalToyCmds ) ) )
+        targetDatacard = pathToDatacard,
+        toyDatacard = datacardToUse,
+        numberOfToysPerExperiment = toyMode,
+        pathToMSworkspace = pathToMSworkspace,
+        additionalFitCmds = additionalFitCmds,
+        additionalToyCmds = additionalToyCmds,
+        murange = murange ) ) )
     genScript.close()
 
     if os.path.exists(generatorScript):
@@ -542,28 +480,6 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
             print "Could not write folder generator!"
     else:
         print "Could not write toy and fit generator!"
-
-def do_qstat(jobids):
-    allfinished=False
-    while not allfinished:
-        time.sleep(10)
-        a = subprocess.Popen(['qstat'], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-        qstat=a.communicate()[0]
-        lines=qstat.split('\n')
-        nrunning=0
-        for line in lines:
-            words=line.split()
-            for jid in words:
-                if jid.isdigit():
-                    jobid=int(jid)
-                    if jobid in jobids:
-                        nrunning+=1
-                        break
-
-        if nrunning>0:
-            print nrunning,'jobs running'
-        else:
-            allfinished=True
 
 def checkCopy(original, copy):
     if original.GetNbinsX() is not copy.GetNbinsX():
@@ -916,14 +832,8 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
                                 numberOfToysPerJob = numberOfToysPerJob,
                                 toyMode = toyMode,
                                 pathToMSworkspace = pathToMSworkspace,
-                                listOfMus = listOfMus)
-        print "waiting for toy generation to finish"
-        # do_qstat(jobids)
-        # os.chdir(workdir)
-        # print "calling plotResults with arguments:"
-        # print "\toutputPath =", outputPath
-        # print "\tshapeExpectation =", shapeExpectation
-        # subprocess.check_call([workdir+"/submitScript.sh", outputPath, shapeExpectation])
+                                listOfMus = listOfMus,
+                                murange = murange)
 
     else:
         print "Couldn't find datacard", datacardToUse
