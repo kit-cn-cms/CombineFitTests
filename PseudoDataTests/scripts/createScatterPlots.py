@@ -5,8 +5,8 @@ import ROOT
 
 ROOT.gROOT.SetBatch(True)
 
-outputDirectory = sys.argv[1]
-wildcards = sys.argv[2:]
+outputDirectory = sys.argv[1] # output directory for plots
+wildcards = sys.argv[2:] #combine output files
 
 if not os.path.exists(outputDirectory):
     sys.exit("Output directory does not exist")
@@ -74,4 +74,5 @@ for fit in scatterplots:
             hist.Fill(x,y)
         hist.Draw()
         c.SaveAs(outputDirectory + "/" + histname + ".pdf")
+        c.SaveAs(outputDirectory + "/" + histname + ".png")
         c.SaveAs(outputDirectory + "/" + histname + ".root")
