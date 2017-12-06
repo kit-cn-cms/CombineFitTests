@@ -98,11 +98,7 @@ def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
     mdfcmd = " ".join(multidimfitcmd)
     mdfcmd = mdfcmd.replace("  ", " ")
     print mdfcmd
-    # subprocess.call([multidimfitcmd], shell=True)
-    # for workspace in glob.glob("roostat*.root"):
-        # os.remove(workspace)
-    # if os.path.exists(fitresFile + ".MultiDimFit.mH125.123456.root"):
-        # os.remove(fitresFile + ".MultiDimFit.mH125.123456.root")
+
     fitresFile = os.path.abspath(fitresFile + ".MultiDimFit.mH125.root")
     return fitresFile, mdfcmd
 
@@ -131,12 +127,7 @@ def make_script(low, up, datacard, nPoints, unconstrained, params, xVar,
     lines.append('  source "$pathToCMSSW"')
     lines.append('  echo "' + mdfcmd + '"')
     lines.append('  eval "' + mdfcmd + '"')
-    # lines.append('  if [ -f roostat*.root ]; then')
-    # lines.append('    rm roostat*.root')
-    # lines.append('  fi')
-    # lines.append('  if [ -f roostat*.root ]; then')
-    # lines.append('    rm roostat*.root')
-    # lines.append('  fi')
+
     lines.append('else')
     lines.append('  echo "could not find CMSSW source path!"')
     lines.append('fi')
@@ -191,32 +182,36 @@ def do_fits():
                                         arrayscriptpath = "arrayJob.sh")
     else:
         sys.exit("Unable to create any scripts!")
-    batch.do_qstat([arrayid])
     
-    existingResults = []
-    for result in results:
-        if os.path.exists(result):
-            existingResults.append(result)
-        else:
-            print "could not find file %s, you should run the corresponding script again" % result
     os.chdir(base)
-    fitresFile, mdfcmd = make_mdf_command(  datacard = datacard, 
-                                        nPoints = nPoints, 
-                                        unconstrained = unconstrained, 
-                                        params = params, xVar = xVar,
-                                        yVar = yVar, bonly = bonly,
-                                        suffix = suffix, 
-                                        additionalCmds = additionalCmds)
-    if len(existingResults) > 0:
-        cmd = "hadd " + fitresFile + " "
-        cmd += " ".join([foldername + "/" + x for x in existingResults])
-        subprocess.call([cmd], shell = True)
-        if os.path.exists(fitresFile):
-            return fitresFile
-        else:
-            sys.exit("Could not find fit result file %s! Aborting" % fitresFile)
+    results = [foldername + "/" + x for x in results]
+    
+    lines = ["#!/bin/bash"]
+    lines.append("pathToCMSSW="+pathToCMSSWsetup)
+    lines.append('if [ -f "$pathToCMSSW" ]; then')
+    lines.append('  source "$pathToCMSSW"')
+    cmds = ["python"]
+    cmds += sys.argv
+    cmds.append("--directlyDrawFrom")
+    cmds.append(",".join(results))
+    cmds.append("--runLocally")
+    cmd = " ".join(cmds)
+    lines.append('  echo "' + cmd + '"')
+    lines.append('  eval "' + cmd + '"')
+
+    lines.append('else')
+    lines.append('  echo "could not find CMSSW source path!"')
+    lines.append('fi')
+    
+    mergescript = "merge_files.sh"
+    
+    with open(mergescript,"w") as out:
+        out.write("\n".join(lines))
+    if os.path.exists(mergescript):
+        bash.submitJobToBatch(script = mergescript, jobid = arrayid)
     else:
-        sys.exit("Could not find any parts to hadd! Aborting")
+        sys.exit("Could not write script to merge files!")
+
 
 def get_cl_value(cl):
     infile = ROOT.TFile(fitresFile)
@@ -473,7 +468,7 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     bestfit.SetMarkerStyle(34)
     bestfit.SetMarkerSize(1.5)
     bestfit.Sort()
-    bestfit.Draw("Same")
+    bestfit.Draw("P")
     c.Modified()
     leg.AddEntry(bestfit, "Best Fit Value", "p")
     
@@ -489,36 +484,68 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     xVals = []
     yVals = []
     zVals = []
+    xbest = 0
+    ybest = 0
+    zbest = 99999999
     for e in limit:
         x = eval("e." + xVar)
         y = eval("e." + yVar)
         z = e.deltaNLL
         #print "current values: {0}, {1}".format(x, y)
 
-        if z > 0 and z < 10:
-                #print "saving values {0}, {1}".format(x, 2*y)
-                xVals.append(x)
-                yVals.append(y)
-                zVals.append(2*z)
+        if z >= 0 and z < 10:
+            #print "saving values {0}, {1}".format(x, 2*y)
+            xVals.append(x)
+            yVals.append(y)
+            zVals.append(2*z)
+            if zVals[-1] < zbest:
+                xbest = xVals[-1]
+                ybest = yVals[-1]
+                zbest = zVals[-1]
 
     c = ROOT.TCanvas()
 
     graph = ROOT.TGraph2D()
     for i in range(len(xVals)):
         graph.SetPoint(i, xVals[i], yVals[i], zVals[i])
-
+    bestfit = ROOT.TGraph()
+    bestfit.SetPoint(0, xbest, ybest)
+    bestfit.SetMarkerStyle(34)
+    bestfit.SetMarkerSize(1)
     graph.GetHistogram().GetXaxis().SetTitle(xVar)
     graph.GetHistogram().GetYaxis().SetTitle(yVar)
     graph.GetHistogram().GetZaxis().SetTitle("2#Delta NLL")
     graph.SetTitle("Scan of {0} over {1}".format(yVar, xVar))
     graph.Draw("COLZ")
+    bestfit.Draw("P")
+    label = helperfuncs.getLegend()
+    label.AddEntry(bestfit, "Best Fit Value", "p")
+    contours = []
+    for cl in cls:
+        contourname = "countour_" + cl
+        contourname = contourname.replace("%", "")
+        contours.append(graph.GetHistogram().Clone(contourname))
+        contours[-1].SetContour(1)
+        contours[-1].SetContourLevel(0,get_cl_value(cl = cl))
+        contours[-1].SetLineStyle(cls[cl])
+        contours[-1].SetLineWidth(3)
+        contours[-1].Draw('same cont3')
+        label.AddEntry(contours[-1], "{0} CL".format(cl), "l")
+    
+    label.Draw("Same")
     c.SetMargin(0.25, 0.15, 0.15, 0.08);
     filename = ("nllscan_2D_{0}_{1}{2}").format(xVar,yVar.replace("#", "x"), suffix)
     filename = filename.replace(" ", "_")
     c.SaveAs(outputDirectory + "/" + filename + ".pdf")
     graph.SaveAs(outputDirectory + "/" + filename + ".root")
 
-
+def merge_files(filelist):
+    cmd = "hadd -f merged_combine_output.root " + " ".join(filelist)
+    subprocess.call([cmd], shell = True)
+    if os.path.exists("merged_combine_output.root"):
+        return os.path.abspath("merged_combine_output.root")
+    else:
+        sys.exit("Could not produce merged combine output file!")
 #=======================================================================
 
 if __name__ == '__main__':
@@ -540,6 +567,7 @@ if __name__ == '__main__':
     parser.add_option("--scanUnconstrained", dest = "unconstrained", action = "store_true", default = False, help = "Drop constraints for scaned parameters")
     parser.add_option("--doWorkspaces", dest = "doWorkspaces", action = "store_true", default = False, help = "Force creation of workspaces even if they exist already (default = false)")
     parser.add_option("-p", "--paramsToScan", metavar = "par1,par2,...", dest = "paramsToScan", help = "scan these parameters. Default is scanning x (and y if '--scan2D'). Can be used multiple times", action = "append")
+    parser.add_option("--runLocally", help = "do not perform fits on batch system (default = false)", dest = "runLocally", action = "store_true", default = False)
     (options, args) = parser.parse_args()
     
     directDrawPath = options.directDraw
@@ -593,6 +621,7 @@ if __name__ == '__main__':
         parser.error("Both x and y variable must be defined for 2D NLL scan!")
     
     bonly = options.bonly
+    runLocally = options.runLocally
     workspace = options.workspace
     if workspace:
         workspace = os.path.abspath(workspace)
@@ -606,9 +635,34 @@ if __name__ == '__main__':
     else:
         check_workspace(datacard)
     if directDrawPath is None or not os.path.exists(directDrawPath):
-        fitresFile = do_fits()
+        if not runLocally:
+            fitresFile = do_fits()
+        else:
+            fitresFile, mdfcmd = make_mdf_command(  datacard = datacard, 
+                                        nPoints = nPoints, 
+                                        unconstrained = unconstrained, 
+                                        params = params, xVar = xVar,
+                                        yVar = yVar, bonly = bonly,
+                                        suffix = suffix, 
+                                        additionalCmds = additionalCmds)
+            subprocess.call([mdfcmd], shell = True)
+            if not os.path.exists(fitresFile):
+                sys.exit("Could not produce file %s" % fitresFile)
     else:
-        fitresFile = directDrawPath
+        if "*" in directDrawPath:
+            filelist = glob.glob(directDrawPath)
+            fitresFile = merge_files(filelist = filelist)
+        elif "," in directDrawPath:
+            existingResults = []
+            results = directDrawPath.split(",")
+            for result in results:
+                if os.path.exists(result):
+                    existingResults.append(result)
+                else:
+                    print "could not find file %s, you should run the corresponding script again" % result
+            fitresFile = merge_files(filelist = existingResults)
+        else:
+            fitresFile = directDrawPath
     
     #________________________________________________________________
 
