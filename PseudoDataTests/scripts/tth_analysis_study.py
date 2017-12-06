@@ -286,7 +286,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     mlfitCmd += "--cminDefaultMinimizerTolerance 1e-5 "
     mlfitCmd += "--saveNormalizations --saveShapes "
     if murange:
-        mlfitCmd += "--rMin=$(($signalStrength-{0})) --rMin=$(($signalStrength+{0})) ".format(murange)
+        mlfitCmd += "--rMin=$rMin --rMax=$rMax "
     mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile --minos all "
     # mlfitCmd += "--robustFit 1 "
     if additionalFitCmds is not None:
@@ -310,7 +310,10 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     shellscript.append('\tsignalStrength=$1')
     shellscript.append('\trandomseed=$2')
     shellscript.append('\toutputPath=$3')
-    shellscript.append('\tnumberOfToysPerExperiment=$4\n')
+    shellscript.append('\tnumberOfToysPerExperiment=$4')
+    if murange:
+        shellscript.append('\trMin=`echo "$signalStrength - ' + murange + '" | bc`')
+        shellscript.append('\trMax=`echo "$signalStrength + ' + murange + '" | bc`')
 
     shellscript.append('#___________________________________________________')
     shellscript.append('\techo "input variables:"')
