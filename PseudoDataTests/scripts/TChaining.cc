@@ -17,19 +17,18 @@ int chaining(TString Filename = "mlfit.root")
 	// Loading first file as a sample, to dynamically create the right amount of TChains
 	TFile* Samplefile = new TFile(firstfile->Data());
 
-<<<<<<< HEAD
 	// Creating samplelist
 	TList* Lsamples = (TList*) Samplefile->GetListOfKeys();
 
 	// Creating File, to store all the collected Trees
 	TFile* output = new TFile("newfile.root","RECREATE"); // <- FIX ME!!! It'd be nice to have some sort of dynamic naming of the files, maybe something with the allready generated "firstfile"
-=======
+
 	// Creating sample list
 	TList* Lsamples = (TList*) Samplefile->GetListOfKeys();
 
 	// Creating File, to store all the collected Trees
 	TFile* output = new TFile("newfile.root","RECREATE"); // <- FIX ME!!! It'd be nice to have some sort of dynamic naming of the files, maybe something with the already generated "firstfile"
->>>>>>> 8f185d37d5a15580e676a358eda521b95acb4290
+
 
 	TDirectoryFile* Dlayer1;
 
@@ -55,10 +54,8 @@ int chaining(TString Filename = "mlfit.root")
 		}
 		Ftemp->Write();
 		Lsamples->RemoveLast();
-<<<<<<< HEAD
-=======
 		delete Ftemp;
->>>>>>> 8f185d37d5a15580e676a358eda521b95acb4290
+
 	}
 	output->Close();
 	return 0;

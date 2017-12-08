@@ -403,7 +403,7 @@ def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript.append('\t\tif [[ -d PseudoExperiment$i ]]; then')
     shellscript.append('\t\t\tcd PseudoExperiment$i\n')
 
-    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $((i+' + startSeed + ')) $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
+    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $((i+' + str(startSeed) + ')) $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
 
     shellscript.append('\t\t\tcd ../\n')
     shellscript.append('\t\telse')
