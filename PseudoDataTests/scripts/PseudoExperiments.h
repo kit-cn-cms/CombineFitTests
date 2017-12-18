@@ -44,136 +44,117 @@ public:
     color_ = c;
   }
 
-  TH1* mu() const {
-    std::cout << "original mu histo: " << muValues_ << std::endl;
-    return getClone(muValues_);
-  }
-  Double_t muMean() const {
-    if(muValues_ != NULL) return muValues_->GetMean();
-    else return -9999;
-  }
-  Double_t muMeanError() const{
-    if(muValues_ != NULL) return muValues_->GetMeanError();
-    else return -9999;
-  }
-  Double_t muRMS() const {
-    if(muValues_ != NULL) return muValues_->GetRMS();
-    else return -9999;
-  }
-  Double_t muError() const{
-    if(muValues_ != NULL) return muErrors_->GetMean();
-    else return -9999;
-  }
-  Double_t muInjected() const {
-    return injectedMu_;
-  }
-
   size_t npsN() const { return nps_.size(); }
   const std::vector<TString>& nps() const { return nps_; }
   std::vector<TString>::const_iterator npsBegin() const { return nps_.begin(); }
   std::vector<TString>::const_iterator npsEnd() const { return nps_.end(); }
   
-  TH1* npPrefit(const TString& np) const {
-    return getClone(getHist(npValuesPrefit_,np));
+  size_t poisN() const { return pois_.size(); }
+  const std::vector<TString>& pois() const { return pois_; }
+  std::vector<TString>::const_iterator poisBegin() const { return pois_.begin(); }
+  std::vector<TString>::const_iterator poisEnd() const { return pois_.end(); }
+  
+  TH1* prefit(const TString& np) const {
+    return getClone(getHist(valuesPrefit_,np));
   }
-  TH1* npPrefitErrorDist(const TString& np) const {
-    return getClone(getHist(npValuesPostfitBerrors_,np));
+  TH1* prefitErrorDist(const TString& np) const {
+    return getClone(getHist(valuesPostfitBerrors_,np));
   }
-  TH1* npPrefitErrorHiDist(const TString& np) const {
-    return getClone(getHist(npValuesPostfitBerrorHi_,np));
+  TH1* prefitErrorHiDist(const TString& np) const {
+    return getClone(getHist(valuesPostfitBerrorHi_,np));
   }
-  TH1* npPrefitErrorLoDist(const TString& np) const {
-    return getClone(getHist(npValuesPostfitBerrorLo_,np));
+  TH1* prefitErrorLoDist(const TString& np) const {
+    return getClone(getHist(valuesPostfitBerrorLo_,np));
   }
   
-  Double_t npPrefitMean(const TString& np) const {
+  Double_t prefitMean(const TString& np) const {
     Double_t returnVal = -9999;
-    TH1* tempPointer = getHist(npValuesPrefit_,np);
+    TH1* tempPointer = getHist(valuesPrefit_,np);
     if(tempPointer != NULL) returnVal = tempPointer->GetMean();
     return returnVal;
   }
-  Double_t npPrefitMeanError(const TString& np) const{
+  Double_t prefitMeanError(const TString& np) const{
     Double_t returnVal = -9999;
-    TH1* tempPointer = getHist(npValuesPrefit_,np);
+    TH1* tempPointer = getHist(valuesPrefit_,np);
     if(tempPointer != NULL) returnVal = tempPointer->GetMeanError();
     return returnVal;
   }
-  Double_t npPrefitRMS(const TString& np) const {
-    return getHist(npValuesPrefit_,np)->GetRMS();
+  Double_t prefitRMS(const TString& np) const {
+    return getHist(valuesPrefit_,np)->GetRMS();
   }
-  Double_t npPrefitErrorHi(const TString& np) const{
-      return getHist(npValuesPostfitBerrorHi_,np)->GetMean();
+  Double_t prefitErrorHi(const TString& np) const{
+      return getHist(valuesPostfitBerrorHi_,np)->GetMean();
   }
-  Double_t npPrefitErrorLo(const TString& np) const{
-      return getHist(npValuesPostfitBerrorLo_,np)->GetMean();
+  Double_t prefitErrorLo(const TString& np) const{
+      return getHist(valuesPostfitBerrorLo_,np)->GetMean();
   }
-  Double_t npPrefitError(const TString& np) const{
-      return getHist(npValuesPostfitBerrors_,np)->GetMean();
+  Double_t prefitError(const TString& np) const{
+      return getHist(valuesPostfitBerrors_,np)->GetMean();
   }
   
   
-  TH1* npPostfitB(const TString& np) const {
-    return getClone(getHist(npValuesPostfitB_,np));
+  TH1* postfitB(const TString& np) const {
+    return getClone(getHist(valuesPostfitB_,np));
   }
-  TH1* npPostfitBerrorDist(const TString& np) const {
-    return getClone(getHist(npValuesPostfitBerrors_,np));
+  TH1* postfitBerrorDist(const TString& np) const {
+    return getClone(getHist(valuesPostfitBerrors_,np));
   }
-  TH1* npPostfitBerrorHiDist(const TString& np) const {
-    return getClone(getHist(npValuesPostfitBerrorHi_,np));
+  TH1* postfitBerrorHiDist(const TString& np) const {
+    return getClone(getHist(valuesPostfitBerrorHi_,np));
   }
-  TH1* npPostfitBerrorLoDist(const TString& np) const {
-    return getClone(getHist(npValuesPostfitBerrorLo_,np));
+  TH1* postfitBerrorLoDist(const TString& np) const {
+    return getClone(getHist(valuesPostfitBerrorLo_,np));
   }
-  Double_t npPostfitBMean(const TString& np) const {
-    return getHist(npValuesPostfitB_,np)->GetMean();
+  Double_t postfitBMean(const TString& np) const {
+    return getHist(valuesPostfitB_,np)->GetMean();
   }
-  Double_t npPostfitBMeanError(const TString& np) const {
-    return getHist(npValuesPostfitB_,np)->GetMeanError();
+  Double_t postfitBMeanError(const TString& np) const {
+    return getHist(valuesPostfitB_,np)->GetMeanError();
   }
-  Double_t npPostfitBRMS(const TString& np) const {
-    return getHist(npValuesPostfitB_,np)->GetRMS();
+  Double_t postfitBRMS(const TString& np) const {
+    return getHist(valuesPostfitB_,np)->GetRMS();
   }
-  Double_t npPostfitBerrorHi(const TString& np) const{
-      return getHist(npValuesPostfitBerrorHi_,np)->GetMean();
+  Double_t postfitBerrorHi(const TString& np) const{
+      return getHist(valuesPostfitBerrorHi_,np)->GetMean();
   }
-  Double_t npPostfitBerrorLo(const TString& np) const{
-      return getHist(npValuesPostfitBerrorLo_,np)->GetMean();
+  Double_t postfitBerrorLo(const TString& np) const{
+      return getHist(valuesPostfitBerrorLo_,np)->GetMean();
   }
-  Double_t npPostfitBerror(const TString& np) const{
-      return getHist(npValuesPostfitBerrors_,np)->GetMean();
+  Double_t postfitBerror(const TString& np) const{
+      return getHist(valuesPostfitBerrors_,np)->GetMean();
   }
 
 
 
-  TH1* npPostfitS(const TString& np) const {
-    return getClone(getHist(npValuesPostfitS_,np));
+  TH1* postfitS(const TString& np) const {
+    return getClone(getHist(valuesPostfitS_,np));
   }
-  TH1* npPostfitSerrorDist(const TString& np) const {
-    return getClone(getHist(npValuesPostfitSerrors_,np));
+  TH1* postfitSerrorDist(const TString& np) const {
+    return getClone(getHist(valuesPostfitSerrors_,np));
   }
-  TH1* npPostfitSerrorHiDist(const TString& np) const {
-    return getClone(getHist(npValuesPostfitSerrorHi_,np));
+  TH1* postfitSerrorHiDist(const TString& np) const {
+    return getClone(getHist(valuesPostfitSerrorHi_,np));
   }
-  TH1* npPostfitSerrorLoDist(const TString& np) const {
-    return getClone(getHist(npValuesPostfitSerrorLo_,np));
+  TH1* postfitSerrorLoDist(const TString& np) const {
+    return getClone(getHist(valuesPostfitSerrorLo_,np));
   }
-  Double_t npPostfitSMean(const TString& np) const {
-    return getHist(npValuesPostfitS_,np)->GetMean();
+  Double_t postfitSMean(const TString& np) const {
+    return getHist(valuesPostfitS_,np)->GetMean();
   }
-  Double_t npPostfitSMeanError(const TString& np) const {
-    return getHist(npValuesPostfitS_,np)->GetMeanError();
+  Double_t postfitSMeanError(const TString& np) const {
+    return getHist(valuesPostfitS_,np)->GetMeanError();
   }
-  Double_t npPostfitSRMS(const TString& np) const {
-    return getHist(npValuesPostfitS_,np)->GetRMS();
+  Double_t postfitSRMS(const TString& np) const {
+    return getHist(valuesPostfitS_,np)->GetRMS();
   }
-  Double_t npPostfitSerrorHi(const TString& np) const{
-      return getHist(npValuesPostfitSerrorHi_,np)->GetMean();
+  Double_t postfitSerrorHi(const TString& np) const{
+      return getHist(valuesPostfitSerrorHi_,np)->GetMean();
   }
-  Double_t npPostfitSerrorLo(const TString& np) const{
-      return getHist(npValuesPostfitSerrorLo_,np)->GetMean();
+  Double_t postfitSerrorLo(const TString& np) const{
+      return getHist(valuesPostfitSerrorLo_,np)->GetMean();
   }
-  Double_t npPostfitSerror(const TString& np) const{
-      return getHist(npValuesPostfitSerrors_,np)->GetMean();
+  Double_t postfitSerror(const TString& np) const{
+      return getHist(valuesPostfitSerrors_,np)->GetMean();
   }
 
   int color() const { return color_; }
@@ -181,9 +162,13 @@ public:
   void print() const {
     for(auto& str: nps_) {
       std::cout << str << std::endl;
-      std::cout << npPostfitSMean(str) << std::endl;
+      std::cout << postfitSMean(str) << std::endl;
     }
-    std::cout << muMean() << std::endl;
+    for(auto& poi : pois_)
+    {
+        std::cout << poi << std::endl;
+        std::cout << postfitSMean(poi) << std::endl;
+    }
   }
   std::vector<ShapeContainer*> getPrefitShapes() const{
     return prefitShapes_;
@@ -238,26 +223,24 @@ private:
   static constexpr int nBins_ = 400;
   static constexpr Double_t min_ = -10;
   static constexpr Double_t max_ = 10;
-  TString POIname_;
 
-  TH1* muValues_;
-  TH1* muErrors_;
   std::vector<TString> nps_;
-  std::map<TString,TH1*> npValuesPrefit_;
-  std::map<TString,TH1*> npValuesPrefiterrors_;
-  std::map<TString,TH1*> npValuesPrefiterrorHi_;
-  std::map<TString,TH1*> npValuesPrefiterrorLo_;
+  std::vector<TString> pois_;
+  std::map<TString,TH1*> valuesPrefit_;
+  std::map<TString,TH1*> valuesPrefiterrors_;
+  std::map<TString,TH1*> valuesPrefiterrorHi_;
+  std::map<TString,TH1*> valuesPrefiterrorLo_;
 
-  std::map<TString,TH1*> npValuesPostfitB_;
-  std::map<TString,TH1*> npValuesPostfitBerrors_;
-  std::map<TString,TH1*> npValuesPostfitBerrorHi_;
-  std::map<TString,TH1*> npValuesPostfitBerrorLo_;
+  std::map<TString,TH1*> valuesPostfitB_;
+  std::map<TString,TH1*> valuesPostfitBerrors_;
+  std::map<TString,TH1*> valuesPostfitBerrorHi_;
+  std::map<TString,TH1*> valuesPostfitBerrorLo_;
 
 
-  std::map<TString,TH1*> npValuesPostfitS_;
-  std::map<TString,TH1*> npValuesPostfitSerrors_;
-  std::map<TString,TH1*> npValuesPostfitSerrorHi_;
-  std::map<TString,TH1*> npValuesPostfitSerrorLo_;
+  std::map<TString,TH1*> valuesPostfitS_;
+  std::map<TString,TH1*> valuesPostfitSerrors_;
+  std::map<TString,TH1*> valuesPostfitSerrorHi_;
+  std::map<TString,TH1*> valuesPostfitSerrorLo_;
 
   std::vector<ShapeContainer*> prefitShapes_;
   std::vector<ShapeContainer*> postfitBshapes_;
@@ -306,31 +289,12 @@ fitBmustConverge_(false),
 fitSBmustConverge_(true),
 accurateCovariance_(true),
 noBinByBin_(noBinByBin),
-POIname_("r"),
-label_(label), injectedMu_(injectedMu), color_(kGray),
-muValues_(0) {
+label_(label), injectedMu_(injectedMu), color_(kGray){
   if( debug_ ) std::cout << "DEBUG " << this << ": constructor" << std::endl;
 }
 
 PseudoExperiments::~PseudoExperiments() {
   if( debug_ ) std::cout << "DEBUG " << this << ": destructor" << std::endl;
-  // for(std::map<TString,TH1*>::const_iterator it = npValuesPrefit_.begin(); it!= npValuesPrefit_.end(); it++) delete it->second;
-  // for(std::map<TString,TH1*>::const_iterator it = npValuesPostfitB_.begin(); it!= npValuesPostfitB_.end(); it++) delete it->second;
-  // for(std::map<TString,TH1*>::const_iterator it = npValuesPostfitS_.begin(); it!= npValuesPostfitS_.end(); it++) delete it->second;
-  //
-  // // for(auto& it: npValuesPrefit_) {
-  // //   delete it.second;
-  // // }
-  // // for(auto& it: npValuesPostfitB_) {
-  // //   delete it.second;
-  // // }
-  // // for(auto& it: npValuesPostfitS_) {
-  // //   delete it.second;
-  // // }
-  // if( muValues_ != 0 ) delete muValues_;
-  // for(int i=0; i<int(prefitShapes_.size());i++) delete prefitShapes_[i];
-  // for(int i=0; i<int(postfitBshapes_.size());i++) delete postfitBshapes_[i];
-  // for(int i=0; i<int(postfitSshapes_.size());i++) delete postfitSshapes_[i];
 
 }
 
@@ -419,28 +383,6 @@ void PseudoExperiments::addExperimentFromRoofit(const TString& mlfit) {
         if(storeExperiment)
         {
           TStopwatch watch;
-          //TTree* result_tree = (TTree*)file->Get("tree_fit_sb");
-          if( muValues_ == 0 ) {
-            watch.Start();
-            muValues_ = createHistogram("mu","postfitS");
-            muErrors_ = createHistogram("muErrors", "postfitS");
-            watch.Stop();
-            if(debug_) printTime(watch, "Time to create muValues_ and muErrors_");
-          }
-
-          //RooFitResult* result = (RooFitResult*)file->Get("fit_s");
-          // if(result_tree != 0){
-          //   Double_t muVal = 0;
-          //   Double_t muError = 0;
-          //   if(result_tree->SetBranchAddress("mu", &muVal)>=0 && result_tree->SetBranchAddress("muErr", &muError) >= 0){
-          //     for(int i=0; i<result_tree->GetEntries(); i++){
-          //       result_tree->GetEntry(i);
-          //       //if(debug_)
-          //       std::cout << "filling mu histos with " << muVal << " +- " << muError << std::endl;
-          //       muValues_->Fill(muVal);
-          //       muErrors_->Fill(muError);
-          //     }
-          //   }
 
           // store nuisance parameter values
           if( debug_ ) std::cout << "  DEBUG: store NPs" << std::endl;
@@ -453,9 +395,7 @@ void PseudoExperiments::addExperimentFromRoofit(const TString& mlfit) {
             //throw std::exception();
           }
           else{
-            storeRooFitResults(npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file, result, correlationsPostfitB_);
-            if( debug_ ) std::cout << "    DEBUG: prefit NPs" << std::endl;
-            storePrefitValues(npValuesPrefit_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_, file);
+            storeRooFitResults(valuesPostfitB_, valuesPostfitBerrors_, valuesPostfitBerrorHi_, valuesPostfitBerrorLo_, file, result, correlationsPostfitB_);
           }
           if(result != NULL){
             if(debug_) std::cout << "deleting RooFitResult Pointer fit_b\n";
@@ -470,26 +410,20 @@ void PseudoExperiments::addExperimentFromRoofit(const TString& mlfit) {
             //throw std::exception();
           }
           else{
-            RooRealVar* var = NULL;
-            var = (RooRealVar*)result->floatParsFinal().find("r");
-            if(var != NULL){
-              Double_t muVal = var->getVal();
-              Double_t muError = var->getError();
-              if(debug_) std::cout << "filling mu histos with " << muVal << " +- " << muError << std::endl;
-
-              muValues_->Fill(muVal);
-              muErrors_->Fill(muError);
-
-            }
-
             if( debug_ ) std::cout << "    DEBUG: postfit S NPs" << std::endl;
-            storeRooFitResults(npValuesPostfitS_, npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_, file, result, correlationsPostfitS_);
+            storeRooFitResults(valuesPostfitS_, valuesPostfitSerrors_, valuesPostfitSerrorHi_, valuesPostfitSerrorLo_, file, result, correlationsPostfitS_);
             if( debug_ ) std::cout << "  DEBUG: done storing NPs" << std::endl;
+
+            
+            if( debug_ ) std::cout << "    DEBUG: prefit values" << std::endl;
+            storePrefitValues(valuesPrefit_, valuesPostfitBerrors_, valuesPostfitBerrorHi_, valuesPostfitBerrorLo_, file);
+            if(result != NULL) {
+              if(debug_) std::cout << "deleting RooFitResult Pointer fit_s";
+              delete result;
+            }
           }
-          if(result != NULL) {
-            if(debug_) std::cout << "deleting RooFitResult Pointer fit_s";
-            delete result;
-          }
+
+          
 
           if(debug_) std::cout << "  DEBUG: store shapes\n";
           if(debug_) std::cout << "\tDEBUG: prefit shapes\n";
@@ -588,21 +522,19 @@ bool PseudoExperiments::readParamFolder(TFile* infile, const TString& folderName
       while( (key = (TKey*)next()) ){
         treeName = key->GetName();
         tree = (TTree*)gDirectory->Get(treeName.Data());
-        if(treeName == POIname_){
-          std::cout << "saving poi " << treeName << std::endl;
-          muValues_ = helperFuncs::branch2histo(tree, "Value", ";#mu;Frequency");
-          muErrors_ = helperFuncs::branch2histo(tree, "Error", ";#mu Error;Frequency");
-        }
-        else
+        
+        if(saveNps) 
         {
-          if(saveNps) 
-          {
             std::cout << "saving nuisance parameter " << treeName << std::endl;
-            if(!(treeName.Contains("prop_bin") && noBinByBin_)) nps_.push_back(treeName);
-          }
-          std::cout << "reading nuisance parameter " << treeName << std::endl;
-          readParamTree(tree, hists, hErrors, hErrorsHi, hErrorsLo);
+            if(!(treeName.Contains("prop_bin") && noBinByBin_) && !(treeName.BeginsWith("r"))) nps_.push_back(treeName);
         }
+        else{
+            if( std::find( nps_.begin(), nps_.end(), treeName) == nps_.end() && !(treeName.Contains("prop_bin") && noBinByBin_) ){
+                pois_.push_back(treeName);
+            }
+        }
+        std::cout << "reading nuisance parameter " << treeName << std::endl;
+        readParamTree(tree, hists, hErrors, hErrorsHi, hErrorsLo);
       }
     }
     return true;
@@ -656,9 +588,9 @@ bool PseudoExperiments::addExperimentFromTree(const TString& mlfit){
       if(!(readCorrFolder(infile, "Correlation_sig", correlationsPostfitS_)) ) return false;
       if(!(readCorrFolder(infile, "Correlation_bac", correlationsPostfitB_)) ) return false;
       
-      if(!(readParamFolder(infile, "signal", npValuesPostfitS_, npValuesPostfitSerrors_, npValuesPostfitSerrorHi_, npValuesPostfitSerrorLo_))) return false;
-      if(!(readParamFolder(infile, "background", npValuesPostfitB_, npValuesPostfitBerrors_, npValuesPostfitBerrorHi_, npValuesPostfitBerrorLo_))) return false;
-      if(!(readParamFolder(infile, "Prefit", npValuesPrefit_, npValuesPrefiterrors_, npValuesPrefiterrorHi_, npValuesPrefiterrorLo_))) return false;
+      if(!(readParamFolder(infile, "signal", valuesPostfitS_, valuesPostfitSerrors_, valuesPostfitSerrorHi_, valuesPostfitSerrorLo_))) return false;
+      if(!(readParamFolder(infile, "background", valuesPostfitB_, valuesPostfitBerrors_, valuesPostfitBerrorHi_, valuesPostfitBerrorLo_))) return false;
+      if(!(readParamFolder(infile, "Prefit", valuesPrefit_, valuesPrefiterrors_, valuesPrefiterrorHi_, valuesPrefiterrorLo_))) return false;
       if(!(readShapeFolder(infile, "shapes_fit_s", postfitSshapes_)) ) return false;
       if(!(readShapeFolder(infile, "shapes_fit_b", postfitBshapes_)) ) return false;
       if(!(readShapeFolder(infile, "shapes_prefit", prefitShapes_))) return false;
@@ -808,27 +740,30 @@ void PseudoExperiments::initContainers(TFile* file, const RooFitResult* result, 
     while( varName.Contains(",") ) {
       npName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
       
-      if(!(npName.Contains("prop_bin") && noBinByBin_)) nps_.push_back(npName);
+      if(!(npName.Contains("prop_bin") && noBinByBin_) && !npName.BeginsWith("r")) nps_.push_back(npName);
       varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
     }
-    if(!(varName.Contains("prop_bin") && noBinByBin_)) nps_.push_back(varName);
+    if(!(varName.Contains("prop_bin") && noBinByBin_) && !npName.BeginsWith("r")) nps_.push_back(varName);
   }
 
-  createHistograms(npValuesPrefit_,nps_,"prefit");
-  createHistograms(npValuesPostfitB_,nps_,"postfitB");
-  createHistograms(npValuesPostfitBerrors_, nps_, "postfitB_errors");
-  createHistograms(npValuesPostfitBerrorHi_, nps_, "postfitB_errorHi");
-  createHistograms(npValuesPostfitBerrorLo_, nps_, "postfitB_errorLo");
-  createHistograms(npValuesPostfitS_,nps_,"postfitS");
-  createHistograms(npValuesPostfitSerrors_,nps_,"postfitS_errors");
-  createHistograms(npValuesPostfitSerrorHi_, nps_, "postfitS_errorHi");
-  createHistograms(npValuesPostfitSerrorLo_, nps_, "postfitS_errorLo");
+  createHistograms(valuesPrefit_,nps_,"prefit");
+  createHistograms(valuesPostfitB_,nps_,"postfitB");
+  createHistograms(valuesPostfitBerrors_, nps_, "postfitB_errors");
+  createHistograms(valuesPostfitBerrorHi_, nps_, "postfitB_errorHi");
+  createHistograms(valuesPostfitBerrorLo_, nps_, "postfitB_errorLo");
+  createHistograms(valuesPostfitS_,nps_,"postfitS");
+  createHistograms(valuesPostfitSerrors_,nps_,"postfitS_errors");
+  createHistograms(valuesPostfitSerrorHi_, nps_, "postfitS_errorHi");
+  createHistograms(valuesPostfitSerrorLo_, nps_, "postfitS_errorLo");
 }
 
 
 void PseudoExperiments::createHistograms(std::map<TString,TH1*>& hists, const std::vector<TString>& nps, const TString& name, int nBins, Double_t min, Double_t max) const {
-  for(auto& np: nps) {
-    hists[np] = createHistogram(np, name, nBins, min, max);
+  if (! nps.empty() )
+  {
+      for(auto& np: nps) {
+        hists[np] = createHistogram(np, name, nBins, min, max);
+      }
   }
 }
 
@@ -844,11 +779,11 @@ TH1* PseudoExperiments::createHistogram(const TString& par, const TString& name,
 
 void PseudoExperiments::storePrefitValues(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TFile* file) const {
   TStopwatch watch;
-  if(debug_) std::cout << "bla\n";
-  RooFitResult* test_result = (RooFitResult*) file->Get("fit_b");
+  if(debug_) std::cout << "loading fit_s for prefit values\n";
+  RooFitResult* test_result = (RooFitResult*) file->Get("fit_s");
   //std::vector<TString> values;
   if(test_result != NULL){
-    if(debug_) std::cout << "collecting variable names from RooFitResult fit_b" << std::endl;
+    if(debug_) std::cout << "collecting variable names from RooFitResult fit_s" << std::endl;
     readRooRealVar(hists, hErrors, hErrorsHi, hErrorsLo, test_result->floatParsInit().createIterator());
 
     if(debug_)std::cout << "\ndone" << std::endl;
@@ -864,6 +799,29 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
   if( nps_.empty() ) {
     if( debug_ ) std::cout << "  DEBUG: initialize NPs" << std::endl;
     initContainers(file, result);
+  }
+  else{
+    if( pois_.empty()){
+        if( debug_ ) std::cout << "  DEBUG: initialize POIs\n";
+        TIter it = result->floatParsFinal().createIterator();
+        TString name;
+        RooRealVar* param;
+        while(( param = (RooRealVar*)it.Next() )){
+            name = param->GetName();
+            if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !(name.Contains("prop_bin") && noBinByBin_ )){
+                pois_.push_back(name);
+            }
+        }
+        createHistograms(valuesPrefit_,pois_,"prefit");
+        createHistograms(valuesPostfitB_,pois_,"postfitB");
+        createHistograms(valuesPostfitBerrors_, pois_, "postfitB_errors");
+        createHistograms(valuesPostfitBerrorHi_, pois_, "postfitB_errorHi");
+        createHistograms(valuesPostfitBerrorLo_, pois_, "postfitB_errorLo");
+        createHistograms(valuesPostfitS_,pois_,"postfitS");
+        createHistograms(valuesPostfitSerrors_,pois_,"postfitS_errors");
+        createHistograms(valuesPostfitSerrorHi_, pois_, "postfitS_errorHi");
+        createHistograms(valuesPostfitSerrorLo_, pois_, "postfitS_errorLo");
+    }
   }
   readRooRealVar(hists, hErrors, hErrorsHi, hErrorsLo, result->floatParsFinal().createIterator());
 

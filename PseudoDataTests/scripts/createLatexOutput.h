@@ -114,6 +114,7 @@ void writeValues(std::ofstream& output, const int& bin, const TH1* hMeans, const
     else std::cerr << "ERROR: could not open .tex table!\n";
   }
   void writeTextTable(const TH1* hMeans, const TH1* hMedians, const TString& outputPath, const TH1* hExpectation, const TH1* hMeansWithFittedError = NULL){
+    std::cout << "writing values into " << outputPath.Data() << std::endl;
     std::ofstream output(outputPath.Data(), std::ofstream::out);
     if(output.is_open() && hMeans != NULL && hMedians != NULL){
       TString processName;
