@@ -47,7 +47,7 @@ namespace drawPullPlots{
         TH1D* hPrefitMedians = NULL;
 
 
-        TLegend* legend = LabelMaker::legend("top left",3,0.1);
+        TLegend* legend = LabelMaker::legend("top left",3);
         TFile* expectationFile = NULL;
         if(!pathToShapeExpectationRootfile.EqualTo("")) expectationFile = new TFile(pathToShapeExpectationRootfile, "READ");
         TTree* tree = NULL;
@@ -216,21 +216,21 @@ namespace drawPullPlots{
         }
         //hPrefitMedians->Draw("PE1same");
         std::cout << "drew prefit histo\n";
-        // hPostfitBmeans->Draw("PE2same");
+        hPostfitBmeans->Draw("PE1same");
         hPostfitBmeans->Write("postfitBmeans");
         if(hPostfitBmeansWithFitErrors != NULL) 
         {
-            // hPostfitBmeansWithFitErrors->Draw("PE1same");
+            hPostfitBmeansWithFitErrors->Draw("PEsame");
             hPostfitBmeansWithFitErrors->Write("postfitBmeans_fittedError");
         }
         //hPostfitBmedians->Draw("PE1same");
         std::cout << "drew postfit b\n";
-        hPostfitSBmeans->Draw("PE2same");
+        hPostfitSBmeans->Draw("PE1same");
         hPostfitSBmeans->Write("postfitSBmeans");
         
         if(hPostfitSBmeansWithFitErrors != NULL) 
         {
-            hPostfitSBmeansWithFitErrors->Draw("PE1same");
+            hPostfitSBmeansWithFitErrors->Draw("PEsame");
             hPostfitSBmeansWithFitErrors->Write("postfitSBmeans_fittedError");
         }
         //hPostfitSBmedians->Draw("PE1same");
