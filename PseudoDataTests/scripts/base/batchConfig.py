@@ -91,7 +91,8 @@ class batchConfig:
             command.append('-t')
             command.append(tasknumberstring)
             if jobid:
-                command.append("-hold_jid " + jobid)
+                command.append("-hold_jid")
+                command.append(str(jobid))
             
             command.append(arrayscriptpath)
             print command
@@ -112,14 +113,23 @@ class batchConfig:
             print "could not generate array submit command"
     
     def submitJobToBatch(self, script, jobid = None):
+        script = os.path.abspath(script)
+        st = os.stat(script)
+        dirname = os.path.dirname(script)
         os.chmod(script, st.st_mode | stat.S_IEXEC)
         cmdlist = [self.subname]
         cmdlist += self.subopts
+        temp = "-o {0}/log.out -e {0}/log.err".format(dirname)
+        cmdlist += temp.split()
+        if jobid:
+            cmdlist.append("-hold_jid")
+            cmdlist.append(str(jobid))
+        cmdlist.append(script)
         jobids = []
-        command = " ".join(cmdList)
-        command += " " + script
-        print command
-        a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+        #command = " ".join(cmdlist)
+        print cmdlist
+        print " ".join(cmdlist)
+        a = subprocess.Popen(cmdlist, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
         output = a.communicate()[0]
         #print output
         jobidstring = output.split()
