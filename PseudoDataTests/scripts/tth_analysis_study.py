@@ -135,7 +135,8 @@ default = False)
 group_globalOptions.add_option("--range",
 help = "set range for fit. Set to 0 to omit the --rMin/Max option (default = 10)",
 dest = "range",
-default = "10.0"
+default = 10.0,
+type = "float"
 )
 
 parser.add_option_group(group_required)
@@ -285,7 +286,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
     mlfitCmd += "--cminDefaultMinimizerTolerance 1e-5 "
     mlfitCmd += "--saveNormalizations --saveShapes "
-    if murange:
+    if not murange == 0:
         mlfitCmd += "--rMin=$rMin --rMax=$rMax "
     mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile --minos all "
     # mlfitCmd += "--robustFit 1 "
@@ -311,9 +312,9 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     shellscript.append('\trandomseed=$2')
     shellscript.append('\toutputPath=$3')
     shellscript.append('\tnumberOfToysPerExperiment=$4')
-    if murange:
-        shellscript.append('\trMin=`echo "$signalStrength - ' + murange + '" | bc`')
-        shellscript.append('\trMax=`echo "$signalStrength + ' + murange + '" | bc`')
+    if not murange == 0:
+        shellscript.append('\trMin=`echo "$signalStrength - ' + str(murange) + '" | bc`')
+        shellscript.append('\trMax=`echo "$signalStrength + ' + str(murange) + '" | bc`')
 
     shellscript.append('#___________________________________________________')
     shellscript.append('\techo "input variables:"')
