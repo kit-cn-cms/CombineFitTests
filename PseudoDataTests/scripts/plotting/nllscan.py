@@ -61,7 +61,7 @@ def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
 #______________combine stuff_____________________________________
 
 
-    fitresFile = outputDirectory + "/higgsCombine"
+    fitresFile = "higgsCombine"
     
     multidimfitcmd = ['combine -M MultiDimFit ' + datacard]
     multidimfitcmd.append('--algo=grid --points=' + str(nPoints))
@@ -70,7 +70,9 @@ def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
     # multidimfitcmd += ' --cminFallbackAlgo "Minuit2,migrad,0:0.3"'
     # multidimfitcmd += ' --cminOldRobustMinimize=0'
     # multidimfitcmd += ' --X-rtd MINIMIZER_MaxCalls=9999999'
-    multidimfitcmd.append('-m 125 --saveWorkspace')
+    multidimfitcmd.append('-m 125')
+    if "--firstPoint=0" in additionalCmds or not any("--firstPoint" in x for x in additionalCmds):
+         multidimfitcmd.append('--saveWorkspace')
     if additionalCmds:
         multidimfitcmd.append(" ".join(additionalCmds))
         
@@ -81,10 +83,12 @@ def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
         multidimfitcmd.append("--redefineSignalPOIs " + ",".join(params))
     else:
         multidimfitcmd += ["-P " + str(x) for x in params]
-    if not xVar in params:
+    if not xVar in params and not xVar == "r":
         multidimfitcmd.append("--saveSpecifiedNuis " + xVar)
-    if not yVar == "deltaNLL" and not yVar in params:
+    if not yVar == "deltaNLL" and not yVar == "r" and not yVar in params:
         multidimfitcmd.append("--saveSpecifiedNuis " + yVar)
+    if "r" in [xVar, yVar] and not "r" in params:
+        multidimfitcmd.append("--floatOtherPOIs 1")
     if bonly:
         print "will perform background-only fit"
         suffix += "_bonly"
@@ -184,7 +188,6 @@ def do_fits():
         sys.exit("Unable to create any scripts!")
     
     os.chdir(base)
-    results = [foldername + "/" + x for x in results]
     
     lines = ["#!/bin/bash"]
     lines.append("pathToCMSSW="+pathToCMSSWsetup)
@@ -192,12 +195,19 @@ def do_fits():
     lines.append('  source "$pathToCMSSW"')
     cmds = ["python"]
     cmds += sys.argv
+    index = -999
+    if "-a" in cmds:
+        index = cmds.index("-a")
+    elif "--addCommand" in cmds:
+        index = cmds.index("--addCommand")
+    if not index == -999:
+        cmds[index+1] = '"{0}"'.format(cmds[index+1])
     cmds.append("--directlyDrawFrom")
     cmds.append(",".join(results))
     cmds.append("--runLocally")
     cmd = " ".join(cmds)
-    lines.append('  echo "' + cmd + '"')
-    lines.append('  eval "' + cmd + '"')
+    lines.append("  echo \'" + cmd + "\'")
+    lines.append("  eval \'" + cmd + "\'")
 
     lines.append('else')
     lines.append('  echo "could not find CMSSW source path!"')
@@ -208,7 +218,8 @@ def do_fits():
     with open(mergescript,"w") as out:
         out.write("\n".join(lines))
     if os.path.exists(mergescript):
-        bash.submitJobToBatch(script = mergescript, jobid = arrayid)
+        mergeid = batch.submitJobToBatch(script = mergescript, jobid = arrayid)
+        sys.exit("Everything submitted! Jobids: {0} {1}".format(arrayid, mergeid))
     else:
         sys.exit("Could not write script to merge files!")
 
@@ -261,7 +272,7 @@ def find_crossing(graph, clname, start, stop):
                 if delta < deltabest:
                     if deltabest <= epsilon:
                         print "found crossing at", xbest
-                        return xbest
+                        return round(xbest, 2)
                     else:
                         # print "setting deltabest to", deltabest
                         deltabest = delta
@@ -276,7 +287,7 @@ def find_crossing(graph, clname, start, stop):
                 if delta < deltabest:
                     if deltabest <= epsilon:
                         print "found crossing at", xbest
-                        return xbest
+                        return round(xbest, 2)
                     else:
                         # print "setting deltabest to", deltabest
                         deltabest = delta
@@ -314,6 +325,7 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
         xmin = graph.GetXaxis().GetXmin()
         xmax = graph.GetXaxis().GetXmax()
         
+        formular = "[0]*(x*x*x*x - [1]*[1]*[1]*[1])"
         parabel = ROOT.TF1("parabel", "[0]*(x*x*x*x - [1]*[1]*[1]*[1]) + [2]*(x*x*x - [1]*[1]*[1]) + [3]*(x*x - [1]*[1]) + [4]*(x - [1]) + [5] + [6]*(x*x*x*x*x - [1]*[1]*[1]*[1]*[1]) + [7]*(x*x*x*x*x*x - [1]*[1]*[1]*[1]*[1]*[1])", xmin, xmax)
         parabel.SetParNames("a", "best fit x", "b", "c", "d", "best fit y")
         parabel.SetParameter(0, 0.5)
@@ -404,7 +416,7 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     yVals = []
     xbest = None
     ybest = 999999
-    for e in limit:
+    for i, e in enumerate(limit):
         x = eval("e." + xVar)
         y = eval("e." + yVar)
         print "current values: {0}, {1}".format(x, y)
@@ -418,7 +430,7 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
             xVals.append(x)
             yVals.append(y)
             
-        if yVals[-1] < ybest:
+        if i == 0:
             xbest = xVals[-1]
             ybest = yVals[-1]
     
@@ -437,31 +449,32 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     ymin = min(yVals)
     ymax = max(yVals)
     leg = helperfuncs.getLegend()
-    print "creating TF1 in range [{0}, {1}]".format(xmin,xmax)
-    print "y-axis range: [{0}, {1}]".format(ymin, ymax)
+    
     graph.GetYaxis().SetTitle(yVar)
     graph.SetTitle("Scan of {0} over {1}".format(yVar, xVar))
     graph.Sort()
     graph.Draw()
     
-    
-    results = create_lines( graph = graph, xbest = xbest, clStyles = cls,
-                            ymin = ymin, ymax = ymax, ybest = ybest)
-    
-    
-    for cl in results:
-        lines = results[cl]["lines"]
-        vals = results[cl]["vals"]
+    if yVar == '2#Delta NLL':
+        print "creating TF1 in range [{0}, {1}]".format(xmin,xmax)
+        print "y-axis range: [{0}, {1}]".format(ymin, ymax)
+        results = create_lines( graph = graph, xbest = xbest, clStyles = cls,
+                                ymin = ymin, ymax = ymax, ybest = ybest)
         
-        # print lines
-        for i, line in enumerate(lines):
-            if i == 0:
-                label = "{0}: {1}_{2}^+{3}".format(cl, xbest, vals[0], vals[1])
-                label = label.replace("_", "_{")
-                label = label.replace("^", "}^{")
-                label += "}"
-                leg.AddEntry(line, label, "l")
-            line.Draw("Same")
+        
+        for cl in results:
+            lines = results[cl]["lines"]
+            vals = results[cl]["vals"]
+            
+            # print lines
+            for i, line in enumerate(lines):
+                if i == 0:
+                    label = "{0}: {1}_{2}^+{3}".format(cl, xbest, vals[0], vals[1])
+                    label = label.replace("_", "_{")
+                    label = label.replace("^", "}^{")
+                    label += "}"
+                    leg.AddEntry(line, label, "l")
+                line.Draw("Same")
     bestfit = ROOT.TGraph(1)
     bestfit.SetPoint(0, xbest, ybest)
 
@@ -487,7 +500,7 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     xbest = 0
     ybest = 0
     zbest = 99999999
-    for e in limit:
+    for i, e in enumerate(limit):
         x = eval("e." + xVar)
         y = eval("e." + yVar)
         z = e.deltaNLL
@@ -498,7 +511,7 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
             xVals.append(x)
             yVals.append(y)
             zVals.append(2*z)
-            if zVals[-1] < zbest:
+            if i == 0:
                 xbest = xVals[-1]
                 ybest = yVals[-1]
                 zbest = zVals[-1]
@@ -546,6 +559,11 @@ def merge_files(filelist):
         return os.path.abspath("merged_combine_output.root")
     else:
         sys.exit("Could not produce merged combine output file!")
+def intact_root_file(infilepath):
+    f = ROOT.TFile.Open(infilepath)
+    if f.IsOpen() and not f.IsZombie() and not f.TestBit(ROOT.TFile.kRecovered):
+        return True
+    return False
 #=======================================================================
 
 if __name__ == '__main__':
@@ -571,10 +589,6 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     
     directDrawPath = options.directDraw
-    if directDrawPath is not None:
-        directDrawPath = os.path.abspath(directDrawPath)
-        if not os.path.exists(directDrawPath):
-            parser.error("File with scan results does not exist!")
     
     datacard = options.datacard
     additionalCmds = options.addCommand
@@ -634,7 +648,30 @@ if __name__ == '__main__':
         datacard = workspace
     else:
         check_workspace(datacard)
-    if directDrawPath is None or not os.path.exists(directDrawPath):
+    print "changing into target directory"
+    
+    workdir = os.getcwd()
+    os.chdir(outputDirectory)
+    fitresFile = None
+    if directDrawPath:
+        
+        if "*" in directDrawPath:
+            filelist = glob.glob(directDrawPath)
+            fitresFile = merge_files(filelist = filelist)
+        elif "," in directDrawPath:
+            existingResults = []
+            results = directDrawPath.split(",")
+            for result in results:
+                if os.path.exists(result):
+                    if intact_root_file(infilepath = result):
+                        existingResults.append(result)
+                else:
+                    print "could not find file %s, you should run the corresponding script again" % result
+            fitresFile = merge_files(filelist = existingResults)
+        elif os.path.exists(directDrawPath):
+            fitresFile = directDrawPath 
+    
+    if not fitresFile:
         if not runLocally:
             fitresFile = do_fits()
         else:
@@ -648,25 +685,10 @@ if __name__ == '__main__':
             subprocess.call([mdfcmd], shell = True)
             if not os.path.exists(fitresFile):
                 sys.exit("Could not produce file %s" % fitresFile)
-    else:
-        if "*" in directDrawPath:
-            filelist = glob.glob(directDrawPath)
-            fitresFile = merge_files(filelist = filelist)
-        elif "," in directDrawPath:
-            existingResults = []
-            results = directDrawPath.split(",")
-            for result in results:
-                if os.path.exists(result):
-                    existingResults.append(result)
-                else:
-                    print "could not find file %s, you should run the corresponding script again" % result
-            fitresFile = merge_files(filelist = existingResults)
-        else:
-            fitresFile = directDrawPath
     
     #________________________________________________________________
 
-    if os.path.exists(fitresFile):
+    if fitresFile and os.path.exists(fitresFile):
         infile = ROOT.TFile(fitresFile)
     
         if infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(ROOT.TFile.kRecovered):
@@ -689,4 +711,4 @@ if __name__ == '__main__':
             infile.Close()
     else:
         print "Could not find multidim fit output", fitresFile
-    
+    os.chdir(workdir)
