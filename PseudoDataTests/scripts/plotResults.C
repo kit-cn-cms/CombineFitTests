@@ -228,7 +228,7 @@ void compareMeanValues(TH1* hFittedValues,
     }
 }
 
-void selectParameters(const PseudoExperiments& exp, std::vector<TString>& list, const bool ignoreBinByBinNPs){
+void selectParameters(const PseudoExperiments& exp, std::vector<TString>& list, const bool ignoreBinByBinNPs, const bool includePOIs = false){
   bool push_back = true;
 
   for(auto& np : exp.nps()){
@@ -242,13 +242,18 @@ void selectParameters(const PseudoExperiments& exp, std::vector<TString>& list, 
       }
       if(push_back) list.push_back(np);
   }
+  if( includePOIs ){
+      for(auto& poi: exp.pois()){
+          list.push_back(poi);
+      }
+  }
 }
 
-std::vector<TString> getParameterList(const std::vector<PseudoExperiments>& exps, const bool ignoreBinByBinNPs){
+std::vector<TString> getParameterList(const std::vector<PseudoExperiments>& exps, const bool ignoreBinByBinNPs, const bool includePOIs = false){
     std::vector<TString> list;
     for(auto& exp : exps)
     {
-        selectParameters(exp, list, ignoreBinByBinNPs);
+        selectParameters(exp, list, ignoreBinByBinNPs, includePOIs);
     }
     return list;
 }
@@ -277,43 +282,43 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
             const int bin = iE+1;
             const PseudoExperiments& exp = exps.at(iE);
 
-            if(exp.npPostfitB(np)){
-                std::cout << exp.npPostfitB(np) << std::endl;
+            if(exp.postfitB(np)){
+                std::cout << exp.postfitB(np) << std::endl;
                 std::cout << "\tsaving PostfitB\n";
 
                 labels.push_back( exp() );
 
-                helperFuncs::setupHistogramBin(hCompareNPMeansList[0], bin, labels.back(), exp.npPostfitBMean(np), exp.npPostfitB(np)->GetMeanError());
+                helperFuncs::setupHistogramBin(hCompareNPMeansList[0], bin, labels.back(), exp.postfitBMean(np), exp.postfitB(np)->GetMeanError());
 
-                helperFuncs::setupHistogramBin(hCompareNPMediansList[0], bin, labels.back(), helperFuncs::getMedian(exp.npPostfitB(np) ), exp.npPostfitBRMS(np));
+                helperFuncs::setupHistogramBin(hCompareNPMediansList[0], bin, labels.back(), helperFuncs::getMedian(exp.postfitB(np) ), exp.postfitBRMS(np));
 
-                histsPostfitB.push_back( exp.npPostfitB(np) );
+                histsPostfitB.push_back( exp.postfitB(np) );
                 helperFuncs::norm( histsPostfitB.back() );
                 helperFuncs::setXRange( histsPostfitB.back(), -4, 4 );
                 helperFuncs::setLineStyle( histsPostfitB.back(), exp.color(), 1 );
 
             }
 
-            if(exp.npPostfitS(np) != NULL){
+            if(exp.postfitS(np) != NULL){
                 std::cout << "\tsaving PostfitS\n";
 
-                helperFuncs::setupHistogramBin(hCompareNPMeansList[1], bin, labels.back(), exp.npPostfitSMean(np), exp.npPostfitS(np)->GetMeanError());
+                helperFuncs::setupHistogramBin(hCompareNPMeansList[1], bin, labels.back(), exp.postfitSMean(np), exp.postfitS(np)->GetMeanError());
 
-                helperFuncs::setupHistogramBin(hCompareNPMediansList[1], bin, labels.back(), helperFuncs::getMedian(exp.npPostfitS(np) ), exp.npPostfitSRMS(np));
+                helperFuncs::setupHistogramBin(hCompareNPMediansList[1], bin, labels.back(), helperFuncs::getMedian(exp.postfitS(np) ), exp.postfitSRMS(np));
 
-                histsPostfitS.push_back( exp.npPostfitS(np) );
+                histsPostfitS.push_back( exp.postfitS(np) );
                 helperFuncs::norm( histsPostfitS.back() );
                 helperFuncs::setXRange( histsPostfitS.back(), -4, 4 );
                 helperFuncs::setLineStyle( histsPostfitS.back(), exp.color(), 1 );
 
             }
-            //hPrefit->SetBinContent(bin,exp.npPrefitMean(np));
-            //hPrefit->SetBinError(bin,exp.npPrefitRMS(np));
-            if(exp.npPrefit(np) != NULL){
+            //hPrefit->SetBinContent(bin,exp.prefitMean(np));
+            //hPrefit->SetBinError(bin,exp.prefitRMS(np));
+            if(exp.prefit(np) != NULL){
                 std::cout << "\tsaving Prefit vals\n";
-                helperFuncs::setupHistogramBin(hPrefit, bin, labels.back(), exp.npPrefitMean(np), exp.npPrefitRMS(np));
+                helperFuncs::setupHistogramBin(hPrefit, bin, labels.back(), exp.prefitMean(np), exp.prefitRMS(np));
 
-                histsPrefit.push_back( exp.npPrefit(np) );
+                histsPrefit.push_back( exp.prefit(np) );
                 helperFuncs::norm( histsPrefit.back() );
                 helperFuncs::setXRange( histsPrefit.back(), -4, 4 );
                 helperFuncs::setLineStyle( histsPrefit.back(), exp.color(), 1 );
@@ -357,26 +362,26 @@ void analyzeNPPulls(const PseudoExperiments& exp, const TString& outLabel, const
     std::vector<TString> listOfParameters;
     selectParameters(exp, listOfParameters, ignoreBinByBinNPs);
     for(auto& np : listOfParameters){
-      if (exp.npPostfitB(np)){
+      if (exp.postfitB(np)){
         std::cout << "\tsaving PostfitB\n";
 
-        vectorToSafe.push_back(exp.npPostfitBMean(np));
-        vectorToSafe.push_back(exp.npPostfitB(np)->GetMeanError());
+        vectorToSafe.push_back(exp.postfitBMean(np) - exp.prefitMean(np));
+        vectorToSafe.push_back(exp.postfitB(np)->GetMeanError());
 
-        vectorToSafe.push_back(helperFuncs::getMedian(exp.npPostfitB(np)));
-        vectorToSafe.push_back(exp.npPostfitBRMS(np));
-        vectorToSafe.push_back(exp.npPostfitBerror(np));
+        vectorToSafe.push_back(helperFuncs::getMedian(exp.postfitB(np)));
+        vectorToSafe.push_back(exp.postfitBRMS(np));
+        vectorToSafe.push_back(exp.postfitBerror(np));
 
         PostfitBvalsAndErrors.push_back(vectorToSafe);
         vectorToSafe.clear();
 
         std::cout << "\tsaving PostfitS\n";
 
-        vectorToSafe.push_back(exp.npPostfitSMean(np));
-        vectorToSafe.push_back(exp.npPostfitS(np)->GetMeanError());
-        vectorToSafe.push_back(helperFuncs::getMedian(exp.npPostfitS(np)));
-        vectorToSafe.push_back(exp.npPostfitSRMS(np));
-        vectorToSafe.push_back(exp.npPostfitSerror(np));
+        vectorToSafe.push_back(exp.postfitSMean(np));
+        vectorToSafe.push_back(exp.postfitS(np)->GetMeanError());
+        vectorToSafe.push_back(helperFuncs::getMedian(exp.postfitS(np)));
+        vectorToSafe.push_back(exp.postfitSRMS(np));
+        vectorToSafe.push_back(exp.postfitSerror(np));
 
 
         PostfitSBvalsAndErrors.push_back(vectorToSafe);
@@ -384,10 +389,10 @@ void analyzeNPPulls(const PseudoExperiments& exp, const TString& outLabel, const
 
         std::cout << "\tsaving Prefit vals\n";
 
-        vectorToSafe.push_back(exp.npPrefitMean(np));
-        vectorToSafe.push_back(exp.npPrefit(np)->GetMeanError());
-        vectorToSafe.push_back(helperFuncs::getMedian(exp.npPrefit(np)));
-        vectorToSafe.push_back(exp.npPrefitRMS(np));
+        vectorToSafe.push_back(exp.prefitMean(np));
+        vectorToSafe.push_back(exp.prefit(np)->GetMeanError());
+        vectorToSafe.push_back(helperFuncs::getMedian(exp.prefit(np)));
+        vectorToSafe.push_back(exp.prefitRMS(np));
 
         PrefitValsAndErrors.push_back(vectorToSafe);
         vectorToSafe.clear();
@@ -401,11 +406,11 @@ void analyzeNPPulls(const PseudoExperiments& exp, const TString& outLabel, const
 
 }
 
-void compareNuisanceParameters(const std::vector<PseudoExperiments>& exps,
+void comparePostfitValues(const std::vector<PseudoExperiments>& exps,
                                const TString& outLabel,
                                const bool& ignoreBinByBinNPs)
 {
-  std::vector<TString> listOfNPs = getParameterList(exps, ignoreBinByBinNPs);
+    std::vector<TString> listOfNPs = getParameterList(exps, ignoreBinByBinNPs, true);
     analyzeNPDistributions(listOfNPs, exps, outLabel,ignoreBinByBinNPs);
     for(auto& exp : exps){
         analyzeNPPulls(exp, outLabel, ignoreBinByBinNPs);
@@ -413,68 +418,68 @@ void compareNuisanceParameters(const std::vector<PseudoExperiments>& exps,
 }
 
 
-void comparePOIs(const std::vector<PseudoExperiments>& exps,
-                 const TString& outLabel, const TString& testName) {
-    // mean values and distributions of POIs
-    TH1* hPOIs = new TH1D("hPOIs",";;#mu",exps.size(),0,exps.size());
-    TH1* hInit = static_cast<TH1*>(hPOIs->Clone("hInit"));
-    TH1* hPOImedians = static_cast<TH1*>(hPOIs->Clone("hPOImedians"));
-    TH1* hPOIwithFittedError = static_cast<TH1*>(hPOIs->Clone("hPOIwithFittedError"));
+//void comparePOIs(const std::vector<PseudoExperiments>& exps,
+                 //const TString& outLabel, const TString& testName) {
+    //// mean values and distributions of POIs
+    //TH1* hPOIs = new TH1D("hPOIs",";;#mu",exps.size(),0,exps.size());
+    //TH1* hInit = static_cast<TH1*>(hPOIs->Clone("hInit"));
+    //TH1* hPOImedians = static_cast<TH1*>(hPOIs->Clone("hPOImedians"));
+    //TH1* hPOIwithFittedError = static_cast<TH1*>(hPOIs->Clone("hPOIwithFittedError"));
 
-    std::vector<TH1*> hists;
-    std::vector<TString> labels;
-    TH2D* correlationPlot = NULL;
-    //std::cout << "size of exps vector: " << exps.size() << std::endl;
-    for(size_t iE = 0; iE < exps.size(); ++iE) {
-        const int bin = iE+1;
-        const PseudoExperiments& exp = exps.at(iE);
-        labels.push_back(exp());
+    //std::vector<TH1*> hists;
+    //std::vector<TString> labels;
+    //TH2D* correlationPlot = NULL;
+    ////std::cout << "size of exps vector: " << exps.size() << std::endl;
+    //for(size_t iE = 0; iE < exps.size(); ++iE) {
+        //const int bin = iE+1;
+        //const PseudoExperiments& exp = exps.at(iE);
+        //labels.push_back(exp());
 
-        //hPOIs->SetBinContent(bin,exp.muMean());
-        //std::cout << "filling mu = " << exp.muMean() << " into bin " << bin <<std::endl;
-        //hPOIs->SetBinError(bin, exp.mu()->GetMeanError());
-        helperFuncs::setupHistogramBin(hPOIs, bin, labels.back(), exp.muMean(), exp.mu()->GetMeanError());
-        //hPOImedians->SetBinContent(bin,helperFuncs::getMedian(exp.mu()));
-        //hPOImedians->SetBinError(bin,exp.muRMS());
-        helperFuncs::setupHistogramBin(hPOImedians, bin, labels.back(), helperFuncs::getMedian(exp.mu()), exp.muRMS());
-        helperFuncs::setupHistogramBin(hPOIwithFittedError, bin, labels.back(), exp.muMean(), exp.muError());
-        //hInit->SetBinContent(bin,exp.muInjected());
-        helperFuncs::setupHistogramBin(hInit, bin, labels.back(), exp.muInjected());
+        ////hPOIs->SetBinContent(bin,exp.postfitSMean());
+        ////std::cout << "filling mu = " << exp.postfitSMean() << " into bin " << bin <<std::endl;
+        ////hPOIs->SetBinError(bin, exp.mu()->GetMeanError());
+        //helperFuncs::setupHistogramBin(hPOIs, bin, labels.back(), exp.postfitSMean(), exp.mu()->GetMeanError());
+        ////hPOImedians->SetBinContent(bin,helperFuncs::getMedian(exp.mu()));
+        ////hPOImedians->SetBinError(bin,exp.postfitSRMS());
+        //helperFuncs::setupHistogramBin(hPOImedians, bin, labels.back(), helperFuncs::getMedian(exp.mu()), exp.postfitSRMS());
+        //helperFuncs::setupHistogramBin(hPOIwithFittedError, bin, labels.back(), exp.postfitSMean(), exp.postfitSerror());
+        ////hInit->SetBinContent(bin,exp.muInjected());
+        //helperFuncs::setupHistogramBin(hInit, bin, labels.back(), exp.muInjected());
 
-        hists.push_back( exp.mu() );
-        hists.back()->GetXaxis()->SetTitle("#mu");
-        hists.back()->SetTitle("");
-        hists.back()->SetLineColor( exp.color() );
-        helperFuncs::norm(hists.back());
-        //helperFuncs::setXRange(hists.back(),-3,5);
-        correlationPlot = exps.at(iE).getCorrelationPlotPostfitB();
-        if(correlationPlot != NULL){
-          printCorrelationPlots(correlationPlot, outLabel, "correlationPlot_PostfitB_" + labels.back());
-          delete correlationPlot;
-          correlationPlot = NULL;
-        }
-        correlationPlot = exps.at(iE).getCorrelationPlotPostfitS();
-        if(correlationPlot != NULL){
-          printCorrelationPlots(correlationPlot, outLabel, "correlationPlot_PostfitS_" + labels.back());
-          delete correlationPlot;
-          correlationPlot = NULL;
-        }
+        //hists.push_back( exp.mu() );
+        //hists.back()->GetXaxis()->SetTitle("#mu");
+        //hists.back()->SetTitle("");
+        //hists.back()->SetLineColor( exp.color() );
+        //helperFuncs::norm(hists.back());
+        //// //helperFuncs::setXRange(hists.back(),-3,5);
+        //// correlationPlot = exps.at(iE).getCorrelationPlotPostfitB();
+        //// if(correlationPlot != NULL){
+          //// printCorrelationPlots(correlationPlot, outLabel, "correlationPlot_PostfitB_" + labels.back());
+          //// delete correlationPlot;
+          //// correlationPlot = NULL;
+        //// }
+        //// correlationPlot = exps.at(iE).getCorrelationPlotPostfitS();
+        //// if(correlationPlot != NULL){
+          //// printCorrelationPlots(correlationPlot, outLabel, "correlationPlot_PostfitS_" + labels.back());
+          //// delete correlationPlot;
+          //// correlationPlot = NULL;
+        //// }
 
-    }
-    //hInit->GetYaxis()->SetRangeUser(-1.1,3.1);
+    //}
+    ////hInit->GetYaxis()->SetRangeUser(-1.1,3.1);
 
-    std::cout << "comparing mean values for POI\n";
-    compareMeanValues(hPOIs,hInit,labels,outLabel+"POImeans",hPOImedians);
-    createLatexOutput::writePOILatexTable(hPOIs, hPOImedians, hPOIwithFittedError, outLabel+"POI.txt", "Signal Strength Parameters", testName);
-    compareDistributions(hists,labels,outLabel+"POI",false);
+    //std::cout << "comparing mean values for POI\n";
+    //compareMeanValues(hPOIs,hInit,labels,outLabel+"POImeans",hPOImedians);
+    //createLatexOutput::writePOILatexTable(hPOIs, hPOImedians, hPOIwithFittedError, outLabel+"POI.txt", "Signal Strength Parameters", testName);
+    //compareDistributions(hists,labels,outLabel+"POI",false);
 
-    if(hPOIs != NULL) delete hPOIs;
-    if(hInit != NULL) delete hInit;
-    for(auto& h: hists) {
-        if(h != NULL) delete h;
-    }
+    //if(hPOIs != NULL) delete hPOIs;
+    //if(hInit != NULL) delete hInit;
+    //for(auto& h: hists) {
+        //if(h != NULL) delete h;
+    //}
 
-}
+//}
 
 void saveFitValues(const int bin, TH1D* hMeans, double mean, double meanError, std::vector<std::vector<Double_t> >& fitResultsContainer, TH1D* hMedians=NULL, double median=0., double rms=0.){
     //std::cout << "\tFilling histogram " << hMeans->GetName() << std::endl;
@@ -716,13 +721,16 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
     expSet.push_back( PseudoExperiments(helper,nominalMu) );
     expSet.back().addExperiments(pathToPseudoExperiments, sourceFile);
 
-    if((expSet.back().mu() == NULL) ){
-        std::cout << "Could not load any mus for experiment " << expSet.back()() << " from directory " << pathToPseudoExperiments.Data() << ", deleting current experiment set...\n";
+    if((expSet.back().pois().empty()) ){
+        std::cout << "Could not load any POIs for experiment " << expSet.back()() << " from directory " << pathToPseudoExperiments.Data() << ", deleting current experiment set...\n";
         expSet.pop_back();
     }
     else
     {
-        std::cout << "obtained number of mus: " << expSet.back().mu()->GetEntries() << std::endl;
+        for(auto& poi : expSet.back().pois())
+        {
+            std::cout << "obtained number of " << poi << ": " << expSet.back().postfitS(poi)->GetEntries() << std::endl;
+        }
         expSet.back().setColor(color);
     }
 
@@ -736,12 +744,6 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
 
   std::vector<PseudoExperiments> expSet;
   if(pathname.EndsWith("/")) pathname.Chop();
-  TString outputPath = pathname;
-  if(outputPath.Contains("/")) outputPath.Remove(0, outputPath.Last('/')+1);
-  TString testName = outputPath;
-  if(outputPath.Contains(".")) outputPath.ReplaceAll(".", "p");
-  outputPath.Prepend(pathname + "/");
-  outputPath.Append("_");
 
   int ncolor=0;
   Color_t colors[5] = {kBlue, kRed, kBlack, kGreen, kOrange};
@@ -749,60 +751,105 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   // if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
   // std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
   TSystemDirectory dir(pathname.Data(), pathname.Data());
-  if(pathname.Contains("PseudoExperiment")){
-    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
-    ncolor++;
-    loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
-    ncolor++;
+  if(pathname.EndsWith(".root")){
+      std::cout << "will use " << pathname << " as input\n";
+      // TString filename = pathname(pathname.Last('/')+1, pathname.Length() - pathname.Last('/'));
+      
+      loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+      ncolor++;
+      pathname.Remove(pathname.Last('/'), pathname.Length()-pathname.Last('/'));
   }
-  else{
-    TList *folders = dir.GetListOfFiles();
-    //if folders are found, go through each one an look for the fitDiagnosticsFile
-    if (folders) {
-      TSystemFile *folder;
-      TString folderName;
-      TIter next(folders);
-      while ((folder=(TSystemFile*)next())) {
-        folderName = folder->GetName();
-        if(ncolor > 4) ncolor = 0;
-        if (folder->IsDirectory() && folderName.Contains("sig")) {
-          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
-          ncolor++;
-          loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
-          ncolor++;
-        }
-        if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
-          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
-          ncolor++;
-          loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
-          ncolor++;
-          break;
+  else
+  {
+      
+      if(pathname.Contains("PseudoExperiment")){
+        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+        ncolor++;
+        // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
+        // ncolor++;
+      }
+      else{
+        TList *folders = dir.GetListOfFiles();
+        //if folders are found, go through each one an look for the fitDiagnosticsFile
+        if (folders) {
+          TSystemFile *folder;
+          TString folderName;
+          TIter next(folders);
+          while ((folder=(TSystemFile*)next())) {
+            folderName = folder->GetName();
+            if(ncolor > 4) ncolor = 0;
+            if (folder->IsDirectory() && folderName.Contains("sig")) {
+              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
+              ncolor++;
+              // loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
+              // ncolor++;
+            }
+            if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
+              loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+              ncolor++;
+              // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "MDF", "fitDiagnostics_MS_mlfit.root");
+              // ncolor++;
+              break;
+            }
+          }
         }
       }
-    }
   }
   // set inputs
   std::cout << "loaded Experiments: " << expSet.size() << std::endl;
   if(expSet.size() != 0)
   {
+      TString outputPath = pathname;
+      if(outputPath.EndsWith(".root")) outputPath.Remove(outputPath.Last('/'), outputPath.Length()-outputPath.Last('/'));
+      if(outputPath.Contains("/")) outputPath.Remove(0, outputPath.Last('/')+1);
+      TString testName = outputPath;
+      if(outputPath.Contains(".")) outputPath.ReplaceAll(".", "p");
+      outputPath.Prepend(pathname + "/");
+      outputPath.Append("_");
     pathname += "/";
-
-    comparePOIs(expSet,outputPath, testName);
-    compareNuisanceParameters(expSet,outputPath,true);
-    compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+    std::cout << "saving experiments in directory " << outputPath << std::endl;
+    // comparePOIs(expSet,outputPath, testName);
+    comparePostfitValues(expSet,outputPath,true);
+    // compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
     TH2D* correlation;
+    TString outputString;
+    TString temp;
     for(auto& exp : expSet){
       std::cout << "label " << exp() << std::endl;
-      std::cout << "\tr = " << exp.muMean() << " +- " << exp.muMeanError() << " +- " << exp.muRMS() << " +- " << exp.muError() << std::endl;
-      // std::cout << "\tprinting correlation for Bonly fit\n";
-      // correlation = exp.getCorrelationPlotPostfitB();
-      // printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitB_" + exp());
-      // if(correlation) delete correlation;
+      outputString = "";
+      for(auto& poi : exp.pois())
+      {
+          temp.Form("%s %f +- %f +- %f +- %f (%f + %f)\n", poi.Data(), exp.postfitSMean(poi), exp.postfitSMeanError(poi), exp.postfitSRMS(poi), exp.postfitSerror(poi), exp.postfitSerrorLo(poi), exp.postfitSerrorHi(poi));
+          outputString += temp;
+          std::cout << "\t" << temp.Data() << std::endl;
+          std::cout << "\tmedian = " << helperFuncs::getMedian(exp.postfitS(poi)) << std::endl;
+          
+          
+      }
+      std::cout << "\tprinting correlation for Bonly fit\n";
+      correlation = exp.getCorrelationPlotPostfitB();
+      printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitB_" + exp());
+      if(correlation) delete correlation;
       
-      // std::cout << "\tprinting correlation for S+B fit\n";
-      // correlation = exp.getCorrelationPlotPostfitS();
-      // printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitS_" + exp());
-      // if(correlation) delete correlation;
+      std::cout << "\tprinting correlation for S+B fit\n";
+      correlation = exp.getCorrelationPlotPostfitS();
+      printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitS_" + exp());
+      if(correlation) delete correlation;
+      
+      TString tablename = "POIs_" + exp();
+      if(tablename.Contains(".")) tablename.ReplaceAll(".", "p");
+      if(tablename.Contains("=")) tablename.ReplaceAll("=", "");
+      while(tablename.Contains("  ")) tablename.ReplaceAll("  ", " ");
+      if(tablename.Contains(" ")) tablename.ReplaceAll(" ", "_");
+      tablename.Prepend(outputPath);
+      tablename.Append(".txt");
+      std::cout << "opening " << tablename.Data() << std::endl;
+      std::ofstream output(tablename.Data(), std::ofstream::out);
+      if(output.is_open()){
+          std::cout << "saving pois in " << tablename.Data() << std::endl;
+          output << outputString.Data();
+          output.close();
+      }
     }
 
 

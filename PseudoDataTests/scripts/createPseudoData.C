@@ -15,8 +15,8 @@ const TString datacard = workdir+"limits_All_v22_datacard_ljets_jge6_t3_hdecay_m
 const TString templatesNominal = workdir+"common/ttH_hbb_13TeV_sl.root";
 // const TString templatesTTBB = workdir+"datacards/limits_Spring17v2p2_ttbarincl/limits_Spring17v2p2_ttbarincl_limitInput.root";
 const TString templatesTTBB = templatesNominal;
-const TString CMSSW_BASE = "/nfs/dust/cms/user/pkeicher/CMSSW_7_4_7";
-const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --minimizerStrategy 0 --minimizerTolerance 0.00001 --saveNormalizations --saveShapes --minos all";
+const TString CMSSW_BASE = "/nfs/dust/cms/user/pkeicher/CMSSW_8_1_0";
+const TString combineCmd = "combine -M MaxLikelihoodFit -m 125 --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 0.00001 --saveNormalizations --saveShapes --minos all";
 
 
 void generatePseudoData(const TString& outdir,
@@ -26,10 +26,10 @@ void generatePseudoData(const TString& outdir,
 {
 
   std::vector<Category::Type> categories = { 
-               // Category::SL_44,
-					     // Category::SL_54,
+               Category::SL_44,
+					     Category::SL_54,
 					     Category::SL_63,
-					     // Category::SL_64
+					     Category::SL_64
 					    };
 
   std::vector<Process> processes;
@@ -48,7 +48,8 @@ void generatePseudoData(const TString& outdir,
   processes.push_back( Process(Process::ttlf,templatesNominal) );
   processes.push_back( Process(Process::ttcc,templatesNominal) );
 
-  processes.push_back( Process(Process::ttbb,templatesTTBB, 1.3) );
+  // processes.push_back( Process(Process::ttbb,templatesTTBB, 1.3) );
+  processes.push_back( Process(Process::ttbb,templatesTTBB) );
   processes.push_back( Process(Process::ttb,templatesTTBB) );
   processes.push_back( Process(Process::tt2b,templatesTTBB) );
 

@@ -11,17 +11,17 @@ excludes = ["Combination", "imax", "jmax", "kmax", "shapes", "process",
             ]           
 
 def check_wildcard(key, nuisancelist):
-    print "input list:\n", nuisancelist
+    # print "input list:\n", nuisancelist
     for np in nuisancelist:
         if "*" in np:
-            print "checking", np
+            # print "checking", np
             parts = np.split("*")
             start = parts[0]
             body = parts[1:len(parts)-1]
             end = parts[-1]
-            print "start =", start
-            print "body = ", body
-            print "end = ", end
+            # print "start =", start
+            # print "body = ", body
+            # print "end = ", end
             if  key.startswith(start) and all( x in key for x in body) and key.endswith(end):
                 return True
         else:
@@ -33,7 +33,7 @@ def save_val(dic, group, val):
     if not group in dic:
         dic[group] = []
     if not val in dic[group]:
-        print "\tappending parameter", val
+        # print "\tappending parameter", val
         dic[group].append(val)
 
 # jsonfile = path.abspath(jsonfile)
@@ -46,7 +46,7 @@ def save_val(dic, group, val):
 
 groupDict = {
 
-"bgnorm" : ['bgnorm_*'],
+"bgn" : ['bgnorm_*'],
 "syst" : "CMS* QCD* bgnorm* lumi* pdf*".split(),
 "thy" : "QCD* bgnorm* *HDAMP* *UE* *ISR* *pdf* *scaleMu* *FSR*".split(),
 "btag" : ["*btag*"],
@@ -74,13 +74,14 @@ for wildcard in datacards:
                                             group = group, val = word)       
                             continue
                         key = words[0]
-                        for group in groupDict:
-                            if check_wildcard(  key = key,
-                                                nuisancelist = groupDict[group]
-                                                ):
-                                print "found match for group", group
-                                save_val(   dic = finaldict,
-                                            group = group, val = key)
+                        if not all(x == "-" for x in words[2:]):
+                            for group in groupDict:
+                                if check_wildcard(  key = key,
+                                                    nuisancelist = groupDict[group]
+                                                    ):
+                                    print "found match for group", group
+                                    save_val(   dic = finaldict,
+                                                group = group, val = key)
                 newlines.append(line)
         for group in finaldict:
             l = finaldict[group]
