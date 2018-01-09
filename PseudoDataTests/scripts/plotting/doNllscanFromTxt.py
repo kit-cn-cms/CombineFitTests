@@ -2,6 +2,7 @@ import os
 import sys
 import glob
 import subprocess
+from ROOT import TFile, RooFitResult, RooRealVar
 from shutil import rmtree
 
 scriptDir = os.path.dirname(sys.argv[0])
@@ -24,6 +25,25 @@ def reset_directory(outputDirectory):
         rmtree(outputDirectory)
     os.makedirs(outputDirectory)
 
+def do_prefit(datacard, cmdlist = None):
+    
+    cmd = "combine -M FitDiagnostics -m 125 --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 1e-5"
+    # if cmdlist:
+        # cmd += " "+ " ".join(cmdlist)
+    cmd += " " + datacard
+    subprocess.call([cmd], shell = True)
+    if os.path.exists("fitDiagnostics.root"):
+        infile = TFile("fitDiagnostics.root")
+        if infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(TFile.kRecovered):
+            fit_s = infile.Get("fit_s")
+            if isinstance(fit_s, RooFitResult):
+                r = fit_s.floatParsFinal().find("r")
+                if isinstance(r, RooRealVar):
+                    return r.getVal()
+                    
+    print "could not load parameter r!"
+    return None
+
 if os.path.exists(pathToTxt):
     
     with open(pathToTxt) as f:
@@ -35,24 +55,26 @@ if os.path.exists(pathToTxt):
         outputDirectory = ".".join(parts[:len(parts)-1])
         reset_directory(outputDirectory = outputDirectory)
         os.chdir(outputDirectory)
+        r = None
+        r = do_prefit(datacard = datacard, cmdlist = cmdList)
         for param in lines:
             print param
             if param.startswith("#"):
                 continue
-            if cmdList:
-                if "--runLocally" in cmdList:
-                    reset_directory(param)
-                    os.chdir(param)
+            
+            reset_directory(param)
+            os.chdir(param)
             cmd = "python {0}/nllscan.py".format(scriptDir)
             cmd += " -d " + datacard
             cmd += ' -x {0}'.format(param)
-            cmd += " -n _" + os.path.basename(outputDirectory)
+            cmd += ' -a "--setParameterRanges {0}=-3,3"'.format(param)
+            if r is not None:
+                cmd += ' -a "--setParameters r={0}"'.format(r)
+            # cmd += " -n _" + os.path.basename(outputDirectory)
             if cmdList:
                 cmd += " " + " ".join(cmdList)
             print cmd
             subprocess.call([cmd], shell=True)
-            if cmdList:
-                if "--runLocally" in cmdList:
-                    os.chdir("../")
+            os.chdir("../")
         os.chdir(basepath)
     

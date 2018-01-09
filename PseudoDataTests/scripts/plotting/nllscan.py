@@ -129,8 +129,9 @@ def make_script(low, up, datacard, nPoints, unconstrained, params, xVar,
     lines.append("pathToCMSSW="+pathToCMSSWsetup)
     lines.append('if [ -f "$pathToCMSSW" ]; then')
     lines.append('  source "$pathToCMSSW"')
-    lines.append('  echo "' + mdfcmd + '"')
-    lines.append('  eval "' + mdfcmd + '"')
+    lines.append("  cmd='{0}'".format(mdfcmd))
+    lines.append('  echo "$cmd"')
+    lines.append('  eval "$cmd"')
 
     lines.append('else')
     lines.append('  echo "could not find CMSSW source path!"')
@@ -195,19 +196,16 @@ def do_fits():
     lines.append('  source "$pathToCMSSW"')
     cmds = ["python"]
     cmds += sys.argv
-    index = -999
-    if "-a" in cmds:
-        index = cmds.index("-a")
-    elif "--addCommand" in cmds:
-        index = cmds.index("--addCommand")
-    if not index == -999:
+    indeces = [i for i,x in enumerate(cmds) if (x == "-a" or x =="--addCommand")]
+    for index in indeces:
         cmds[index+1] = '"{0}"'.format(cmds[index+1])
     cmds.append("--directlyDrawFrom")
     cmds.append(",".join(results))
     cmds.append("--runLocally")
     cmd = " ".join(cmds)
-    lines.append("  echo \'" + cmd + "\'")
-    lines.append("  eval \'" + cmd + "\'")
+    lines.append("  cmd='{0}'".format(cmd))
+    lines.append('  echo "$cmd"')
+    lines.append('  eval "$cmd"')
 
     lines.append('else')
     lines.append('  echo "could not find CMSSW source path!"')
@@ -272,7 +270,7 @@ def find_crossing(graph, clname, start, stop):
                 if delta < deltabest:
                     if deltabest <= epsilon:
                         print "found crossing at", xbest
-                        return round(xbest, 2)
+                        return xbest
                     else:
                         # print "setting deltabest to", deltabest
                         deltabest = delta
@@ -287,7 +285,7 @@ def find_crossing(graph, clname, start, stop):
                 if delta < deltabest:
                     if deltabest <= epsilon:
                         print "found crossing at", xbest
-                        return round(xbest, 2)
+                        return xbest
                     else:
                         # print "setting deltabest to", deltabest
                         deltabest = delta
@@ -419,11 +417,11 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     for i, e in enumerate(limit):
         x = eval("e." + xVar)
         y = eval("e." + yVar)
-        print "current values: {0}, {1}".format(x, y)
+        # print "current values: {0}, {1}".format(x, y)
         
         if yVar == "deltaNLL":
             if y >= 0 and y < 10:
-                print "\tsaving values {0}, {1}".format(x, 2*y)
+                # print "\tsaving values {0}, {1}".format(x, 2*y)
                 xVals.append(x)
                 yVals.append(2*y)
         else:
@@ -469,7 +467,10 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
             # print lines
             for i, line in enumerate(lines):
                 if i == 0:
-                    label = "{0}: {1}_{2}^+{3}".format(cl, xbest, vals[0], vals[1])
+                    label = "{0}: {1}_{2}^+{3}".format( cl, 
+                                                        round(xbest,3),
+                                                        round(vals[0]-xbest,2),
+                                                        round(vals[1]-xbest,2))
                     label = label.replace("_", "_{")
                     label = label.replace("^", "}^{")
                     label += "}"
