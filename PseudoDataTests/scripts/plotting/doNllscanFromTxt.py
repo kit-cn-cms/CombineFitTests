@@ -5,7 +5,7 @@ import subprocess
 from ROOT import TFile, RooFitResult, RooRealVar
 from shutil import rmtree
 
-scriptDir = os.path.dirname(sys.argv[0])
+scriptDir = os.path.dirname(os.path.abspath(sys.argv[0]))
 pathToTxt = sys.argv[1]
 pathToDatacards = sys.argv[2]
 cmdList = None
