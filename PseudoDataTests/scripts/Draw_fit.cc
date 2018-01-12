@@ -75,10 +75,29 @@ int CreateHist(TString  file = "newfile.root")
 				HistHiE->Fill(hie);
 				HistLoE->Fill(loe);
 			}
-			HDir->Add(HistVal);
-			HDir->Add(HistErr);
-			HDir->Add(HistLoE);
-			HDir->Add(HistHiE);
+
+			// Creating variables to save means
+			double sval = -999;
+			double serr = -999;
+			double shie = -999;
+			double sloe = -999;
+
+			// Creating TTree and Branches to save means of Hists
+			TTree * Tsave = new TTree(Ttemp->GetName(), Ttemp->GetTitle());
+			Tsave->Branch("Value", &sval, "value/D");
+			Tsave->Branch("Error", &serr, "error/D");
+			Tsave->Branch("Hish Error", &shie, "high error/D");
+			Tsave->Branch("Low Error", &sloe, "low error/D");
+
+			// Assigning Means
+			sval = HistVal->GetMean();
+			serr = HistErr->GetMean();
+			shie = HistHiE->GetMean();
+			sloe = HistLoE->GetMean();
+
+			Tsave->Fill();
+
+			HDir->Add(Tsave);
 			// Removing last entry from tlist
 			tList->RemoveLast();
 		}
