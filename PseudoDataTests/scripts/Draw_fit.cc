@@ -9,6 +9,9 @@
 
 int CreateHist(TString  file = "newfile.root")
 {
+	// Copying file
+	TString delfile = file;
+
 	// Reading in file
 	TFile* read = new TFile(file.Data());
 	
@@ -87,5 +90,9 @@ int CreateHist(TString  file = "newfile.root")
 		List->RemoveLast();
 	}
 	output->Close();
+
+	// Deleting origin file
+	delfile.Prepend("rm ");
+	system(delfile.Data());
 	return 0;
 }
