@@ -7,10 +7,10 @@
 #include "TFile.h"
 
 
-int CreateHist(TString * file = "newfile.root")
+int CreateHist(TString  file = "newfile.root")
 {
 	// Reading in file
-	TFile* read = new TFile(file->Data());
+	TFile* read = new TFile(file.Data());
 	
 	// Reading in TList of TDirectories
 	TList* List = (TList*) read->GetListOfKeys();
@@ -19,31 +19,35 @@ int CreateHist(TString * file = "newfile.root")
 	TDirectoryFile* Dir;
 
 	// Manipulating file to create new file
-	int index = file->Index(".",1);
-	file->Replace(index,5,"_histo.root");
+	int index = file.Index(".root");
+	file.Replace(index,5,"_histo.root");
 
 	// Creating output file for histogramms
-	TFile* output = new TFile(file->Data(),"RECREATE");
+	TFile* output = new TFile(file.Data(),"RECREATE");
 
-	while(List->Last()->Data()!=NULL)
+	while(!List->IsEmpty())
 	{
 		// Filling temp dir with last entry
-		Dir = (TDirectoryFile*) read->Get(List->Last()->Data());
+		Dir = (TDirectoryFile*) read->Get(List->Last()->GetName());
 
 		// Reading TList of Dir
 		TList* tList = (TList*) Dir->GetListOfKeys(); 
 
 		// Only use the dirs which contain nuisances
-		if(!List->Last()->Data().Contains("Correlation")&&!List->Last()->Data().Contains("shapes"))
+		if(!((TString) (List->Last()->GetName())).Contains("Correlation")&&!((TString) (List->Last()->GetName())).Contains("shapes"))
 		{
 		// Creating Dir to save hists
 		TDirectoryFile* HDir = new TDirectoryFile(Dir->GetName(),Dir->GetTitle());
-		while(tList->Last()->Data()!=NULL)
+	
+		while(!tList->IsEmpty())
 		{
 			// Filling TTree
-			TTree* Temp = Dir->Get(tList->Last()->Data());
-			// Creating subdir to save hists
-			TDirectoryFile* subdir = new TDirectoryFile(Ttemp->GetName(),Ttemp->GetTitle());
+			TTree* Ttemp = (TTree*) Dir->Get(tList->Last()->GetName());
+			
+			std::cout << HDir->GetName() << std::endl;
+			std::cout << tList->Last()->GetName() << std::endl;
+
+	
 			// Setting data values
 			double val = -9999;
 			double err = -9999;
@@ -52,13 +56,14 @@ int CreateHist(TString * file = "newfile.root")
 			// Setting Adresses
 			Ttemp->SetBranchAddress("Value",&val);
 			Ttemp->SetBranchAddress("Error",&err);
-			Ttemp->SetBranchAddress("High Erro",&hie);
-			Ttemp->SetBranchAddress("Low Error",&low);
+			Ttemp->SetBranchAddress("High Error",&hie);
+			Ttemp->SetBranchAddress("Low Error",&loe);
 			// Creating Histogramms
-			TH1D* HistVal = new TH1D("Value","Values",1000,0,500);
-			TH1D* HistErr = new TH1D("Error","Errors",1000,0,20);
-			TH1D* HistHiE = new TH1D("Hi_Er","High Errors",1000,0,20);
-			TH1D* HistLoE = new TH1D("Lo_Er","Low Errors",1000,0,20);
+			TH1D* HistVal = new TH1D((TString("Value").Append(Ttemp->GetName())).Data(),"Values",1000,0,200);
+			TH1D* HistErr = new TH1D((TString("Error").Append(Ttemp->GetName())).Data(),"Errors",1000,0,20);
+			TH1D* HistHiE = new TH1D((TString("Hi_Er").Append(Ttemp->GetName())).Data(),"High Errors",1000,0,20);
+			TH1D* HistLoE = new TH1D((TString("Lo_Er").Append(Ttemp->GetName())).Data(),"Low Errors",1000,0,20);
+
 			for(int i = 0; i < Ttemp->GetEntries(); ++i)
 			{
 				Ttemp->GetEntry(i);
@@ -67,16 +72,16 @@ int CreateHist(TString * file = "newfile.root")
 				HistHiE->Fill(hie);
 				HistLoE->Fill(loe);
 			}
-			subdir->Add(HistVal);
-			subdir->Add(HistErr);
-			subdir->Add(HistLoE);
-			subdir->Add(HistHiE);
-			Hdir->Add(subdir);
+			HDir->Add(HistVal);
+			HDir->Add(HistErr);
+			HDir->Add(HistLoE);
+			HDir->Add(HistHiE);
 			// Removing last entry from tlist
 			tList->RemoveLast();
 		}
-		}
 		HDir->Write();
+		}
+		//HDir->Write();
 
 		// Removing last entry of list
 		List->RemoveLast();
