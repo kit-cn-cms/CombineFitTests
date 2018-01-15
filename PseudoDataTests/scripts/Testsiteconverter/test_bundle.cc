@@ -17,6 +17,7 @@ int createfiles(TString output = "toytest/bla_some", float signal = 1, int files
 	s << fixed << setprecision(1) << signal;
 	string s1 = s.str();
 	char const *signalchar = s1.c_str();
+
         // NEEDS FIXING ON OTHER MACHINES!!!
 	TString directory = TString("/nfs/dust/cms/user/firin/bachelor/CombineFitTests/PseudoDataTests/scripts/");
 	TString Tfile = output;
@@ -39,7 +40,7 @@ int createfiles(TString output = "toytest/bla_some", float signal = 1, int files
 		sprintf(tempfiles,"%d",i);
 
 		TString save = output;
-		save.Append("/sig").Append(signalchar).Append("/converted");;
+		save.Append("/sig").Append(signalchar).Append("/converted");
 		TString foldername = directory;
 		foldername.Append(output).Append("/sig").Append(signalchar).Append("/PseudoExperiment").Append(tempfiles).Append("/fitDiagnostics");
 		TConvert(foldername,save,tempfiles);
@@ -47,7 +48,7 @@ int createfiles(TString output = "toytest/bla_some", float signal = 1, int files
 	TString combining = directory;
 	combining.Append(output.Data()).Append("/sig").Append(signalchar).Append("/converted/");
 	TString savecomb = combining;
-	savecomb.Append("combined1.root");
+	savecomb.("combined1.root");
 	combining.Append("fitDiagnostics*.root");
 	chaining(combining.Data(),savecomb.Data());
 	
