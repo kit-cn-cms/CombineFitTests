@@ -6,19 +6,19 @@
 #include "TFile.h"
 
 
-int chaining(TString Filename = "mlfit.root")
+int chaining(TString Filename = "fitDiagnosics1.root", TString Output = "combined_fits.root")
 {
 	TString* firstfile = new TString(Filename);
 	while(firstfile->MaybeWildcard())
 	{
 		int aces = firstfile->Index("*",1);
-		firstfile->Replace(aces,1,"0");
+		firstfile->Replace(aces,1,"1");
 	}
 	// Loading first file as a sample, to dynamically create the right amount of TChains
 	TFile* Samplefile = new TFile(firstfile->Data());
 
 	// Creating File, to store all the collected Trees
-	TFile* output = new TFile("newfile.root","RECREATE"); // <- FIX ME!!! It'd be nice to have some sort of dynamic naming of the files, maybe something with the allready generated "firstfile"
+	TFile* output = new TFile(Output.Data(),"RECREATE");
 
 	// Creating sample list
 	TList* Lsamples = (TList*) Samplefile->GetListOfKeys();
