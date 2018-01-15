@@ -222,7 +222,7 @@ void TConvert(TString filename = "fitDiagnostics",TString savehere = "none" , TS
 	if( read->IsOpen() && !read->IsZombie() && !read->TestBit(TFile::kRecovered)){
 		if( checkCovarianceMatrix(read) && checkFitStatus(read))
 		{
-			
+			filename.Remove(0,filename.Last('/'));
 			filename.Append(outputopt.Data());
 			TString savedir;
 			// This will change the directory in which the resulting file is saved. This is usefull if you need to collect several files in a single folder. By default it is switched off
@@ -230,10 +230,10 @@ void TConvert(TString filename = "fitDiagnostics",TString savehere = "none" , TS
 				{
 				savedir = TString("/nfs/dust/cms/user/firin/bachelor/CombineFitTests/PseudoDataTests/scripts/");
 				savedir.Append(savehere.Data());
-				savedir.Append("/");
 				savedir.Append(filename.Data());
 				}
 			else savedir = filename;
+			std::cout << savedir << std::endl;
 			savedir.Append(".root");
 			TFile* output = new TFile(savedir.Data(),"RECREATE");
 			TDirectoryFile* Ffitpre;
