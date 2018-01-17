@@ -285,7 +285,7 @@ void printTime(TStopwatch& watch, TString text){
 
 PseudoExperiments::PseudoExperiments(const TString& label, const Double_t injectedMu, const bool noBinByBin)
 : debug_(false),
-fitBmustConverge_(false),
+fitBmustConverge_(true),
 fitSBmustConverge_(true),
 accurateCovariance_(true),
 noBinByBin_(noBinByBin),
