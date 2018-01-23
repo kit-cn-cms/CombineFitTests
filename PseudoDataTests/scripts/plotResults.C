@@ -58,6 +58,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
                           const TString& outLabel,
                           const bool superimposeNorm = false) {
     gStyle->SetOptStat("e");
+    TFile* outfile = TFile::Open(outLabel+".root", "RECREATE");
     TCanvas* can = new TCanvas("can","",900,500);
     can->cd();
     std::vector<TLine*> lines;
@@ -72,6 +73,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
             hNorm->SetFillColor(kGray);
         }
     }
+    
     double xmin = helperFuncs::findMinValue(hists,"x")*0.5;
     double xmax = helperFuncs::findMaxValue(hists, "x")*1.5;
     double ymin = helperFuncs::findMinValue(hists);
@@ -86,15 +88,19 @@ void compareDistributions(const std::vector<TH1*>& hists,
     if(hists.front() != NULL) hists.front()->Draw("HIST");
     if( hNorm != NULL ) hNorm->Draw("HISTsame");
     for(int histogram = 1; histogram < int(hists.size()); histogram++) {
-        if(hists[histogram]!= NULL) hists[histogram]->Draw("HISTsame");
+        if(hists[histogram]!= NULL) 
+        {
+            hists[histogram]->Draw("HISTsame");
+            hists[histogram]->Write();
+        }
     }
-    TString whichfit = outLabel;
-    whichfit.Remove(0, whichfit.Last('_')+1);
-    if(whichfit.EqualTo("PostfitB")) whichfit = "fit_b";
-    if(whichfit.EqualTo("PostfitS")) whichfit = "fit_s";
-    TString helper;
-    TString linePath;
-    double signalStrength = 0;
+    // TString whichfit = outLabel;
+    // whichfit.Remove(0, whichfit.Last('_')+1);
+    // if(whichfit.EqualTo("PostfitB")) whichfit = "fit_b";
+    // if(whichfit.EqualTo("PostfitS")) whichfit = "fit_s";
+    // TString helper;
+    // TString linePath;
+    // double signalStrength = 0;
     // for(int nLabel = 0; nLabel<int(labels.size()); nLabel++){
     //   helper = labels[nLabel];
     //   helper.Remove(0, helper.Last('=')+1);
@@ -110,7 +116,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
     //     lines.back()->Draw("Same");
     //   }
     // }
-    std::cout << "number of saved lines: " << lines.size() << std::endl;
+    // std::cout << "number of saved lines: " << lines.size() << std::endl;
 
 
     TLegend* leg = LabelMaker::legend("top right",labels.size(),0.6);
@@ -137,7 +143,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
     std::cout << "printing distribution as " << outLabel << ".pdf\n";
     can->SaveAs(outLabel+".pdf");
     std::cout << "printing distribution as " << outLabel << ".root\n";
-    can->SaveAs(outLabel+".root");
+    can->Write();
     
     std::cout << "deleting temporary objects\n";
     if( hNorm ) delete hNorm;
@@ -146,6 +152,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
     for(int nLine=0; nLine<int(lines.size()); nLine++){
         if(lines[nLine] != NULL) delete lines[nLine];
     }
+    outfile->Close();
     gStyle->SetOptStat(000000000);
     std::cout << "done comparing distributions\n";
 }
@@ -231,17 +238,17 @@ void compareMeanValues(TH1* hFittedValues,
 void selectParameters(const PseudoExperiments& exp, std::vector<TString>& list, const bool ignoreBinByBinNPs, const bool includePOIs = false){
   bool push_back = true;
 
-  for(auto& np : exp.nps()){
-      push_back = true;
-      if( ignoreBinByBinNPs && np.Contains("BDTbin") ) continue;
-      for(auto& entry: list){
-          if(np.EqualTo(entry)){
-              push_back = false;
-              break;
-          }
-      }
-      if(push_back) list.push_back(np);
-  }
+  // for(auto& np : exp.nps()){
+      // push_back = true;
+      // if( ignoreBinByBinNPs && np.Contains("BDTbin") ) continue;
+      // for(auto& entry: list){
+          // if(np.EqualTo(entry)){
+              // push_back = false;
+              // break;
+          // }
+      // }
+      // if(push_back) list.push_back(np);
+  // }
   if( includePOIs ){
       for(auto& poi: exp.pois()){
           list.push_back(poi);
@@ -288,7 +295,7 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
 
                 labels.push_back( exp() );
 
-                helperFuncs::setupHistogramBin(hCompareNPMeansList[0], bin, labels.back(), exp.postfitBMean(np), exp.postfitB(np)->GetMeanError());
+                helperFuncs::setupHistogramBin(hCompareNPMeansList[0], bin, labels.back(), exp.postfitBMean(np), exp.postfitBMeanError(np));
 
                 helperFuncs::setupHistogramBin(hCompareNPMediansList[0], bin, labels.back(), helperFuncs::getMedian(exp.postfitB(np) ), exp.postfitBRMS(np));
 
@@ -302,7 +309,7 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
             if(exp.postfitS(np) != NULL){
                 std::cout << "\tsaving PostfitS\n";
 
-                helperFuncs::setupHistogramBin(hCompareNPMeansList[1], bin, labels.back(), exp.postfitSMean(np), exp.postfitS(np)->GetMeanError());
+                helperFuncs::setupHistogramBin(hCompareNPMeansList[1], bin, labels.back(), exp.postfitSMean(np), exp.postfitSMeanError(np));
 
                 helperFuncs::setupHistogramBin(hCompareNPMediansList[1], bin, labels.back(), helperFuncs::getMedian(exp.postfitS(np) ), exp.postfitSRMS(np));
 
@@ -325,9 +332,9 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
             }
 
         }
-        compareDistributions(histsPrefit,labels,outLabel+np+"_Prefit",true);
-        compareDistributions(histsPostfitB,labels,outLabel+np+"_PostfitB",true);
-        compareDistributions(histsPostfitS,labels,outLabel+np+"_PostfitS",true);
+        compareDistributions(histsPrefit,labels,outLabel+np+"_Prefit");
+        compareDistributions(histsPostfitB,labels,outLabel+np+"_PostfitB");
+        compareDistributions(histsPostfitS,labels,outLabel+np+"_PostfitS");
 
         // plot np means
         for(int i=0; i<2; i++) if(hCompareNPMeansList[i] != NULL) compareMeanValues(hCompareNPMeansList[i],hPrefit,labels,outLabel+hCompareNPMeansList[i]->GetName(), hCompareNPMediansList[i]);
@@ -823,7 +830,7 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
           outputString += temp;
           std::cout << "\t" << temp.Data() << std::endl;
           std::cout << "\tmedian = " << helperFuncs::getMedian(exp.postfitS(poi)) << std::endl;
-          
+          std::cout << "\t#Entries: " << exp.postfitS(poi)->GetEntries() << std::endl;
           
       }
       std::cout << "\tprinting correlation for Bonly fit\n";
