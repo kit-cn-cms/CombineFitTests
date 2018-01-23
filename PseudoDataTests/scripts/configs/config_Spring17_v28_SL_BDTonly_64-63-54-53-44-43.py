@@ -8,10 +8,10 @@ categoriesstring = categoriesstring.replace("kit_datacard_", "")
 categoriesstring = categoriesstring.replace("_hdecay.txt", "")
 categories = categoriesstring.split()
 histoKey = "$PROCESS_finaldiscr_$CHANNEL" #key for templates in datacard
-#sProcesses = ["ttH_hbb"] #list of signal processes
-sProcesses = "ttH_hcc         ttH_hbb         ttH_htt         ttH_hww         ttH_hgluglu     ttH_hgg         ttH_hzz         ttH_hzg".split()
-#bProcesses = ["ttbarOther", "ttbarPlusB", "ttbarPlus2B", "ttbarPlusBBbar", "ttbarPlusCCbar"] #list of background processes
-bProcesses = "ttbarZ          diboson         ttbarPlusB      ttbarW          singlet         wjets           ttbarPlus2B     ttbarOther      ttbarPlusBBbar  zjets           ttbarPlusCCbar".split()
+sProcesses = ["ttH_hbb"] #list of signal processes
+# sProcesses = "ttH_hcc         ttH_hbb         ttH_htt         ttH_hww         ttH_hgluglu     ttH_hgg         ttH_hzz         ttH_hzg".split()
+bProcesses = ["ttbarOther", "ttbarPlusB", "ttbarPlus2B", "ttbarPlusBBbar", "ttbarPlusCCbar"] #list of background processes
+# bProcesses = "ttbarZ          diboson         ttbarPlusB      ttbarW          singlet         wjets           ttbarPlus2B     ttbarOther      ttbarPlusBBbar  zjets           ttbarPlusCCbar".split()
 ignoreUncertainties = []#["bgnorm_*", "QCDscale*"]#, "pdf_*"] #list of nuisance parameters to be ignored during toy generation
 
 #user input ends here
