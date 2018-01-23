@@ -171,17 +171,19 @@ namespace helperFuncs{
   {
     if(histo != NULL){
       std::cout << "current histogram: " << histo->GetName() << std::endl;
-      std::cout << "\tsetting label of bin " << bin << " to " << binLabel << std::endl;
+      std::cout << "\tchecking label to set for bin " << bin << ": " << binLabel << std::endl;
       TString finalLabel = binLabel;
       if(finalLabel.BeginsWith("CMS_ttH_")) finalLabel.ReplaceAll("CMS_ttH_","");
       histo->GetXaxis()->SetBinLabel(bin, finalLabel);
+      std::cout << "\tsetting label of bin " << bin << " to " << finalLabel << std::endl;
       histo->GetXaxis()->LabelsOption("v");
       histo->GetXaxis()->SetLabelSize(0.04);
-      std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
 
       histo->SetBinContent(bin, binContent);
-      double finalBinError = binError;
+      std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
 
+      double finalBinError = binError;
+      std::cout << "\checking error of bin " << bin << ": " << finalBinError << std::endl;
       if( finalBinError == -99999) finalBinError = checkValues(histo->GetMeanError());
       std::cout << "\tsetting error of bin " << bin << " to " << finalBinError << std::endl;
       histo->SetBinError(bin, finalBinError);
