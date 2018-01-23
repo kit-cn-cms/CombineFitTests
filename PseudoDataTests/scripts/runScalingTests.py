@@ -26,7 +26,7 @@ listOfPoisCombis = [
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
         #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
+        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
         # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},
         # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
@@ -79,9 +79,9 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
             string = " ".join(additionalCmds)
         else:
             string = additionalCmds
-    # runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
+    runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
     if pathToSherpa:
-        runScript(targetPath, base_suffix+"sherpa_normedto_ttbarPlusBBbar", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
+        runScript(targetPath, base_suffix+"sherpa_normedto_ttbarPlusXbar", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
     # if pathToAMC:
         # runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
@@ -110,14 +110,14 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
                     string += " " + additionalCmds
 
 
-            # runScript(  targetPath  = targetPath,
-                        # suffix      = suffix,
-                        # pathToDatacard = pathToDatacard,
-                        # pathToRoofile = pathToRoofile,
-                        # pois = pois,
-                        # key = string,
-                        # factor = "--scaleFuncs " + factor,
-                        # pathToConfig = pathToConfig)
+            runScript(  targetPath  = targetPath,
+                        suffix      = suffix,
+                        pathToDatacard = pathToDatacard,
+                        pathToRoofile = pathToRoofile,
+                        pois = pois,
+                        key = string,
+                        factor = "--scaleFuncs " + factor,
+                        pathToConfig = pathToConfig)
 
 
 def tth_fit_stability(pois, additionalCmds = None):
@@ -177,7 +177,7 @@ def throwToys(  wildcard, suffix = None, rootfile = None,
             targetPath = os.path.dirname(datacard)
             rootfile = os.path.abspath(rootfile)
             parts = os.path.basename(datacard).split(".")
-            sherpa = datacard.replace(".txt", "_sherpa_normedto_ttbarPlusXB.txt")
+            sherpa = datacard.replace(".txt", "_sherpa.txt")
             
             outputDirectory = targetPath
             if additionalCmds and "asimov" in additionalCmds:
