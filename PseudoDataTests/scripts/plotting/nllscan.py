@@ -252,8 +252,7 @@ def get_cl_value(cl):
         print "WARNING:\tconfidence levels for {0} POIs are unknown, cannot compute errors".format(npois)
     return None
         
-def find_crossing(graph, clname, start, stop):
-    cl = get_cl_value(clname)
+def find_crossing(graph, cl, start, stop):
     if graph and cl:
         stepsize = 0.0001
         deltabest = 9999
@@ -313,6 +312,34 @@ def create_straight_line(val, minVal, maxVal, style, mode = "horizontal"):
             print "received no bounds for line to draw in!"
         return None
 
+def create_parabola(xmin, xmax, xbest, ybest=None):
+    
+    # formular = formular.replace("\n", "")
+    # while "  " in formular: formular = formular.replace("  ", " ")
+    # print formular
+    # sys.exit(0)
+    parabel = ROOT.TF1("parabel", "[0]*(x*x*x*x - [1]*[1]*[1]*[1]) + [2]*(x*x*x - [1]*[1]*[1]) + [3]*(x*x - [1]*[1]) + [4]*(x - [1]) + [5] + [6]*(x*x*x*x*x - [1]*[1]*[1]*[1]*[1]) + [7]*(x*x*x*x*x*x - [1]*[1]*[1]*[1]*[1]*[1])", xmin, xmax)
+    parabel.SetParNames("a", "best fit x", "b", "c", "d", "best fit y")
+    parabel.SetParameter(0, 0.5)
+    parabel.SetParameter(2, 0.5)
+    parabel.SetParameter(3, 0.5)
+    parabel.SetParameter(4, 0.5)
+    parabel.SetParameter(6, 0.5)
+    parabel.SetParameter(7, 0.5)
+    parabel.FixParameter(1, xbest)
+    # parabel.SetParameter(1,xbest)
+    if not ybest == None:
+        parabel.FixParameter(5, ybest)
+        # parabel.SetParameter(5,ybest)
+    else:
+        print "got no best fit y!"
+        parabel.SetParameter(5, 0.5)
+    parabel.SetNpx(1000)
+    # parabel.SetParameter(1, xbest)
+    parabel.SetLineStyle(3)
+    parabel.SetLineColor(ROOT.kBlack)
+    return parabel
+
 def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None):
     
     clresults = {}
@@ -323,31 +350,12 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
         xmin = graph.GetXaxis().GetXmin()
         xmax = graph.GetXaxis().GetXmax()
         
-        formular = "[0]*(x*x*x*x - [1]*[1]*[1]*[1])"
-        parabel = ROOT.TF1("parabel", "[0]*(x*x*x*x - [1]*[1]*[1]*[1]) + [2]*(x*x*x - [1]*[1]*[1]) + [3]*(x*x - [1]*[1]) + [4]*(x - [1]) + [5] + [6]*(x*x*x*x*x - [1]*[1]*[1]*[1]*[1]) + [7]*(x*x*x*x*x*x - [1]*[1]*[1]*[1]*[1]*[1])", xmin, xmax)
-        parabel.SetParNames("a", "best fit x", "b", "c", "d", "best fit y")
-        parabel.SetParameter(0, 0.5)
-        parabel.SetParameter(2, 0.5)
-        parabel.SetParameter(3, 0.5)
-        parabel.SetParameter(4, 0.5)
-        parabel.SetParameter(6, 0.5)
-        parabel.SetParameter(7, 0.5)
-        parabel.FixParameter(1, xbest)
-        # parabel.SetParameter(1,xbest)
-        if not ybest == None:
-            parabel.FixParameter(5, ybest)
-            # parabel.SetParameter(5,ybest)
-        else:
-            print "got no best fit y!"
-            parabel.SetParameter(5, 0.5)
-        parabel.SetNpx(1000)
-        # parabel.SetParameter(1, xbest)
-        parabel.SetLineStyle(3)
-        parabel.SetLineColor(ROOT.kBlack)
+        parabel = create_parabola(xmin = xmin, xmax = xmax, xbest = xbest, ybest = ybest)
         graph.Fit(parabel, "R")
         print "fitted parabola with #chi^2/ndf =", parabel.GetChisquare()/parabel.GetNDF()
+        print "probability:", parabel.GetProb()
         parabel.Draw("same")
-    for cl in clStyles:
+    for clname in clStyles:
         lines = []
         vals = []
         if isinstance(parabel, ROOT.TF1):
@@ -355,7 +363,7 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
             x_up = None
             if not xbest == None:
                 x_down = find_crossing( graph = parabel,
-                                        clname = cl, 
+                                        cl = get_cl_value(clname), 
                                         start = xbest, 
                                         stop = xmin)
                 if not x_down == None:
@@ -363,7 +371,7 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
                 else:
                     vals.append("none")
                 x_up = find_crossing(   graph = parabel,
-                                        clname = cl, 
+                                        cl = get_cl_value(clname), 
                                         start = xbest, 
                                         stop = xmax)
                 if not x_up == None:
@@ -371,11 +379,11 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
                 else:
                     vals.append("none")
                 print vals
-            line_hor = create_straight_line(val = get_cl_value(cl),
+            line_hor = create_straight_line(val = get_cl_value(clname),
                                             minVal = xmin,
                                             maxVal = xmax,
                                             mode = "horizontal",
-                                            style = clStyles[cl])
+                                            style = clStyles[clname])
             if line_hor:
                 lines.append(line_hor.Clone())
             
@@ -383,7 +391,7 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
                                                 minVal = ymin,
                                                 maxVal = ymax,
                                                 mode = "vertical",
-                                                style = clStyles[cl])                                 
+                                                style = clStyles[clname])                                 
             if line_down:
                 lines.append(line_down.Clone())
             
@@ -391,22 +399,29 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
                                             minVal = ymin,
                                             maxVal = ymax,
                                             mode = "vertical",
-                                            style = clStyles[cl])
+                                            style = clStyles[clname])
             if line_up:
                 lines.append(line_up.Clone())
-            clresults[cl] = {"lines" : lines, "vals" : vals}
+            clresults[clname] = {"lines" : lines, "vals" : vals}
             
         elif isinstance(graph, ROOT.TGraph2D):
-            hist = graph.GetHistogram().Clone("{0}_{1}".format(graph.GetName, cl))
+            hist = graph.GetHistogram().Clone("{0}_{1}".format(graph.GetName, clname))
             hist.SetContour(1)
-            hist.SetContourLevel(0,cl)
+            hist.SetContourLevel(0,get_cl_value(cl = clname))
             hist.SetLineColor(ROOT.kBlack)
             hist.SetLineWidth(3)
+            hist.SetLineStyle(clStyles[clname])
             lines.append(hist.Clone("clone_" + hist.GetName()))
-            clresults[cl] = lines
+            clresults[clname] = lines
                     
     return clresults
-            
+
+def save_output(canvas, graph, name):
+    canvas.SaveAs(name + ".pdf")
+    canvas.SaveAs(name+".png")
+    canvas.SaveAs(name + "_canvas.root")
+    graph.SaveAs(name + ".root")
+
 def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     cls = { "68%" : 2,  #68%
             "95%" : 3}  #95%     
@@ -433,6 +448,7 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
             ybest = yVals[-1]
     
     print "found best fit point at (x, y) = ({0}, {1})".format(xbest, ybest)
+    
     # c = helperfuncs.getCanvas()
     c = ROOT.TCanvas()
     graph = ROOT.TGraph(len(xVals))
@@ -452,7 +468,6 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     graph.SetTitle("Scan of {0} over {1}".format(yVar, xVar))
     graph.Sort()
     graph.Draw()
-    
     if yVar == '2#Delta NLL':
         print "creating TF1 in range [{0}, {1}]".format(xmin,xmax)
         print "y-axis range: [{0}, {1}]".format(ymin, ymax)
@@ -467,31 +482,41 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
             # print lines
             for i, line in enumerate(lines):
                 if i == 0:
-                    label = "{0}: {1}_{2}^+{3}".format( cl, 
-                                                        round(xbest,3),
-                                                        round(vals[0]-xbest,2),
-                                                        round(vals[1]-xbest,2))
-                    label = label.replace("_", "_{")
-                    label = label.replace("^", "}^{")
-                    label += "}"
+                    label = "{0}: {1}".format(cl, round(xbest,3))
+                    
+                    down = vals[0]
+                    if isinstance(down, float):
+                        down = round(down-xbest,2)
+                        label += '_{'
+                        label += "{0}".format(down)
+                        label += '}'
+                    up = vals[1]
+                    if isinstance(up, float):
+                        up = round(up-xbest,2)
+                        label += '^{'
+                        label += "+{0}".format(up)
+                        label += '}'
+                    
                     leg.AddEntry(line, label, "l")
                 line.Draw("Same")
+                
     bestfit = ROOT.TGraph(1)
     bestfit.SetPoint(0, xbest, ybest)
 
     bestfit.SetMarkerStyle(34)
-    bestfit.SetMarkerSize(1.5)
+    bestfit.SetMarkerSize(1.8)
     bestfit.Sort()
     bestfit.Draw("P")
     c.Modified()
     leg.AddEntry(bestfit, "Best Fit Value", "p")
     
     leg.Draw("Same")
-    filename = ("nllscan_{0}_{1}{2}").format(xVar,yVar.replace("#", "x"), suffix)
+    filename = "nllscan_{0}_{1}{2}".format(xVar,yVar.replace("#", "x"), suffix)
     filename = filename.replace(" ", "_")
-    c.SaveAs(outputDirectory + "/" + filename + ".pdf")
-    graph.SaveAs(outputDirectory + "/" + filename + ".root")
-
+    filename = outputDirectory + "/" + filename
+    
+    save_output(canvas = c, graph = graph, name = filename)
+    
 def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     cls = { "68%" : 2,  #68%
             "95%" : 3}  #95%
@@ -550,8 +575,9 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     c.SetMargin(0.25, 0.15, 0.15, 0.08);
     filename = ("nllscan_2D_{0}_{1}{2}").format(xVar,yVar.replace("#", "x"), suffix)
     filename = filename.replace(" ", "_")
-    c.SaveAs(outputDirectory + "/" + filename + ".pdf")
-    graph.SaveAs(outputDirectory + "/" + filename + ".root")
+    filename = outputDirectory + "/" + filename
+    
+    save_output(canvas = c, graph = graph, name = filename)
 
 def merge_files(filelist):
     cmd = "hadd -f merged_combine_output.root " + " ".join(filelist)
@@ -599,7 +625,9 @@ if __name__ == '__main__':
     nPointsPerJob = options.nPointsPerJob
     unconstrained = options.unconstrained
     paramsToScan = options.paramsToScan
-    
+    workspace = options.workspace
+    plot2D = options.plot2D
+
     if directDrawPath == None:
         
         if datacard == None:
@@ -608,6 +636,18 @@ if __name__ == '__main__':
             datacard = os.path.abspath(datacard)
             if not os.path.exists(datacard):
                 parser.error("datacard does not exist!")
+        
+        if workspace:
+            workspace = os.path.abspath(workspace)
+            if not os.path.exists(workspace):
+                print "Could not find workspace, will ignore input"
+                workspace = None
+        
+        
+        if workspace:
+            datacard = workspace
+        else:
+            check_workspace(datacard)
     
     xVar = options.x
     if xVar == None:
@@ -637,18 +677,7 @@ if __name__ == '__main__':
     
     bonly = options.bonly
     runLocally = options.runLocally
-    workspace = options.workspace
-    if workspace:
-        workspace = os.path.abspath(workspace)
-        if not os.path.exists(workspace):
-            print "Could not find workspace, will ignore input"
-            workspace = None
     
-    plot2D = options.plot2D
-    if workspace:
-        datacard = workspace
-    else:
-        check_workspace(datacard)
     print "changing into target directory"
     
     workdir = os.getcwd()
