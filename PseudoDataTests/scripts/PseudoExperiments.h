@@ -771,7 +771,10 @@ void PseudoExperiments::createHistograms(std::map<TString,TH1*>& hists, const st
 TH1* PseudoExperiments::createHistogram(const TString& par, const TString& name, int nBins, Double_t min, Double_t max) const {
   if( debug_ ) std::cout << "DEBUG: createHistogram: " << par << ", " << name << std::endl;
   const TUUID id;
-  TH1* h = new TH1D(label_+":"+par+":"+name+":"+id.AsString(),name+";"+par+";N(experiments)", nBins, min, max);
+  TString clear_label = label_+":"+par+":"+name+":"+id.AsString();
+  if(clear_label.Contains(" = ")) clear_label.ReplaceAll(" = ", "_");
+  if(clear_label.Contains(" ")) clear_label.ReplaceAll(" ", "_");
+  TH1* h = new TH1D(clear_label.Data(), name+";"+par+";N(experiments)", nBins, min, max);
   h->SetDirectory(0);
   return h;
 }
