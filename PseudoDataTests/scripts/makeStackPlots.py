@@ -13,9 +13,15 @@ listOfProcesses = [	"ttH_hbb",
 					"ttbarPlus2B", 
 					"ttbarPlusBBbar"
 					]
+# procString = "ttH_hcc         ttH_hbb         ttH_htt         ttH_hww         ttH_hgluglu     ttH_hgg         ttH_hzz         ttH_hzg "
+# procString += "ttbarZ          diboson         ttbarPlusB      ttbarW          singlet         wjets           ttbarPlus2B     ttbarOther      ttbarPlusBBbar  zjets           ttbarPlusCCbar"
+# listOfProcesses = procString.split()
 
-categoryEndings = [	"ljets_j4_t4", 
+
+categoryEndings = [	"ljets_j4_t4",
+                    "ljets_j4_t3",
 					"ljets_j5_tge4",
+                    "ljets_j5_t3",
 					"ljets_jge6_t3", 
 					"ljets_jge6_tge4"
 					]
@@ -73,8 +79,9 @@ def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
 
             stackStages.append(hStack.Clone())
             setupHistoStyle(listOfHistos[i], color, titleY = titleYnormed)
-
-            listOfHistos[i].Scale(1./listOfHistos[i].Integral())
+            
+            if listOfHistos[i].Integral() != 0:
+                listOfHistos[i].Scale(1./listOfHistos[i].Integral())
 
         c = ROOT.TCanvas()
 
@@ -131,24 +138,6 @@ def makeStackPlots(listOfHistos, outputSuffix = "stackplots"):
         outfile.Close()
     else:
         print "did not find any histos!"
-
-
-
-def loadHisto(key, process, listOfHistos):
-    start = ""
-    end = ""
-    if "*" in process:
-        start, end = process.split("*")
-    else:
-        end = process
-
-    histoName = key.GetName()
-    #print "comparing {0} with process input {1}".format(histoName, process)
-    if histoName.startswith(start) and histoName.endswith(end):
-        print "adding histo", histoName
-        histo = infile.Get(histoName)
-        listOfHistos.append(histo)
-
 
 listOfHistos = []
 
