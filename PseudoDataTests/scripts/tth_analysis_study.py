@@ -21,7 +21,7 @@ if not basefolder in sys.path:
     sys.path.append(basefolder)
 
 from batchConfig import *
-batch = batchConfig(queue="short")
+batch = batchConfig(queue="long")
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
@@ -323,7 +323,8 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     shellscript.append('\techo "#Toys/Experiment = $numberOfToysPerExperiment"')
     shellscript.append('\techo "mu = $signalStrength"')
     shellscript.append('\techo "randomseed = $randomseed"')
-    shellscript.append('\techo "pathToMSworkspace = $pathToMSworkspace"')
+    if mswExists:
+        shellscript.append('\techo "pathToMSworkspace = $pathToMSworkspace"')
     shellscript.append('\techo "outputPath = $outputPath"\n')
 
     shellscript.append('\techo "changing directory to $outputPath"')
@@ -339,7 +340,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     shellscript.append('\t\t\t\trm *.root.dot')
     shellscript.append('\t\t\tfi\n')
 
-    shellscript.append('\t\t\ttoyFile="higgsCombine_$((numberOfToysPerExperiment))toys_sig$signalStrength.GenerateOnly.mH125.$((randomseed)).root"')
+    shellscript.append('\t\t\ttoyFile=`ls higgsCombine_$((numberOfToysPerExperiment))toys_sig$signalStrength.GenerateOnly.mH125.*.root`')
     shellscript.append('\t\t\techo "$toyFile"')
 
     shellscript.append('\t\t\tif [[ -f $toyFile ]]; then')
@@ -407,8 +408,9 @@ def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript.append('\t\tif [[ -d PseudoExperiment$i ]]; then')
     shellscript.append('\t\t\tcd PseudoExperiment$i\n')
 
-    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
-
+    # shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
+    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength -1 $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
+    
     shellscript.append('\t\t\tcd ../\n')
     shellscript.append('\t\telse')
     shellscript.append('\t\t\t echo "Could not generate folder PseudoExperiment$i in $outputPath"')
@@ -631,6 +633,7 @@ def saveHistos(category, key, processScalingDic, inputRootFile, outputFile, path
         tempObject.Write()
 
 def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys, listOfNormsPrescale, listOfNormsPostscale):
+    if verbose: print "starting copy/scaling"
     tempObject = None
     data_obs = {}
 
@@ -660,16 +663,6 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
             saved=False
             for cat in config.categories:
                 if not saved:
-                    if not cat in data_obs:
-                        histoCatKey = config.histoKey.replace("$CHANNEL", cat)
-                        data_obs_key = histoCatKey.replace("$PROCESS", "data_obs")
-                        temp = inputRootFile.Get(data_obs_key)
-                        if not isinstance(temp, ROOT.TH1):
-                            sys.exit("Unable to load data_obs with key %s! Aborting" % data_obs_key)
-    
-                        data_obs[cat] = temp.Clone()
-                        data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
-                        data_obs[cat].Reset()
     
                     for signalHistoName in config.signalHistos[cat]:
                         parts = signalHistoName.split("/")
@@ -699,6 +692,18 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
                                 pathFromKey = "/".join(parts[:len(parts)-1])
                             if not path == pathFromKey:
                                 continue
+                            
+                            if not cat in data_obs:
+                                histoCatKey = config.histoKey.replace("$CHANNEL", cat)
+                                data_obs_key = histoCatKey.replace("$PROCESS", "data_obs")
+                                temp = inputRootFile.Get(data_obs_key)
+                                if not isinstance(temp, ROOT.TH1):
+                                    sys.exit("Unable to load data_obs with key %s! Aborting" % data_obs_key)
+            
+                                data_obs[cat] = temp.Clone()
+                                data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
+                                data_obs[cat].Reset()
+                            
                             comparestring = parts[-1]
                             if keyName.startswith(comparestring):
                                 saveHistos( category = cat, 
@@ -715,8 +720,9 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
                                 break
                 else:
                     break
+    if verbose: print "NUMBER OF DATA_OBS CATEGORIES:", len(data_obs)
     for cat in data_obs:
-        data_obs[cat].Write()
+        data_obs[cat].Write(data_obs[cat].GetName(), ROOT.TObject.kOverwrite)
     print "\tdone with copying/scaling"
 
 def checkForMSworkspace(pathToDatacard, POImap):
@@ -797,14 +803,16 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     
             copyOrScaleElements(inputRootFile, outputFile, processScalingDic, inputRootFile.GetListOfKeys(), listOfNormsPrescale, listOfNormsPostscale)
             outputFile.Close()
-        
+            print "closed file with scaled templates"
         if not os.path.exists(newRootFileName):
             sys.exit("Could not find root file with scaled input!")
         
         datacardToUse = os.path.abspath(writeDatacard(pathToDatacard, newRootFileName, listOfProcesses))
 
         newRootFileName = "temp_shape_expectation.root"#_" + suffix + os.path.basename(inputRootFile.GetName())
+        print "starting saving of expectations for norms"
         saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, newRootFileName)
+        print "done saving norm expectations"
         shapeExpectation = "{0}/temp/{1}".format(outputPath, newRootFileName)
         os.chdir("../")
     elif pathToScaledDatacard is None:
@@ -903,7 +911,6 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     datacard.close()
     print "\tdone"
     return newDatacardName
-
 
 if os.path.exists(pathToDatacard):
     pathToDatacard=os.path.abspath(pathToDatacard)
