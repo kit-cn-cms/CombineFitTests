@@ -4,6 +4,7 @@ import sys
 import glob
 import math
 from optparse import OptionParser
+from shutil import rmtree
 
 ROOT.gROOT.SetBatch(True)
 
@@ -15,10 +16,10 @@ def loadVariable(rootfile, takeTree=False):
         if not isinstance(fit_s,ROOT.RooFitResult):
             print rootfile.GetName(),"does not contain RooFitResult"
             return val, error
-        # ROOT.gDirectory.cd('PyROOT:/')
+        # #ROOT.gDirectory.cd('PyROOT:/')
         
         if fit_s.status() == 0 and fit_s.covQual() == 3:
-            # print "loading values"
+            #print "loading values"
             var = fit_s.floatParsFinal().find("r")
             val = var.getVal()
             error = var.getError()
@@ -26,6 +27,8 @@ def loadVariable(rootfile, takeTree=False):
             print "something went wrong in the fit, file", rootfile.GetName()
             print "\tfit status =", fit_s.status()
             print "\tcovQual() =", fit_s.covQual()
+        fit_s.Delete()
+        # pass
     else:
         tree = rootfile.Get("tree_fit_sb")
         if not isinstance(tree,ROOT.TTree):
@@ -40,7 +43,19 @@ def loadVariable(rootfile, takeTree=False):
                 print "fit status is not 0!"
     return val, error
 
-def getDataObs(data_obs_dic, scatterplots_dic=None, rootfile = None):
+def fill_value_count(dic, key):
+    word = None
+    if isinstance(key, list):
+        key = [str(round(val, 3)) for val in key]
+        word = ",".join(key)
+        
+    else: word = key
+    if not word in dic:
+        dic[word] = 0
+    dic[word] += 1
+
+def getDataObs(data_obs_dic, scatterplots_dic=None, rootfile = None, 
+                scatterplots_bin_dic = None):
     total_int = 0
     nbins = 600
     if rootfile and scatterplots_dic:
@@ -51,6 +66,7 @@ def getDataObs(data_obs_dic, scatterplots_dic=None, rootfile = None):
             data_obs_dic[cat] = {}
             if scatterplots_dic:
                 scatterplots_dic[cat] = {}
+                scatterplots_bin_dic[cat] = {}
             
         data_obs = ROOT.gDirectory.Get(cat+"/data")
         if isinstance(data_obs, ROOT.TGraphAsymmErrors):
@@ -58,51 +74,56 @@ def getDataObs(data_obs_dic, scatterplots_dic=None, rootfile = None):
             s = 0.
             if rootfile and scatterplots_dic:
                 r, error = loadVariable(rootfile = rootfile)
+            vals = []
             for i in range(data_obs.GetN()):
                 val = data_obs.GetY()[i]
+                if val < 0:
+                    sys.exit("detected negative toy bin content in bin {0}, file {1}".format(i, rootfile.GetName()))
                 if not i in data_obs_dic[cat]:
                     
-                    # uid = ROOT.TUUID()
-                    # data_obs_dic[cat][i] = ROOT.TH1D("data_obs_distr_"+cat+"_"+str(i)+"_"+uid.AsString(), ";bin content;frequency", nbins, val-10*(val)**(1./2.),val+30*(val)**(1./2.))
-                    # data_obs_dic[cat][i].SetDirectory(0)
-                    data_obs_dic[cat][i] = []
+                    data_obs_dic[cat][i] = {}
                     if scatterplots_dic:
-                        # scatterplots_dic[cat][i] = ROOT.TH2D("scatterplot_" + cat+"_"+str(i)+"_"+uid.AsString(), ";r;bin content {0}".format(i), 100, -5, 5, 100, val-10*(val)**(1./2.),val+30*(val)**(1./2.))
-                        # scatterplots_dic[cat][i].SetDirectory(0)
-                        scatterplots_dic[cat][i] = []
                         
-                # data_obs_dic[cat][i].Fill(val)
-                data_obs_dic[cat][i].append(val)
+                        scatterplots_dic[cat][i] = {}
+                        
+                fill_value_count(dic = data_obs_dic[cat][i], key = val)
+                vals.append(val)
                 s += val
                 if scatterplots_dic and not r == None:
-                    # print "adding values ({0}, {1}) to scatterplots_dic for cat {2}".format(r, val, cat)
-                    # scatterplots_dic[cat][i].Fill(r, val)
-                    scatterplots_dic[cat][i].append([r,val])
-                    
+                    fill_value_count(   dic = scatterplots_dic[cat][i],
+                                        key = [r, val])
+            if scatterplots_bin_dic and not r == None:
+                for i in range(len(vals)):
+                    for j in range(i, len(vals)):
+                        key = "bin{0}_vs_bin{1}".format(i,j)
+                        if not key in scatterplots_bin_dic[cat]:
+                            scatterplots_bin_dic[cat][key] = {}
+                        fill_value_count(scatterplots_bin_dic[cat][key],
+                                            key = [vals[i],vals[j]])
             
             if not "integral" in data_obs_dic[cat]:
-                # uidint = ROOT.TUUID()
-                # data_obs_dic[cat]["integral"] = ROOT.TH1D("data_obs_int_distr_"+cat+"_"+uidint.AsString(), ";integral;frequency", nbins, s-10*(s)**(1./2.),s+30*(s)**(1./2.))
-                # data_obs_dic[cat]["integral"].SetDirectory(0)
-                data_obs_dic[cat]["integral"] = []
+                
+                data_obs_dic[cat]["integral"] ={}
                 if scatterplots_dic:
-                    # scatterplots_dic[cat]["integral"] = ROOT.TH2D("scatterplot_integral_" + cat+"_"+uid.AsString(), ";r;integral".format(i), 100, -5, 5, 100, s-10*(s)**(1./2.),s+30*(s)**(1./2.))
-                    # scatterplots_dic[cat]["integral"].SetDirectory(0)
-                    scatterplots_dic[cat]["integral"] = []
-            # data_obs_dic[cat]["integral"].Fill(s)
-            data_obs_dic[cat]["integral"].append(s)
+                    scatterplots_dic[cat]["integral"] = {}
+
+            fill_value_count(dic = data_obs_dic[cat]["integral"],
+                                key = s)
             if scatterplots_dic and not r == None:
-                # scatterplots_dic[cat]["integral"].Fill(r,s)
-                scatterplots_dic[cat]["integral"].append([r, s])
+                fill_value_count(dic = scatterplots_dic[cat]["integral"],
+                                    key = [r, s])
+                
+                # if 2 in scatterplots_dic[cat]["integral"].values():
+                    # print "counting was successful!"
+                    # print "current scatterplots_dic[{0}][integral]:".format(cat)
+                    # print scatterplots_dic[cat]["integral"]
+                    # sys.exit("debugging stop")
             total_int += s
     if scatterplots_dic and not r == None:
         if not "total_integral" in scatterplots_dic:
-            # uid = ROOT.TUUID()
-            # scatterplots_dic["total_integral"] = ROOT.TH2D("scatterplot_total_integral_"+uid.AsString(), ";r;total_integral", 100, -5, 5, 100, s-10*(s)**(1./2.),s+30*(s)**(1./2.))
-            # scatterplots_dic["total_integral"].SetDirectory(0)
-            scatterplots_dic["total_integral"] = []
-        scatterplots_dic["total_integral"].append([r,total_int])
-        # scatterplots_dic["total_integral"].Fill(r,total_int)
+            scatterplots_dic["total_integral"] = {}
+        fill_value_count(dic = scatterplots_dic["total_integral"],
+                            key = [r, total_int])
     
 def loadVariableFromFile(pathToLoad, takeTree = False):
     val = None
@@ -271,35 +292,76 @@ def compareMus(path1, pdfOutputPath, path2 = None):
         outfile.Close()
 
 def create_1Dhisto(histvals, histname, label=""):
+    if not isinstance(histvals, dict):
+        sys.exit("Error in create_1Dhisto: histvals must be dict!")
     hist = None
     print "creating 1D histogram with name", histname
     shift = -0.5
-    xmin = min(histvals)
-    xmax = max(histvals)
+    values = [x for x in histvals]
+    xmin = min(values)
+    xmax = max(values)
     nbins = int((xmax - xmin))
     hist = ROOT.TH1D(histname, label, nbins, xmin+shift, xmax+shift)
     for val in histvals:
-        hist.Fill(val)
+        for i in range(histvals[val]):
+            hist.Fill(val)
         
     return hist
 
-def create_2Dhisto(histvals, histname, label = ""):
+def setup_binning(xmin, xmax):
+    n = 10
+    if xmin == xmax:
+        xmin -= 1
+        xmax += 1
+    else:
+        n = int(xmax - xmin)
+    return n, xmin, xmax
+
+def create_2Dhisto(histvals, histname, label = "", floatX = True):
+    if not isinstance(histvals, dict):
+        sys.exit("Error in create_2Dhisto: histvals must be dict!")
     print "creating 2D histogram with name", histname
-    x = [i[0] for i in histvals]
-    y = [i[1] for i in histvals]
+    x = []
+    y = []
+    for key in histvals:
+        val_x, val_y = key.split(",")
+        if floatX:
+            x.append(float(val_x)) #signal strength can be floating
+        else:
+            x.append(int(float(val_x)))
+        y.append(int(float(val_y))) #bin contents must be integers
+    # x = [i[0] for i in histvals]
+    # y = [i[1] for i in histvals]
     shift = -0.5
     xmin = min(x)
     xmax = max(x)
     ymin = min(y)
     ymax = max(y)
-    nbinsx = 400
-    nbinsy = int((ymax - ymin))
+    # if ymin == ymax:
+        # print "WARNING:\t ymin == ymax!"
+        # print "printing y"
+        # print y
+        # print "printing list of keys"
+        # print histvals.keys()
+        # sys.exit()
+    nbinsy, ymin, ymax = setup_binning(ymin, ymax)
+    if floatX:
+        nbinsx = 400
+    else:
+        nbinsx, xmin, xmax = setup_binning(xmin, xmax)
     hist = ROOT.TH2D(histname, label, nbinsx, xmin+shift, xmax+shift, nbinsy, ymin+shift, ymax+shift)
     hist.SetDirectory(0)
-    for val in histvals:
-        hist.Fill(val[0], val[1])
+    for n, key in enumerate(histvals):
+        for i in range(histvals[key]):
+            hist.Fill(x[n], y[n])
     
     return hist
+
+def check_for_reset(foldername):
+    if os.path.exists(foldername):
+        print "resetting", foldername
+        rmtree(foldername)
+    os.makedirs(foldername)
 
 def save_histo(hist, pdfOutputPath):
     if isinstance(hist, ROOT.TH1):
@@ -314,20 +376,40 @@ def save_histo(hist, pdfOutputPath):
             hist.Draw()
             hist.Write()
             canvas.Write()
-            canvas.Print(pdfOutputPath+name+".pdf")
+            outputdic = {pdfOutputPath + "pdfs" : ".pdf",
+                            pdfOutputPath + "pngs": ".png"}
+            for foldername in outputdic:
+                check_for_reset(foldername = foldername)
+                if os.path.exists(foldername):
+                    canvas.Print(foldername + "/"+name+outputdic[foldername])
             outFile.Close()
+        if isinstance(hist, ROOT.TH2):
+            filename = pdfOutputPath
+            index = -2
+            if "vs" in parts:
+                index = parts.index("vs")
+                txtname = "_".join(parts[0:index])
+                index += 1
+            else:
+                txtname = "_".join(parts[0:len(parts)-2])
+            filename = pdfOutputPath+txtname+ "_correlations.txt"
+            f = None
+            if os.path.exists(filename):
+                f = open(filename, "a")
+            else:
+                f = open(filename, "w")
+            f.write("{0}\t{1}\n".format(parts[index], hist.GetCorrelationFactor()))
+            f.close()
     else:
         print "not a histogram, skipping"
 
-def printDictionary(data_obs_dic, pdfOutputPath, doFits = False, origFile = None, scatterplots = False):
-    print "saving dictionary:"
-    # print data_obs_dic
+def print2dDictionary(data_obs_dic, pdfOutputPath, labelbase = ";"):
+    print "saving 2d dictionary"
     for cat in data_obs_dic:
-        if scatterplots:
-            if isinstance(data_obs_dic[cat], list):
+        if cat == "total_integral":
                 uid = ROOT.TUUID()
                 histname = "scatterplot_total_integral_"+uid.AsString()
-                label = ";r;total_integral"
+                label = labelbase + "total_integral"
                 hist = create_2Dhisto(histvals = data_obs_dic[cat], 
                                     histname = histname,
                                     label = label)
@@ -335,85 +417,97 @@ def printDictionary(data_obs_dic, pdfOutputPath, doFits = False, origFile = None
                             # pdfOutputPath = pdfOutputPath)
                 save_histo( hist = hist, 
                             pdfOutputPath = pdfOutputPath)
-            else:
-                for i in data_obs_dic[cat]:
-                    uid = ROOT.TUUID()
-                    histname = "scatterplot_" + cat+ "_" + str(i)+"_"+uid.AsString()
-                    label = ";r;"
-                    if not isinstance(i, str):
-                        label += "bin content {0}".format(i)
-                    else: label += i
-                    hist = create_2Dhisto(histvals = data_obs_dic[cat][i],
-                                        histname = histname,
-                                        label = label)   
-                    save_histo( hist = hist,
-                                pdfOutputPath = pdfOutputPath)
         else:
-            orig_data_obs = None
-            if origFile and origFile.IsOpen() and not origFile.IsZombie() and not origFile.TestBit(ROOT.TFile.kRecovered):
-                orig_data_obs = origFile.Get("data_obs_finaldiscr_" + cat)
-            elif origFile is not None: print "could not open original file"
-            canvasname = ""
-            label = ";bin content;frequency"
-            for n, i in enumerate(sorted(data_obs_dic[cat])):
-                if isinstance(data_obs_dic[cat][i], list):
-                    # name = data_obs_dic[cat][i].GetName()
-                    uid = ROOT.TUUID()
-                    name = "data_obs_distr_"+cat+"_"+str(i)+"_"+uid.AsString()
-                    hist = create_1Dhisto(histvals = data_obs_dic[cat][i],
-                                        histname = name,
-                                        label = label)       
-                    print "current name:", name
-                    parts = name.split("_")
-                    name = "_".join(parts[0:len(parts)-2])
-                    
-                    outFile = ROOT.TFile(pdfOutputPath+"_".join(parts[0:len(parts)-1])+".root", "RECREATE")
-                    canvas = ROOT.TCanvas()
-        
-                    hist.Draw()
-                    if doFits:
-                        fit = ROOT.TF1("fit", "[0]*TMath::Poisson(x, [1]) + [2]", hist.GetBinCenter(1), hist.GetBinCenter(hist.GetNbinsX()))
-                        fit.SetParNames("Amp", "Mean", "Offset")
-                        fit.SetParameters(hist.GetEntries(), hist.GetMean(), 0)
-                        fit.SetNpx(500)
-                        
-                        hist.Fit(fit,"RL")
-                        fit.Draw("Same")
-                    
-                    if not canvasname:
-                        canvasname = pdfOutputPath+name.replace("_{0}".format(i), "")+".pdf"
-                    
-                    if isinstance(orig_data_obs, ROOT.TH1) and not isinstance(i, str):
-                        val = orig_data_obs.GetBinContent(i+1)
-                        leg = ROOT.TLegend(0.1,0.7,0.3,0.9)
-                        line = ROOT.TLine(val, 0, val, hist.GetMaximum())
-                        line.SetLineWidth(3)
-                        leg.AddEntry(line,"orig_val = {0}".format(val),"l")
-                        line.Draw("Same")
-                        leg.Draw("Same")
-                        
-                        
-                    elif isinstance(orig_data_obs, ROOT.TH1) and isinstance(i, str):
-                        print "saving distribution for toy yields"
-                        val = orig_data_obs.Integral()
-                        leg = ROOT.TLegend(0.1,0.7,0.3,0.9)
-                        line = ROOT.TLine(val, 0, val, hist.GetMaximum())
-                        line.SetLineWidth(3)
-                        leg.AddEntry(line,"orig_val = {0}".format(val),"l")
-                        line.Draw("Same")
-                        leg.Draw("Same")
+            for i in data_obs_dic[cat]:
+                uid = ROOT.TUUID()
+                histname = "scatterplot_" + cat+ "_" + str(i)+"_"+uid.AsString()
+                label = labelbase
+                floatX = True
+                if not isinstance(i, str):
+                    label += "bin content {0}".format(i)
+                else: 
+                    if label == ";" and "_vs_" in i:
+                        label += i.replace("_vs_", ";")
+                        floatX = False
                     else:
-                        print "could not load data_obs object \'{0}\' from original file".format("data_obs_finaldiscr_" + cat)
-                    if n == 0:
-                        canvas.Print(canvasname + "(","pdf")
-                    elif n == len(data_obs_dic[cat])-1:
-                        canvas.Print(canvasname + ")","pdf")
-                    else:
-                        canvas.Print(canvasname,"pdf")
-                    canvas.Write()
-                    #data_obs_dic[cat].SetDirectory(outFile)
-                    hist.Write()
-                    outFile.Close()
+                        label += i
+                hist = create_2Dhisto(histvals = data_obs_dic[cat][i],
+                                    histname = histname,
+                                    label = label,
+                                    floatX = floatX)   
+                save_histo( hist = hist,
+                            pdfOutputPath = pdfOutputPath)
+
+def print1dDictionary(data_obs_dic, pdfOutputPath, doFits = False, origFile = None, scatterplots = False):
+    print "saving dictionary:"
+    # print data_obs_dic
+    for cat in data_obs_dic:
+        orig_data_obs = None
+        if origFile and origFile.IsOpen() and not origFile.IsZombie() and not origFile.TestBit(ROOT.TFile.kRecovered):
+            orig_data_obs = origFile.Get("data_obs_finaldiscr_" + cat)
+        elif origFile is not None: print "could not open original file"
+        canvasname = ""
+        label = ";bin content;frequency"
+        for n, i in enumerate(sorted(data_obs_dic[cat])):
+            if isinstance(data_obs_dic[cat][i], dict):
+                # name = data_obs_dic[cat][i].GetName()
+                uid = ROOT.TUUID()
+                name = "data_obs_distr_"+cat+"_"+str(i)+"_"+uid.AsString()
+                # print name
+                hist = create_1Dhisto(histvals = data_obs_dic[cat][i],
+                                    histname = name,
+                                    label = label)       
+                print "current name:", name
+                parts = name.split("_")
+                name = "_".join(parts[0:len(parts)-2])
+                
+                outFile = ROOT.TFile(pdfOutputPath+"_".join(parts[0:len(parts)-1])+".root", "RECREATE")
+                canvas = ROOT.TCanvas()
+    
+                hist.Draw()
+                if doFits:
+                    fit = ROOT.TF1("fit", "[0]*TMath::Poisson(x, [1]) + [2]", hist.GetBinCenter(1), hist.GetBinCenter(hist.GetNbinsX()))
+                    fit.SetParNames("Amp", "Mean", "Offset")
+                    fit.SetParameters(hist.GetEntries(), hist.GetMean(), 0)
+                    fit.SetNpx(500)
+                    
+                    hist.Fit(fit,"RL")
+                    fit.Draw("Same")
+                
+                if not canvasname:
+                    canvasname = pdfOutputPath+name.replace("_{0}".format(i), "")+".pdf"
+                
+                if isinstance(orig_data_obs, ROOT.TH1) and not isinstance(i, str):
+                    val = orig_data_obs.GetBinContent(i+1)
+                    leg = ROOT.TLegend(0.1,0.7,0.3,0.9)
+                    line = ROOT.TLine(val, 0, val, hist.GetMaximum())
+                    line.SetLineWidth(3)
+                    leg.AddEntry(line,"orig_val = {0}".format(val),"l")
+                    line.Draw("Same")
+                    leg.Draw("Same")
+                    
+                    
+                elif isinstance(orig_data_obs, ROOT.TH1) and isinstance(i, str):
+                    print "saving distribution for toy yields"
+                    val = orig_data_obs.Integral()
+                    leg = ROOT.TLegend(0.1,0.7,0.3,0.9)
+                    line = ROOT.TLine(val, 0, val, hist.GetMaximum())
+                    line.SetLineWidth(3)
+                    leg.AddEntry(line,"orig_val = {0}".format(val),"l")
+                    line.Draw("Same")
+                    leg.Draw("Same")
+                else:
+                    print "could not load data_obs object \'{0}\' from original file".format("data_obs_finaldiscr_" + cat)
+                if n == 0:
+                    canvas.Print(canvasname + "(","pdf")
+                elif n == len(data_obs_dic[cat])-1:
+                    canvas.Print(canvasname + ")","pdf")
+                else:
+                    canvas.Print(canvasname,"pdf")
+                canvas.Write()
+                #data_obs_dic[cat].SetDirectory(outFile)
+                hist.Write()
+                outFile.Close()
 
 def getDataObss(pathToPseudoExps, dataObsFile, pdfOutputPath = "./", suffix = None, doScatterPlots = False):
     if os.path.exists(os.path.abspath(pathToPseudoExps)):
@@ -426,9 +520,11 @@ def getDataObss(pathToPseudoExps, dataObsFile, pdfOutputPath = "./", suffix = No
          path1 += "/*"
     data_obs_dic = {}
     scatterplots_dic = None
+    scatterplots_bin_dic = None
     if doScatterPlots:
         print "creating scatter plots dic"
         scatterplots_dic = {}
+        scatterplots_bin_dic = {}
     if dataObsFile:
         dataObsFile = os.path.abspath(dataObsFile)
     else:
@@ -445,7 +541,7 @@ def getDataObss(pathToPseudoExps, dataObsFile, pdfOutputPath = "./", suffix = No
 
             for infile in filesToCheck:
                 base = os.path.basename(path)
-                #~ print "base:", base
+                # print "base:", base
                 if not ("PseudoExperiment" in base or base.endswith(infile)):
                     continue
                 print "checking", path
@@ -467,8 +563,14 @@ def getDataObss(pathToPseudoExps, dataObsFile, pdfOutputPath = "./", suffix = No
                                 if scatterplots_dic is not None:
                                     print "creating scatter plot dict for cat", cat
                                     scatterplots_dic[cat] = {}
+                                if scatterplots_bin_dic is not None:
+                                    print "creating scatter plot dict for cat", cat
+                                    scatterplots_bin_dic[cat] = {}
 
-                    getDataObs(data_obs_dic= data_obs_dic, scatterplots_dic = scatterplots_dic, rootfile = rootFile)
+                    getDataObs( data_obs_dic= data_obs_dic, 
+                                scatterplots_dic = scatterplots_dic, 
+                                rootfile = rootFile,
+                                scatterplots_bin_dic = scatterplots_bin_dic)
 
                     rootFile.Close()
                     print "done with", path+"/"+infile
@@ -478,11 +580,14 @@ def getDataObss(pathToPseudoExps, dataObsFile, pdfOutputPath = "./", suffix = No
     origFile = ROOT.TFile(dataObsFile)
     ROOT.gStyle.SetOptStat(221112211)
     ROOT.gStyle.SetOptFit(11111);
-    printDictionary(data_obs_dic = data_obs_dic, pdfOutputPath = pdfOutputPath, doFits = True, origFile = origFile)
+    print1dDictionary(data_obs_dic = data_obs_dic, pdfOutputPath = pdfOutputPath, doFits = True, origFile = origFile)
     origFile.Close()
     if scatterplots_dic:
         print "printing scatter plots"
-        printDictionary(data_obs_dic = scatterplots_dic, pdfOutputPath = pdfOutputPath, scatterplots = True)
+        print2dDictionary(data_obs_dic = scatterplots_dic, pdfOutputPath = pdfOutputPath, labelbase = ";r;")
+        if scatterplots_bin_dic:
+            print "printing bin scatter plots"
+            print2dDictionary(data_obs_dic = scatterplots_bin_dic, pdfOutputPath = pdfOutputPath)
     return data_obs_dic
 
 if __name__ == '__main__':
