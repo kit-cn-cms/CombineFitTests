@@ -221,7 +221,6 @@ def do_fits():
     else:
         sys.exit("Could not write script to merge files!")
 
-
 def get_cl_value(cl):
     infile = ROOT.TFile(fitresFile)
     w = infile.Get("w")
@@ -252,11 +251,11 @@ def get_cl_value(cl):
         print "WARNING:\tconfidence levels for {0} POIs are unknown, cannot compute errors".format(npois)
     return None
         
-def find_crossing(graph, cl, start, stop):
+def find_crossing(graph, cl, start, stop, granularity = 1e-3):
     if graph and cl:
         stepsize = 0.0001
         deltabest = 9999
-        epsilon = 1e-3
+        epsilon = granularity
         print "looking for crossing at {0} in interval [{1}, {2}]".format(cl, start, stop)
         xbest = start
         if stop >= start:
@@ -340,7 +339,8 @@ def create_parabola(xmin, xmax, xbest, ybest=None):
     parabel.SetLineColor(ROOT.kBlack)
     return parabel
 
-def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None):
+def create_lines(   graph, xbest, clStyles, granularity,
+                    ybest = None, ymin = None, ymax = None):
     
     clresults = {}
     
@@ -365,7 +365,8 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
                 x_down = find_crossing( graph = parabel,
                                         cl = get_cl_value(clname), 
                                         start = xbest, 
-                                        stop = xmin)
+                                        stop = xmin,
+                                        granularity = granularity)
                 if not x_down == None:
                     vals.append(x_down)
                 else:
@@ -373,7 +374,8 @@ def create_lines(graph, xbest, clStyles, ybest = None, ymin = None, ymax = None)
                 x_up = find_crossing(   graph = parabel,
                                         cl = get_cl_value(clname), 
                                         start = xbest, 
-                                        stop = xmax)
+                                        stop = xmax,
+                                        granularity = granularity)
                 if not x_up == None:
                     vals.append(x_up)
                 else:
@@ -422,9 +424,14 @@ def save_output(canvas, graph, name):
     canvas.SaveAs(name + "_canvas.root")
     graph.SaveAs(name + ".root")
 
-def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
+def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
+                xtitle = None, ytitle = None):
     cls = { "68%" : 2,  #68%
             "95%" : 3}  #95%     
+    if xtitle == None:
+        xtitle = xVar
+    if ytitle == None:
+        ytitle = yVar
     xVals = []
     yVals = []
     xbest = None
@@ -454,9 +461,9 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     graph = ROOT.TGraph(len(xVals))
     for i in range(len(xVals)):
         graph.SetPoint(i, xVals[i], yVals[i])
-    graph.GetXaxis().SetTitle(xVar)
-    if yVar == "deltaNLL":
-        yVar = '2#Delta NLL'
+    graph.GetXaxis().SetTitle(xtitle)
+    if ytitle == "deltaNLL":
+        ytitle = '2#Delta NLL'
         
     xmin = min(xVals)
     xmax = max(xVals)
@@ -464,17 +471,18 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     ymax = max(yVals)
     leg = helperfuncs.getLegend()
     
-    graph.GetYaxis().SetTitle(yVar)
-    graph.SetTitle("Scan of {0} over {1}".format(yVar, xVar))
+    graph.GetYaxis().SetTitle(ytitle)
+    graph.SetTitle("Scan of {0} over {1}".format(ytitle, xtitle))
     graph.Sort()
     graph.Draw()
-    if yVar == '2#Delta NLL':
+    if ytitle == '2#Delta NLL':
         print "creating TF1 in range [{0}, {1}]".format(xmin,xmax)
         print "y-axis range: [{0}, {1}]".format(ymin, ymax)
-        results = create_lines( graph = graph, xbest = xbest, clStyles = cls,
-                                ymin = ymin, ymax = ymax, ybest = ybest)
-        
-        
+        results = create_lines( graph = graph, xbest = xbest, 
+                                clStyles = cls, ymin = ymin, 
+                                ymax = ymax, ybest = ybest,
+                                granularity = granularity
+                                )
         for cl in results:
             lines = results[cl]["lines"]
             vals = results[cl]["vals"]
@@ -511,15 +519,21 @@ def do1DScan(limit, xVar, yVar, outputDirectory, suffix):
     leg.AddEntry(bestfit, "Best Fit Value", "p")
     
     leg.Draw("Same")
-    filename = "nllscan_{0}_{1}{2}".format(xVar,yVar.replace("#", "x"), suffix)
+    filename = "nllscan_{0}_{1}{2}".format(xtitle,ytitle, suffix)
+    filename = filename.replace("#", "")
     filename = filename.replace(" ", "_")
     filename = outputDirectory + "/" + filename
     
     save_output(canvas = c, graph = graph, name = filename)
     
-def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
+def do2DScan(   limit, xVar, yVar, outputDirectory, suffix, 
+                xtitle= None, ytitle = None):
     cls = { "68%" : 2,  #68%
             "95%" : 3}  #95%
+    if xtitle == None:
+        xtitle = xVar
+    if ytitle == None:
+        ytitle = yVar
     xVals = []
     yVals = []
     zVals = []
@@ -551,10 +565,10 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     bestfit.SetPoint(0, xbest, ybest)
     bestfit.SetMarkerStyle(34)
     bestfit.SetMarkerSize(1)
-    graph.GetHistogram().GetXaxis().SetTitle(xVar)
-    graph.GetHistogram().GetYaxis().SetTitle(yVar)
+    graph.GetHistogram().GetXaxis().SetTitle(xtitle)
+    graph.GetHistogram().GetYaxis().SetTitle(ytitle)
     graph.GetHistogram().GetZaxis().SetTitle("2#Delta NLL")
-    graph.SetTitle("Scan of {0} over {1}".format(yVar, xVar))
+    graph.SetTitle("Scan of {0} over {1}".format(ytitle, xtitle))
     graph.Draw("COLZ")
     bestfit.Draw("P")
     label = helperfuncs.getLegend()
@@ -573,7 +587,8 @@ def do2DScan(limit, xVar, yVar, outputDirectory, suffix):
     
     label.Draw("Same")
     c.SetMargin(0.25, 0.15, 0.15, 0.08);
-    filename = ("nllscan_2D_{0}_{1}{2}").format(xVar,yVar.replace("#", "x"), suffix)
+    filename = ("nllscan_2D_{0}_{1}{2}").format(xtitle,ytitle, suffix)
+    filename = filename.replace("#", "")
     filename = filename.replace(" ", "_")
     filename = outputDirectory + "/" + filename
     
@@ -613,6 +628,19 @@ if __name__ == '__main__':
     parser.add_option("--doWorkspaces", dest = "doWorkspaces", action = "store_true", default = False, help = "Force creation of workspaces even if they exist already (default = false)")
     parser.add_option("-p", "--paramsToScan", metavar = "par1,par2,...", dest = "paramsToScan", help = "scan these parameters. Default is scanning x (and y if '--scan2D'). Can be used multiple times", action = "append")
     parser.add_option("--runLocally", help = "do not perform fits on batch system (default = false)", dest = "runLocally", action = "store_true", default = False)
+    parser.add_option(  "-g", "--granularity",
+                        help = "set granularity for cl crossing scan in 1D NLL scan (default = 1e-3)",
+                        type = "float",
+                        default = 1e-3,
+                        dest = "granularity",
+                        metavar = 1e-3
+                        )
+    parser.add_option(  "--setXtitle", 
+                        help = "manually set title for x axis (default = xVariable)",
+                        dest = "xtitle")
+    parser.add_option(  "--setYtitle", 
+                        help = "manually set title for x axis (default = yVariable)",
+                        dest = "ytitle")
     (options, args) = parser.parse_args()
     
     directDrawPath = options.directDraw
@@ -627,6 +655,8 @@ if __name__ == '__main__':
     paramsToScan = options.paramsToScan
     workspace = options.workspace
     plot2D = options.plot2D
+    granularity = options.granularity
+    
 
     if directDrawPath == None:
         
@@ -654,6 +684,14 @@ if __name__ == '__main__':
         parser.error("variable for x axis of scan needs to be specified!")
     
     yVar = options.y
+    
+    xtitle = options.xtitle
+    if xtitle == None:
+        xtitle = xVar
+    ytitle = options.ytitle
+    if ytitle == None:
+        ytitle = yVar
+    
     scan2D = options.scan2D
     params = []
     if not paramsToScan == None:
@@ -729,11 +767,16 @@ if __name__ == '__main__':
                 if plot2D:
                     do2DScan(   limit, xVar = xVar, yVar = yVar, 
                                 outputDirectory = outputDirectory, 
-                                suffix = suffix)
+                                suffix = suffix,
+                                xtitle = xtitle,
+                                ytitle = ytitle)
                 else:
                     do1DScan(   limit, xVar = xVar, yVar = yVar, 
                                 outputDirectory = outputDirectory, 
-                                suffix = suffix)
+                                suffix = suffix,
+                                granularity = granularity,
+                                xtitle = xtitle,
+                                ytitle = ytitle)
     
     
             else:
