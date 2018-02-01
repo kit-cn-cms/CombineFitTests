@@ -7,9 +7,9 @@ import glob
 
 infiless=sys.argv[1:]
 
-# toRemove="ttH_hccttH_htt         ttH_hgluglu     ttH_hww         ttH_hzz         ttH_hzg         ttbarZ          diboson ttbarW          singlet           wjets                      zjets".split()
+toRemove="ttH_hcc ttH_htt  ttH_hgg       ttH_hgluglu     ttH_hww         ttH_hzz         ttH_hzg         ttbarZ          diboson ttbarW          singlet           wjets                      zjets".split()
 # toRemove=["QCD"]
-toRemove="ttbarPlusB ttbarPlus2B".split()
+# toRemove="ttbarPlusB ttbarPlus2B".split()
 for infiles in infiless:
     for inf in glob.glob(infiles):
         inf = os.path.abspath(inf)

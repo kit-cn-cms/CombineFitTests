@@ -1,3 +1,4 @@
+#ifndef __CINT__
 #include "iomanip"
 #include "iostream"
 #include "TChaining.h"
@@ -9,8 +10,9 @@
 #include "iomanip"
 #include "dirent.h"
 #include "ctime"
+#endif
 
-int createfiles(TString output = "toytest/bla_some", float signal = 1, int files = 100);
+int createfiles(TString output = "toytest/bla_some", float signal = 1, int files = 100)
 {
 	// Turning float into char
 	stringstream s;

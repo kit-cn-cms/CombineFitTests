@@ -14,7 +14,7 @@ for datacard in datacards:
 				if n != len(lines) and line.startswith("bin") and lines[n+1].startswith("observation"):
 					categories = line.split()[1:]
 					print "found categories:\n", categories
-				if not "BDTbin" in line:
+				if not ("BDTbin" in line or "autoMCStats" in line):
 					if line.startswith("kmax"):
 						entries = line.split()
 						entries[1] = "*"
@@ -23,8 +23,8 @@ for datacard in datacards:
 				else:
 					print "skipping", line
 			for cat in categories:
-				automc = cat + " autoMCStats 0 0 1"
-				if automc in lines:
+				automc = cat + " autoMCStats 5 0 1"
+				if automc in newlines:
 					continue
 				print "writing line", automc
 				newlines.append(automc)

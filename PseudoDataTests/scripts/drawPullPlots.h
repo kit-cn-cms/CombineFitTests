@@ -237,9 +237,9 @@ namespace drawPullPlots{
         std::cout << "drew postfit s+b\n";
 
         legend->AddEntry(hPrefitMeans, "Prefit Means", "l");
-        // legend->AddEntry(hPostfitBmeans, "B-only fit Means + Mean Error", "lp");
+        legend->AddEntry(hPostfitBmeans, "B-only fit Means + Mean Error", "lp");
         //legend->AddEntry(hPostfitBmedians, "B-only fit Medians + RMS", "lp");
-        // if(hPostfitBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitBmeansWithFitErrors, "B-only fit Means + Fitted Error", "l");
+        if(hPostfitBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitBmeansWithFitErrors, "B-only fit Means + Fitted Error", "l");
         legend->AddEntry(hPostfitSBmeans, "S+B fit Means + Mean Error", "lp");
         //legend->AddEntry(hPostfitSBmedians, "S+B fit Medians + RMS", "lp");
         if(hPostfitSBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitSBmeansWithFitErrors, "S+B fit Means + Fitted Error", "l");
@@ -251,8 +251,8 @@ namespace drawPullPlots{
         
         //std::cout << "prepending path: " << outLabel << "pullplot_" << std::endl;
         //~ createLatexOutput::writeLatexTable(hPostfitBmeans, hPostfitBmedians, hPostfitSBmeans, hPostfitSBmedians, outLabel+"values_"+*canvasName+".txt", "Values for "+label, hExpectation, hPostfitBmeansWithFitErrors, hPostfitSBmeansWithFitErrors);
-        createLatexOutput::writeTextTable(hPostfitBmeans, hPostfitBmedians, outLabel+"values_"+*canvasName+"_PostfitB.txt", hExpectation, hPostfitBmeansWithFitErrors);
-        createLatexOutput::writeTextTable(hPostfitSBmeans, hPostfitSBmedians, outLabel+"values_"+*canvasName+"_PostfitSB.txt", hExpectation, hPostfitSBmeansWithFitErrors);
+        createLatexOutput::writeTextTable(hPostfitBmeans, hPostfitBmedians, *canvasName+"_values_PostfitB.txt", hExpectation, hPostfitBmeansWithFitErrors);
+        createLatexOutput::writeTextTable(hPostfitSBmeans, hPostfitSBmedians, *canvasName+"_values_PostfitSB.txt", hExpectation, hPostfitSBmeansWithFitErrors);
         canvas.SetGridx();
         canvas.Modified();
         
