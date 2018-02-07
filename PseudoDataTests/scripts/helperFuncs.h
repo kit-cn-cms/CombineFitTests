@@ -3,6 +3,8 @@
 
 #include "TH1.h"
 #include "TH1D.h"
+#include "TGraph.h"
+#include "TGraphErrors.h"
 #include "TTree.h"
 #include "TString.h"
 #include "TColor.h"
@@ -153,7 +155,7 @@ namespace helperFuncs{
     }
   }
   double find_min_x(TH1* h){
-      double min;
+      double min = 0;
       int nbins = h->GetNbinsX();
       for(int i=1; i<=nbins; i++){
           if(h->GetBinContent(i) > 0){
@@ -164,7 +166,7 @@ namespace helperFuncs{
       return min;
   }
   double find_max_x(TH1* h){
-      double max;
+      double max = 0;
       int nbins = h->GetNbinsX();
       for(int i=1; i<=nbins; i++){
           if(h->GetBinContent(i) > 0){
@@ -204,28 +206,45 @@ namespace helperFuncs{
       h->SetLineWidth(2);
     }
   }
+  void setLineStyle(TGraph* h, const int color, const int style) {
+    if(h != NULL){
+      h->SetLineColor(color);
+      h->SetLineStyle(style);
+      h->SetLineWidth(2);
+    }
+  }
+
+  void setLineStyle(TGraph* h, const Color_t color, const int style, const int markerstyle=1) {
+    if(h!= NULL){
+      h->SetLineColor(color);
+      h->SetLineStyle(style);
+      h->SetMarkerStyle(markerstyle);
+      h->SetMarkerColor(color);
+      h->SetLineWidth(2);
+    }
+  }
 
   void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const Double_t binContent, const Double_t binError = -99999 )
   {
     if(histo != NULL){
-      std::cout << "current histogram: " << histo->GetName() << std::endl;
-      std::cout << "\tchecking label to set for bin " << bin << ": " << binLabel << std::endl;
+      // std::cout << "current histogram: " << histo->GetName() << std::endl;
+      // std::cout << "\tchecking label to set for bin " << bin << ": " << binLabel << std::endl;
       TString finalLabel = binLabel;
       if(finalLabel.BeginsWith("CMS_ttH_")) finalLabel.ReplaceAll("CMS_ttH_","");
       histo->GetXaxis()->SetBinLabel(bin, finalLabel);
-      std::cout << "\tsetting label of bin " << bin << " to " << finalLabel << std::endl;
+      // std::cout << "\tsetting label of bin " << bin << " to " << finalLabel << std::endl;
       histo->GetXaxis()->LabelsOption("v");
       histo->GetXaxis()->SetLabelSize(0.04);
 
       histo->SetBinContent(bin, binContent);
-      std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
+      // std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
 
       double finalBinError = binError;
-      std::cout << "\tchecking error of bin " << bin << ": " << finalBinError << std::endl;
+      // std::cout << "\tchecking error of bin " << bin << ": " << finalBinError << std::endl;
       if( finalBinError == -99999) finalBinError = checkValues(histo->GetMeanError());
-      std::cout << "\tsetting error of bin " << bin << " to " << finalBinError << std::endl;
+      // std::cout << "\tsetting error of bin " << bin << " to " << finalBinError << std::endl;
       histo->SetBinError(bin, finalBinError);
-      std::cout << "done setting up histo bin!\n";
+      // std::cout << "done setting up histo bin!\n";
     }
   }
 
