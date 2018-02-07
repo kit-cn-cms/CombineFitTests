@@ -8,6 +8,8 @@
 #include "TLegend.h"
 #include "TCanvas.h"
 #include "TString.h"
+#include "TGraphErrors.h"
+#include "TMath.h"
 #include <vector>
 
 
@@ -16,6 +18,44 @@
 
 namespace drawPullPlots{
 
+  TGraphErrors* get_graph(const TH1* hist, const double& shift){
+        TGraphErrors* gr = new TGraphErrors();
+        TString name = hist->GetName();
+        name.Prepend("graph_");
+        gr->SetName(name.Data());
+        double x = 0;
+        double y = 0;
+        double e = 0;
+        for(int i=0; i< hist->GetNbinsX();i++)
+        {
+                x = hist->GetBinCenter(i+1)+shift;
+                y = hist->GetBinContent(i+1);
+                e = hist->GetBinError(i+1);
+                gr->SetPoint(i,x,y);
+                gr->SetPointError(i,TMath::Abs(shift)*0.8,e);
+        }
+        helperFuncs::setLineStyle(gr, hist->GetLineColor(), hist->GetLineStyle(), hist->GetMarkerStyle());
+        return gr;
+  }
+  void addToCanvas(TH1* h, TLegend* l, const TString legendlabel, const TString drawOpt, const TString writeOpt){
+      if(h != NULL){
+          TString legOpt = "lp";
+          if(drawOpt.Contains("HIST")) legOpt = "l";
+          h->Draw(drawOpt.Data());
+          l->AddEntry(h, legendlabel.Data(), legOpt.Data());
+          h->Write(writeOpt.Data());
+      }
+  }
+  void addToCanvas(TGraph* h, TLegend* l, const TString legendlabel, const TString drawOpt, const TString writeOpt){
+      if(h != NULL){
+          TString legOpt = "lp";
+          if(drawOpt.Contains("HIST")) legOpt = "l";
+          h->Draw(drawOpt.Data());
+          l->AddEntry(h, legendlabel.Data(), legOpt.Data());
+          h->Write(writeOpt.Data());
+      }
+  }
+  
   void drawPullPlots(const std::vector<TString>& listOfNPs,
     const TString& label,
     const std::vector<std::vector<Double_t> >& PostfitBvalsAndErrors,
@@ -25,13 +65,27 @@ namespace drawPullPlots{
     const double lowerBound=-3,
     const double upperBound=3,
     const TString& pathToShapeExpectationRootfile="",
-    const TString& categoryName="")
+    const TString& categoryName="",
+    const bool drawAsGraph = true)
     {
       if(PostfitBvalsAndErrors.size() != 0 && PostfitSBvalsAndErrors.size() != 0 && PrefitValsAndErrors.size() != 0)
       {
 
         TString* canvasName = NULL;
-        TCanvas canvas("pullplot", "pullplot", 900, 600);
+        //std::cout << "setting canvas name to " << label << std::endl;
+        canvasName = new TString(label);
+        //std::cout << "\tsuccess!\n";
+        //std::cout << "canvasName = " << canvasName->Data() << std::endl;
+        if(canvasName->Contains(" ")) canvasName->ReplaceAll(" ", "_");
+        if(canvasName->Contains("=")) canvasName->ReplaceAll("=", "_");
+        if(canvasName->Contains(".")) canvasName->ReplaceAll(".", "p");
+        
+        canvasName->Prepend(outLabel+"pullplot_");
+        // canvasName->Append(".root");
+        TString outputRootName = *canvasName + ".root";
+        //std::cout << "canvas name: " << *canvasName << std::endl;
+        TFile* outputRoot = TFile::Open(outputRootName.Data(), "RECREATE");
+        TCanvas canvas("pullplot", "pullplot", 3500, 2200);
 
 
         TH1D* hExpectation = NULL;
@@ -51,6 +105,7 @@ namespace drawPullPlots{
         TFile* expectationFile = NULL;
         if(!pathToShapeExpectationRootfile.EqualTo("")) expectationFile = new TFile(pathToShapeExpectationRootfile, "READ");
         TTree* tree = NULL;
+        std::vector<TGraphErrors*> graphs;
 
         double prescaleVal = 0;
         double postscaleVal = 0;
@@ -61,20 +116,6 @@ namespace drawPullPlots{
         double ratio = 0;
         double signalStrength = 0;
         TString* helperString = NULL;
-        
-        //std::cout << "setting canvas name to " << label << std::endl;
-        canvasName = new TString(label);
-        //std::cout << "\tsuccess!\n";
-        //std::cout << "canvasName = " << canvasName->Data() << std::endl;
-        if(canvasName->Contains(" ")) canvasName->ReplaceAll(" ", "_");
-        if(canvasName->Contains("=")) canvasName->ReplaceAll("=", "_");
-        if(canvasName->Contains(".")) canvasName->ReplaceAll(".", "p");
-        
-        canvasName->Prepend(outLabel+"pullplot_");
-        // canvasName->Append(".root");
-        TString outputRootName = *canvasName + ".root";
-        //std::cout << "canvas name: " << *canvasName << std::endl;
-        TFile* outputRoot = TFile::Open(outputRootName.Data(), "RECREATE");
         
         helperString = new TString(label);
         std::cout << "helperString: " << helperString->Data() << std::endl;
@@ -189,8 +230,9 @@ namespace drawPullPlots{
         if(hExpectation != NULL)
         {
           helperFuncs::setLineStyle(hExpectation, kRed, 2);
-          legend->AddEntry(hExpectation, "Expected Norm Ratio", "l");
+          // legend->AddEntry(hExpectation, "Expected Norm Ratio", "l");
         }
+        
         helperFuncs::setLineStyle(hPrefitMeans, kBlack, 2);
         helperFuncs::setLineStyle(hPrefitMedians, kBlack, 2);
 
@@ -206,43 +248,36 @@ namespace drawPullPlots{
 
         hPrefitMeans->GetYaxis()->SetRangeUser(lowerBound,upperBound);
         hPrefitMeans->GetYaxis()->SetTitle("#theta_{postfit} - #theta_{prefit}");
+        hPrefitMeans->GetYaxis()->SetTitleOffset(1.);
         hPrefitMeans->GetXaxis()->SetLabelSize(0.02);
-        hPrefitMeans->Draw("HIST");
-        hPrefitMeans->Write("prefit");
-        if(hExpectation != NULL) 
-        {
-            hExpectation->Draw("HISTsame");
-            hExpectation->Write();
-        }
-        //hPrefitMedians->Draw("PE1same");
-        std::cout << "drew prefit histo\n";
-        hPostfitBmeans->Draw("PE1same");
-        hPostfitBmeans->Write("postfitBmeans");
-        if(hPostfitBmeansWithFitErrors != NULL) 
-        {
-            hPostfitBmeansWithFitErrors->Draw("PEsame");
-            hPostfitBmeansWithFitErrors->Write("postfitBmeans_fittedError");
-        }
-        //hPostfitBmedians->Draw("PE1same");
-        std::cout << "drew postfit b\n";
-        hPostfitSBmeans->Draw("PE1same");
-        hPostfitSBmeans->Write("postfitSBmeans");
         
-        if(hPostfitSBmeansWithFitErrors != NULL) 
+        addToCanvas(hPrefitMeans, legend, "Prefit Means", "HIST", "prefit");
+        double binwidth = hPrefitMeans->GetBinWidth(1);
+        
+        addToCanvas(hExpectation, legend, "Expected Norm Ratio", "HISTsame", "expected_norm_ratio");
+        std::cout << "drew prefit histo\n";
+        
+        if(!drawAsGraph)
         {
-            hPostfitSBmeansWithFitErrors->Draw("PEsame");
-            hPostfitSBmeansWithFitErrors->Write("postfitSBmeans_fittedError");
+                addToCanvas(hPostfitBmeans, legend, "B-only fit Means + Mean Error", "PE1same","postfitBmeans");
+                // addToCanvas(hPostfitBmedians, legend, "B-only fit Medians + RMS", "PE1same","postfitBmedians");
+                
+                addToCanvas(hPostfitBmeansWithFitErrors, legend, "B-only fit Means + Fitted Error", "PEsame", "postfitBmeans_fittedError");
+                std::cout << "drew postfit b\n";
+                
+                addToCanvas(hPostfitSBmeans, legend, "S+B fit Means + Mean Error", "PE1same", "postfitSBmeans");
+                // addToCanvas(hPostfitSBmedians, legend, "S+B fit Medians + RMS", "PE1same", "postfitSBmedians");
+                
+                addToCanvas(hPostfitSBmeansWithFitErrors, legend, "S+B fit Means + Fitted Error", "PEsame", "postfitSBmeans_fittedError");
         }
-        //hPostfitSBmedians->Draw("PE1same");
+        else{
+                graphs.push_back(get_graph(hPostfitBmeansWithFitErrors, 0.2*binwidth));
+                addToCanvas(graphs.back(), legend, "B-only fit Means + Mean Error", "PEsame","postfitBmeans");
+                graphs.push_back(get_graph(hPostfitSBmeansWithFitErrors, -0.2*binwidth));
+                addToCanvas(graphs.back(), legend, "S+B fit Means + Fitted Error", "PEsame", "postfitSBmeans_fittedError");
+        }
+        
         std::cout << "drew postfit s+b\n";
-
-        legend->AddEntry(hPrefitMeans, "Prefit Means", "l");
-        legend->AddEntry(hPostfitBmeans, "B-only fit Means + Mean Error", "lp");
-        //legend->AddEntry(hPostfitBmedians, "B-only fit Medians + RMS", "lp");
-        if(hPostfitBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitBmeansWithFitErrors, "B-only fit Means + Fitted Error", "l");
-        legend->AddEntry(hPostfitSBmeans, "S+B fit Means + Mean Error", "lp");
-        //legend->AddEntry(hPostfitSBmedians, "S+B fit Medians + RMS", "lp");
-        if(hPostfitSBmeansWithFitErrors != NULL) legend->AddEntry(hPostfitSBmeansWithFitErrors, "S+B fit Means + Fitted Error", "l");
 
         legend->SetFillStyle(1001);
         legend->Draw("Same");
@@ -256,7 +291,7 @@ namespace drawPullPlots{
         canvas.SetGridx();
         canvas.Modified();
         
-        canvas.Write(*canvasName);
+        canvas.Write();
         canvas.SaveAs(*canvasName+".pdf");
         
         std::cout << "saved canvas successfully\n";
@@ -276,8 +311,9 @@ namespace drawPullPlots{
         {
           hExpectation->Reset();
         }
+        for(auto& g : graphs) delete g;
         legend->Clear();
-        canvas.Clear();
+        // canvas.Clear();
         if(canvasName != NULL) delete canvasName;
         std::cout << "cleared everything\n";
         std::cout << "checking expectationFile\n";
