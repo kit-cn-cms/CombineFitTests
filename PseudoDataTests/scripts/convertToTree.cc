@@ -12,6 +12,7 @@
 #include "TTree.h"
 #include "TDirectory.h"
 #include "TDirectoryFile.h"
+#include "TUUID.h"
 
 using namespace std;
 
@@ -136,6 +137,7 @@ void change(TFile* file, int mod = 0, TDirectoryFile* Fpostb = NULL, TDirectoryF
 	}
 	Fpostb->Write();
 	Fcorr->Write();
+	delete fitb;
 }
 
 bool checkFitStatus(TFile* file){

@@ -5,19 +5,20 @@
 #include "TTree.h"
 #include "TFile.h"
 
+
 int chaining(TString Filename = "fitDiagnosics1.root", TString Output = "combined_fits.root")
 {
-	TString firstfile = Filename;
-	while(firstfile.MaybeWildcard())
+	TString* firstfile = new TString(Filename);
+	while(firstfile->MaybeWildcard())
 	{
-		int aces = firstfile.Index("*",1);
-		firstfile.Replace(aces,1,"1");
+		int aces = firstfile->Index("*",1);
+		firstfile->Replace(aces,1,"1");
 	}
 	// Loading first file as a sample, to dynamically create the right amount of TChains
-	TFile* Samplefile = new TFile(firstfile.Data());
+	TFile* Samplefile = new TFile(firstfile->Data());
 
 	// Creating File, to store all the collected Trees
-	TFile* output = new TFile(Output.Data(),"RECREATE");
+	TFile* output = new TFile(Output.Data(),"RECREATE"); // <- FIX ME!!! It'd be nice to have some sort of dynamic naming of the files, maybe something with the allready generated "firstfile"
 
 	// Creating sample list
 	TList* Lsamples = (TList*) Samplefile->GetListOfKeys();
@@ -35,13 +36,11 @@ int chaining(TString Filename = "fitDiagnosics1.root", TString Output = "combine
 		while((Lsub->GetSize()!=0)&&(!TString(Dlayer1->Get(Lsub->Last()->GetName())->ClassName()).Contains("TDirectoryFile")))
 		{
 			// Generating location name for chain
-			TString Spath = TString(Lsamples->Last()->GetName());
-			Spath.Append("/");
-			Spath.Append(Lsub->Last()->GetName());
-			// Calling Chain
-			TChain* temp = new TChain(Spath.Data());
+			TString* Spath = new TString(Lsamples->Last()->GetName());
+			Spath->Append("/");
+			Spath->Append(Lsub->Last()->GetName());
+			TChain* temp = new TChain(Spath->Data());
 			temp->Add(Filename.Data());
-			// retrieving TTree
 			Ttemp =(TTree*) temp->CloneTree(-1);
 			Ftemp->Add(Ttemp);
 			Lsub->RemoveLast();
@@ -49,6 +48,7 @@ int chaining(TString Filename = "fitDiagnosics1.root", TString Output = "combine
 		Ftemp->Write();
 		Lsamples->RemoveLast();
 		delete Ftemp;
+
 	}
 	output->Close();
 	return 0;

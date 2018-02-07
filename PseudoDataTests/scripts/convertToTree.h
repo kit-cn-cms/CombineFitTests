@@ -30,8 +30,6 @@ TDirectoryFile* shapes(TFile* file, int mode =0)
         else if(mode == 2){file->GetObject("shapes_fit_s",Ddirect);
 		folder = new TDirectoryFile("shapes_fit_s","shapes_fit_s");}
 
-	Ddirect->Print();
-
 	TDirectoryFile* Dirsub;
 
 	TList* List = (TList*) Ddirect->GetListOfKeys();
@@ -138,7 +136,6 @@ void change(TFile* file, int mod = 0, TDirectoryFile* Fpostb = NULL, TDirectoryF
 	}
 	Fpostb->Write();
 	Fcorr->Write();
-	delete fitb;
 }
 
 bool checkFitStatus(TFile* file){
@@ -215,7 +212,7 @@ bool checkCovarianceMatrix(TFile* file){
 }
 
 
-void TConvert(TString filename = "fitDiagnostics",TString savehere = "none" , TString outputopt = "_test")
+void TConvert(TString filename = "fitDiagnostics",TString savehere = "none" , TString outputopt = "")
 {
 	TString readfile = filename;
 	readfile.Append(".root");
@@ -223,20 +220,16 @@ void TConvert(TString filename = "fitDiagnostics",TString savehere = "none" , TS
 	if( read->IsOpen() && !read->IsZombie() && !read->TestBit(TFile::kRecovered)){
 		if( checkCovarianceMatrix(read) && checkFitStatus(read))
 		{
-			filename.Remove(0,filename.Last('/'));
 			filename.Append(outputopt.Data());
-			TString savedir;
+			filename.Append("_test.root");
 			// This will change the directory in which the resulting file is saved. This is usefull if you need to collect several files in a single folder. By default it is switched off
 			if(!savehere.Contains("none"))
 				{
-				savedir = TString("/nfs/dust/cms/user/firin/bachelor/CombineFitTests/PseudoDataTests/scripts/");
+				TString savedir = TString("/nfs/dust/cms/user/firin/bachelor/CombineFitTests/PseudoDataTests/scripts/");
 				savedir.Append(savehere.Data());
-				savedir.Append(filename.Data());
+				chdir(savedir.Data());
 				}
-			else savedir = filename;
-			std::cout << savedir << std::endl;
-			savedir.Append(".root");
-			TFile* output = new TFile(savedir.Data(),"RECREATE");
+			TFile* output = new TFile(filename.Data(),"RECREATE");
 			TDirectoryFile* Ffitpre;
 			TDirectoryFile* Ffitbac;
 			TDirectoryFile* Ffitsig;
@@ -249,7 +242,7 @@ void TConvert(TString filename = "fitDiagnostics",TString savehere = "none" , TS
 			change(read,0,Ffitpre,Fcorpre);
 			change(read,1,Ffitbac,Fcorbac);
 			change(read,2,Ffitsig,Fcorsig);
-
+		
 			Fshapepre->Write();
 			Fshapebac->Write();
 			Fshapesig->Write();

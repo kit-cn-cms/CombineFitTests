@@ -417,14 +417,14 @@ def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript.append('\t\tif [[ -d PseudoExperiment$i ]]; then')
     shellscript.append('\t\t\tcd PseudoExperiment$i\n')
 
-<<<<<<< HEAD
+
     shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $((i+' + str(startSeed) + ')) $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
 
-=======
+
     # shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
     shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength -1 $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
     
->>>>>>> b9cd5d9a9d0fa3ad7d9fca9ee09398b49fa68b75
+
     shellscript.append('\t\t\tcd ../\n')
     shellscript.append('\t\telse')
     shellscript.append('\t\t\t echo "Could not generate folder PseudoExperiment$i in $outputPath"')

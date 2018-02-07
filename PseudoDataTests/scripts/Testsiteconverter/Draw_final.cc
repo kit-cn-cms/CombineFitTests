@@ -55,7 +55,7 @@ int CreateHist(TString  file = "newfile.root")
                         // Setting Adresses
                         Ttemp->SetBranchAddress("Value",&val);
                         Ttemp->SetBranchAddress("Error",&err);
-                        Ttemp->SetBranchAddress("Hish Error",&hie);
+                        Ttemp->SetBranchAddress("High Error",&hie);
                         Ttemp->SetBranchAddress("Low Error",&loe);
                         // Creating Histogramms
 			TH1D* HistVal = new TH1D((TString("Value").Append(Ttemp->GetName())).Data(),"Values",1000,0,5);
@@ -66,23 +66,19 @@ int CreateHist(TString  file = "newfile.root")
                         for(int i = 0; i < Ttemp->GetEntries(); ++i)
                         {
                                 Ttemp->GetEntry(i);
-                                HistVal.Fill(val);
-                                HistErr.Fill(err);
-                                HistHiE.Fill(hie);
-                                HistLoE.Fill(loe);
+                                HistVal->Fill(val);
+                                HistErr->Fill(err);
+                                HistHiE->Fill(hie);
+                                HistLoE->Fill(loe);
                         }
 
-                        HDir->Add(&HistVal);
-			HDir->Add(&HistErr);
-			HDir->Add(&HistHiE);
-			HDir->Add(&HistLoE);
+                        HDir->Add(HistVal);
+			HDir->Add(HistErr);
+			HDir->Add(HistHiE);
+			HDir->Add(HistLoE);
                         // Removing last entry from tlist
                         tList->RemoveLast();
                 }
-		HistVal.~TH1D();
-		HistErr.~TH1D();
-		HistHiE.~TH1D();
-		HistLoE.~TH1D();
                 HDir->Write();
                 }
                 // Removing last entry of list

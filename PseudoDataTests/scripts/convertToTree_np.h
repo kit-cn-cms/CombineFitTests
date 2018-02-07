@@ -138,7 +138,6 @@ void change(TFile* file, int mod = 0, TDirectoryFile* Fpostb = NULL, TDirectoryF
 	}
 	Fpostb->Write();
 	Fcorr->Write();
-	delete fitb;
 }
 
 bool checkFitStatus(TFile* file){
