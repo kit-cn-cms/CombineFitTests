@@ -138,6 +138,11 @@ dest = "range",
 default = 10.0,
 type = "float"
 )
+group_globalOptions.add_option("--nToysPerRun",
+help = "set number of toys that are generated for each call of the generated shell scrip OUTPUT/temp/generateToysAndFits.sh (default = 1). Careful: If you do this, the post-fit values are in a TTree, not in the RooFitResult object!",
+type = "int",
+default = 1
+dest = toyMode)
 
 parser.add_option_group(group_required)
 parser.add_option_group(group_globalOptions)
@@ -181,7 +186,7 @@ for mu in listOfMus:
 #set up parameters for toy generation here
 numberOfToys = options.numberOfToys
 numberOfToysPerJob = options.nPerJob
-toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
+toyMode = options.toyMode #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
 if options.asimov:
     toyMode = -1
     if verbose:
@@ -285,10 +290,13 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     mlfitCmd += "-m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 "
     mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
     mlfitCmd += "--cminDefaultMinimizerTolerance 1e-5 "
-    mlfitCmd += "--saveNormalizations --saveShapes "
     if not murange == 0:
         mlfitCmd += "--rMin=$rMin --rMax=$rMax "
-    mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile --minos all "
+    mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile "
+    #time consuming commands
+    # mlfitCmd += "--saveNormalizations --saveShapes "
+    mlfitCmd += "--minos all "
+    # mlfitCmd += "--minos none "
     # mlfitCmd += "--robustFit 1 "
     if additionalFitCmds is not None:
         for cmd in additionalFitCmds:
@@ -299,6 +307,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     mswExists = pathToMSworkspace is not None and not pathToMSworkspace == ""
     shellscript = []
     shellscript.append('#!/bin/bash')
+    shellscript.append('ulimit -s unlimited')
     shellscript.append('pathToCMSSWsetup='+pathToCMSSWsetup)
     shellscript.append('if [[ -f "$pathToCMSSWsetup" ]]; then\n')
 
@@ -730,11 +739,14 @@ def checkForMSworkspace(pathToDatacard, POImap):
     PathToMSDatacard = pathToDatacard
     msworkspacePath = ""
     if not( POImap is None or POImap == ""):
+        pathparts = PathToMSDatacard.split(".")
+        extension = "."+pathparts[-1]
         for mapping in POImap:
             containsPOIname = mapping.split(":")[-1]
             POIname = containsPOIname.split("[")[0]
-            PathToMSDatacard = PathToMSDatacard.replace(".txt", "_"+POIname+".txt")
-        msworkspacePath = PathToMSDatacard.replace(".txt","_multisig.root")
+            PathToMSDatacard = PathToMSDatacard.replace(extension, "_"+POIname+extension)
+        msworkspacePath = PathToMSDatacard.replace(extension,"_multisig.root")
+        print "checking for multi signal workspace in", msworkspacePath
         if os.path.exists(PathToMSDatacard):
             if not os.path.exists(msworkspacePath) or doWorkspaces:
                 bashCmd = "source {0} ;".format(pathToCMSSWsetup)
@@ -827,6 +839,7 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
         pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
+        print ""
         print "checking if all datacards are workspaces"
         
         temp = check_workspace(pathToDatacard)
