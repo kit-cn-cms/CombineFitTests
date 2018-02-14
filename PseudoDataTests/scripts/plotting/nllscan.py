@@ -7,6 +7,7 @@ import subprocess
 import imp
 import shutil
 from optparse import OptionParser
+from math import fsum
 
 basedir = os.path.dirname(os.path.abspath(sys.argv[0]))
 helperpath = os.path.join(basedir, "../base")
@@ -76,7 +77,8 @@ def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
     if additionalCmds:
         multidimfitcmd.append(" ".join(additionalCmds))
         
-    multidimfitcmd.append('--rMin -10 --rMax 10 --saveFitResult')
+    multidimfitcmd.append('--rMin -10 --rMax 10')
+    multidimfitcmd.append('--saveFitResult')
     multidimfitcmd.append('--saveInactivePOI 1')
         
     if unconstrained:
@@ -196,11 +198,12 @@ def do_fits():
     lines.append('  source "$pathToCMSSW"')
     cmds = ["python"]
     cmds += sys.argv
-    indeces = [i for i,x in enumerate(cmds) if (x == "-a" or x =="--addCommand")]
+    indeces = [i for i,x in enumerate(cmds) if (x == "-a" or x =="--addCommand" or x == "--setXtitle" or x == "--setYtitle")]
     for index in indeces:
         cmds[index+1] = '"{0}"'.format(cmds[index+1])
     cmds.append("--directlyDrawFrom")
-    cmds.append(",".join(results))
+    # cmds.append(",".join(results))
+    cmds.append('"{0}/higgsCombine*.MultiDimFit.*.root"'.format(foldername))
     cmds.append("--runLocally")
     cmd = " ".join(cmds)
     lines.append("  cmd='{0}'".format(cmd))
@@ -221,27 +224,57 @@ def do_fits():
     else:
         sys.exit("Could not write script to merge files!")
 
-def get_cl_value(cl):
-    infile = ROOT.TFile(fitresFile)
-    w = infile.Get("w")
-    npois = 1
-    if isinstance(w, ROOT.RooWorkspace):
-        mc = w.obj("ModelConfig")
-        if isinstance(mc, ROOT.RooStats.ModelConfig):
-            npois = mc.GetParametersOfInterest().getSize()
+def get_cl_value(cl, npois = None):
+    """
+    Find confidence level value \Delta\chi^2/2*\Delta\ln L for
+    specific coverage probability. 
+    Source: http://pdg.lbl.gov/2017/reviews/rpp2017-rev-statistics.pdf
+    If requested probabilty is not defined in the dictionaries, the
+    return value is None.
     
+    cl      -   coverage probability string (e.g. 68%)
+    """
+    if not npois:
+        #open workspace to get # of fitted POIs (#POIs) from ModelConfig
+        infile = ROOT.TFile(fitresFile)
+        w = infile.Get("w")
+        npois = 1
+        if isinstance(w, ROOT.RooWorkspace):
+            mc = w.obj("ModelConfig")
+            if isinstance(mc, ROOT.RooStats.ModelConfig):
+                npois = mc.GetParametersOfInterest().getSize()
+    
+    #confidence level dictionary. Keys are the number of fitted POI
     cldict = {
         1: {
-            "68%" : 1,
-            "95%" : 4
+            "68.27%"       : 1,
+            "90%"       : 2.71,
+            "95%"       : 3.84,
+            "95.45%"    : 4,
+            "99%"       : 6.63,
+            "99.73%"    : 9
         },
         2: {
-            "68%" : 2.297,
-            "95%" : 5.991
+            "68.27%"       : 2.30,
+            "90%"       : 4.61,
+            "95%"       : 5.99,
+            "95.45%"    : 6.18,
+            "99%"       : 9.21,
+            "99.73%"    : 11.83
+        },
+        3: {
+            "68.27%"       : 3.53,
+            "90%"       : 6.25,
+            "95%"       : 7.82,
+            "95.45%"    : 8.03,
+            "99%"       : 11.34,
+            "99.73%"    : 14.16
         }
     }
     
+    #check if #POIs is in the confidence level dictionary
     if npois in cldict:
+        #check if requested coverage probability is in the dictionary
         cls = cldict[npois]
         if cl in cls:
             return cls[cl]
@@ -253,7 +286,7 @@ def get_cl_value(cl):
         
 def find_crossing(graph, cl, start, stop, granularity = 1e-3):
     if graph and cl:
-        stepsize = 0.0001
+        stepsize = 1e-6
         deltabest = 9999
         epsilon = granularity
         print "looking for crossing at {0} in interval [{1}, {2}]".format(cl, start, stop)
@@ -311,6 +344,18 @@ def create_straight_line(val, minVal, maxVal, style, mode = "horizontal"):
             print "received no bounds for line to draw in!"
         return None
 
+def create_contours(h, clStyles):
+    lines = []
+    for clname in clStyles:
+        hist = graph.GetHistogram().Clone("{0}_{1}".format(graph.GetName(), clname))
+        hist.SetContour(1)
+        hist.SetContourLevel(0,get_cl_value(cl = clname))
+        hist.SetLineColor(ROOT.kBlack)
+        hist.SetLineWidth(3)
+        hist.SetLineStyle(clStyles[clname])
+        lines.append(hist.Clone("clone_" + hist.GetName()))
+    return lines
+
 def create_parabola(xmin, xmax, xbest, ybest=None):
     
     # formular = formular.replace("\n", "")
@@ -339,14 +384,60 @@ def create_parabola(xmin, xmax, xbest, ybest=None):
     parabel.SetLineColor(ROOT.kBlack)
     return parabel
 
-def create_lines(   graph, xbest, clStyles, granularity,
-                    ybest = None, ymin = None, ymax = None):
+def create_lines_from_RooFitResult(var, pathToErrors, xmin, xmax, ymin,ymax):
+    clresults = {}
+    style = 2
+    clname = "68.27%"
+    if intact_root_file(pathToErrors):
+        f = ROOT.TFile.Open(pathToErrors)
+        fit_s = f.Get("fit_s")
+        if isinstance(fit_s, ROOT.RooFitResult):
+            results = fit_s.floatParsFinal().find(var)
+            if isinstance(results, ROOT.RooRealVar):
+
+                x_down = results.getVal() + results.getErrorLo()
+                x_up = results.getVal() + results.getErrorHi()
+                vals = [x_down, x_up]
+                lines = []
+                line_hor = create_straight_line(val = get_cl_value(cl = clname, npois = 1),
+                                                                minVal = xmin,
+                                                                maxVal = xmax,
+                                                                mode = "horizontal",
+                                                                style = style)
+                if line_hor:
+                    lines.append(line_hor.Clone())
+                
+                line_down = create_straight_line(   val = x_down,
+                                                    minVal = ymin,
+                                                    maxVal = ymax,
+                                                    mode = "vertical",
+                                                    style = style)                                 
+                if line_down:
+                    lines.append(line_down.Clone())
+                
+                line_up = create_straight_line( val = x_up,
+                                                minVal = ymin,
+                                                maxVal = ymax,
+                                                mode = "vertical",
+                                                style = style)
+                if line_up:
+                    lines.append(line_up.Clone())
+                clresults[clname] = {"lines" : lines, "vals" : vals}
+            else:
+                print "could not load var {0} from {1}".format(var, pathToErrors)
+        else:
+            print "could not load RooFitResult object from", pathToErrors
+    else:
+        print "root file is damaged!"
+    return clresults
+
+def create_lines(   graph, xbest, clStyles, granularity, ybest = None,
+                    ymin = None, ymax = None):
     
     clresults = {}
     
     parabel = None
-    if isinstance(graph, ROOT.TGraph) and not isinstance(graph, ROOT.TGraph2D):
-        npoints = graph.GetN()
+    if isinstance(graph, ROOT.TGraph) or isinstance(graph, ROOT.TProfile):
         xmin = graph.GetXaxis().GetXmin()
         xmax = graph.GetXaxis().GetXmax()
         
@@ -355,87 +446,124 @@ def create_lines(   graph, xbest, clStyles, granularity,
         print "fitted parabola with #chi^2/ndf =", parabel.GetChisquare()/parabel.GetNDF()
         print "probability:", parabel.GetProb()
         parabel.Draw("same")
-    for clname in clStyles:
-        lines = []
-        vals = []
-        if isinstance(parabel, ROOT.TF1):
-            x_down = None
-            x_up = None
-            if not xbest == None:
-                x_down = find_crossing( graph = parabel,
-                                        cl = get_cl_value(clname), 
-                                        start = xbest, 
-                                        stop = xmin,
-                                        granularity = granularity)
-                if not x_down == None:
-                    vals.append(x_down)
-                else:
-                    vals.append("none")
-                x_up = find_crossing(   graph = parabel,
-                                        cl = get_cl_value(clname), 
-                                        start = xbest, 
-                                        stop = xmax,
-                                        granularity = granularity)
-                if not x_up == None:
-                    vals.append(x_up)
-                else:
-                    vals.append("none")
-                print vals
-            line_hor = create_straight_line(val = get_cl_value(clname),
-                                            minVal = xmin,
-                                            maxVal = xmax,
-                                            mode = "horizontal",
-                                            style = clStyles[clname])
-            if line_hor:
-                lines.append(line_hor.Clone())
-            
-            line_down = create_straight_line(   val = x_down,
+        for clname in clStyles:
+            lines = []
+            vals = []
+            if isinstance(parabel, ROOT.TF1):
+                x_down = None
+                x_up = None
+                if not xbest == None:
+                    x_down = find_crossing( graph = parabel,
+                                            cl = get_cl_value(clname, 1), 
+                                            start = xbest, 
+                                            stop = xmin,
+                                            granularity = granularity)
+                    if not x_down == None:
+                        vals.append(x_down)
+                    else:
+                        vals.append("none")
+                    x_up = find_crossing(   graph = parabel,
+                                            cl = get_cl_value(clname,1), 
+                                            start = xbest, 
+                                            stop = xmax,
+                                            granularity = granularity)
+                    if not x_up == None:
+                        vals.append(x_up)
+                    else:
+                        vals.append("none")
+                    print vals
+                line_hor = create_straight_line(val = get_cl_value(cl = clname, npois = 1),
+                                                minVal = xmin,
+                                                maxVal = xmax,
+                                                mode = "horizontal",
+                                                style = clStyles[clname])
+                if line_hor:
+                    lines.append(line_hor.Clone())
+                
+                line_down = create_straight_line(   val = x_down,
+                                                    minVal = ymin,
+                                                    maxVal = ymax,
+                                                    mode = "vertical",
+                                                    style = clStyles[clname])                                 
+                if line_down:
+                    lines.append(line_down.Clone())
+                
+                line_up = create_straight_line( val = x_up,
                                                 minVal = ymin,
                                                 maxVal = ymax,
                                                 mode = "vertical",
-                                                style = clStyles[clname])                                 
-            if line_down:
-                lines.append(line_down.Clone())
-            
-            line_up = create_straight_line( val = x_up,
-                                            minVal = ymin,
-                                            maxVal = ymax,
-                                            mode = "vertical",
-                                            style = clStyles[clname])
-            if line_up:
-                lines.append(line_up.Clone())
-            clresults[clname] = {"lines" : lines, "vals" : vals}
-            
-        elif isinstance(graph, ROOT.TGraph2D):
-            hist = graph.GetHistogram().Clone("{0}_{1}".format(graph.GetName, clname))
-            hist.SetContour(1)
-            hist.SetContourLevel(0,get_cl_value(cl = clname))
-            hist.SetLineColor(ROOT.kBlack)
-            hist.SetLineWidth(3)
-            hist.SetLineStyle(clStyles[clname])
-            lines.append(hist.Clone("clone_" + hist.GetName()))
-            clresults[clname] = lines
+                                                style = clStyles[clname])
+                if line_up:
+                    lines.append(line_up.Clone())
+                clresults[clname] = {"lines" : lines, "vals" : vals}
                     
     return clresults
 
 def save_output(canvas, graph, name):
     canvas.SaveAs(name + ".pdf")
     canvas.SaveAs(name+".png")
-    canvas.SaveAs(name + "_canvas.root")
-    graph.SaveAs(name + ".root")
+    # canvas.SaveAs(name + "_canvas.root")
+    # graph.SaveAs(name + ".root")
+
+def treat_special_chars(string):
+    string = string.replace("#", "")
+    string = string.replace(" ", "_")
+    string = string.replace("{", "")
+    string = string.replace("}", "")
+    return string
+
+def fill_graph(graph, xVals, yVals, zVals = None):
+    if isinstance(graph, ROOT.TGraph):
+        for i in range(len(xVals)):
+            if zVals is not None:
+                graph.SetPoint(i, xVals[i], yVals[i], zVals[i])
+            else:
+                graph.SetPoint(i, xVals[i], yVals[i])
+    elif isinstance(graph, ROOT.TProfile):
+        for i in range(len(xVals)):
+            if zVals is not None:
+                graph.Fill(xVals[i], yVals[i], zVals[i])
+            else:
+                graph.Fill(xVals[i], yVals[i])
+    else:
+        sys.exit("could not fill graph! Aborting")
+
+def set_titles(graph, xtitle, ytitle, ztitle = None):
+    if isinstance(graph, ROOT.TGraph):
+        graph.GetHistogram().GetXaxis().SetTitle(xtitle)
+        graph.GetHistogram().GetYaxis().SetTitle(ytitle)
+        if ztitle is not None:
+            graph.GetHistogram().GetZaxis().SetTitle(ztitle)
+        
+    elif isinstance(graph, ROOT.TProfile):
+        graph.GetXaxis().SetTitle(xtitle)
+        graph.GetYaxis().SetTitle(ytitle)
+        if ztitle is not None:
+            graph.GetZaxis().SetTitle(ztitle)
+    else:
+        print "WARNING! Could not set axis titles!"
+    graph.SetTitle("Scan of {0} over {1}".format(ytitle, xtitle))
 
 def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
-                xtitle = None, ytitle = None):
-    cls = { "68%" : 2,  #68%
-            "95%" : 3}  #95%     
+                xtitle = None, ytitle = None, pathToErrors = None,
+                doProfile = False):
+    cls = { "68.27%"    : 2,  
+            # "95%"       : 3
+            }       
     if xtitle == None:
         xtitle = xVar
     if ytitle == None:
         ytitle = yVar
+    if ytitle == "deltaNLL":
+        ytitle = '2#Delta NLL'
+    filename = "nllscan_{0}_{1}{2}".format(xtitle,ytitle, suffix)
+    filename = treat_special_chars(string = filename)
+    filename = outputDirectory + "/" + filename
+    outfile = ROOT.TFile(filename + ".root", "RECREATE")
     xVals = []
     yVals = []
-    xbest = None
-    ybest = 999999
+    listxbest = []
+    listybest = []
     for i, e in enumerate(limit):
         x = eval("e." + xVar)
         y = eval("e." + yVar)
@@ -450,39 +578,59 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
             xVals.append(x)
             yVals.append(y)
             
-        if i == 0:
-            xbest = xVals[-1]
-            ybest = yVals[-1]
+        if y == 0:
+            listxbest.append(xVals[-1])
+            listybest.append(yVals[-1])
     
+    if len(listxbest) == 0:
+        xbest = None
+    else:
+        xbest = fsum(listxbest)/len(listxbest)
+    if len(listybest) == 0:
+        ybest = None
+    else:
+        ybest = fsum(listybest)/len(listybest)
     print "found best fit point at (x, y) = ({0}, {1})".format(xbest, ybest)
     
     # c = helperfuncs.getCanvas()
-    c = ROOT.TCanvas()
-    graph = ROOT.TGraph(len(xVals))
-    for i in range(len(xVals)):
-        graph.SetPoint(i, xVals[i], yVals[i])
-    graph.GetXaxis().SetTitle(xtitle)
-    if ytitle == "deltaNLL":
-        ytitle = '2#Delta NLL'
-        
     xmin = min(xVals)
     xmax = max(xVals)
-    ymin = min(yVals)
-    ymax = max(yVals)
-    leg = helperfuncs.getLegend()
     
-    graph.GetYaxis().SetTitle(ytitle)
-    graph.SetTitle("Scan of {0} over {1}".format(ytitle, xtitle))
-    graph.Sort()
+    c = ROOT.TCanvas()
+    graph = None
+    if doProfile:
+        nx = int(round((xmax - xmin)*100,0))
+        graph = ROOT.TProfile("profile1D",";;", nx, xmin, xmax)
+    else:
+        graph = ROOT.TGraph(len(xVals))
+    fill_graph(graph = graph, xVals= xVals, yVals = yVals)
+    
+    leg = helperfuncs.getLegend()
+    set_titles(graph = graph, xtitle = xtitle, ytitle = ytitle)
+    if isinstance(graph, ROOT.TGraph):
+        graph.Sort()
     graph.Draw()
+    ymin = graph.GetYaxis().GetXmin()
+    if isinstance(graph, ROOT.TGraph):
+        
+        ymax = graph.GetYaxis().GetXmax()
+    else:
+        ymax = graph.GetBinContent(graph.GetMaximumBin())
+    graph.Write("nllscan")
     if ytitle == '2#Delta NLL':
         print "creating TF1 in range [{0}, {1}]".format(xmin,xmax)
         print "y-axis range: [{0}, {1}]".format(ymin, ymax)
-        results = create_lines( graph = graph, xbest = xbest, 
-                                clStyles = cls, ymin = ymin, 
-                                ymax = ymax, ybest = ybest,
-                                granularity = granularity
-                                )
+        results = {}
+        if pathToErrors is not None:
+            results = create_lines_from_RooFitResult(var = xVar, 
+                                                    pathToErrors = pathToErrors,
+                                                    xmin = xmin, xmax = xmax,
+                                                    ymin = ymin, ymax = ymax)
+        if len(results) == 0:
+            results = create_lines( graph = graph, xbest = xbest, 
+                                    clStyles = cls, ymin = ymin, 
+                                    ymax = ymax, ybest = ybest,
+                                    granularity = granularity                                )
         for cl in results:
             lines = results[cl]["lines"]
             vals = results[cl]["vals"]
@@ -514,32 +662,36 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     bestfit.SetMarkerStyle(34)
     bestfit.SetMarkerSize(1.8)
     bestfit.Sort()
+    bestfit.Write("bestfit")
     bestfit.Draw("P")
     c.Modified()
     leg.AddEntry(bestfit, "Best Fit Value", "p")
     
     leg.Draw("Same")
-    filename = "nllscan_{0}_{1}{2}".format(xtitle,ytitle, suffix)
-    filename = filename.replace("#", "")
-    filename = filename.replace(" ", "_")
-    filename = outputDirectory + "/" + filename
-    
+        
     save_output(canvas = c, graph = graph, name = filename)
+    c.Write("canvas")
+    outfile.Close()
     
 def do2DScan(   limit, xVar, yVar, outputDirectory, suffix, 
-                xtitle= None, ytitle = None):
-    cls = { "68%" : 2,  #68%
-            "95%" : 3}  #95%
+                xtitle= None, ytitle = None, pathToErrors = None,
+                doProfile = False):
+    cls = { "68.27%"    : 2,  #68%
+            "95%"       : 3}  #95%
     if xtitle == None:
         xtitle = xVar
     if ytitle == None:
         ytitle = yVar
+    filename = ("nllscan_2D_{0}_{1}{2}").format(xtitle,ytitle, suffix)
+    filename = treat_special_chars(string = filename)
+    filename = outputDirectory + "/" + filename
+    outfile = ROOT.TFile(filename+".root", "RECREATE")
     xVals = []
     yVals = []
     zVals = []
-    xbest = 0
-    ybest = 0
-    zbest = 99999999
+    listxbest = []
+    listybest = []
+    listzbest = []
     for i, e in enumerate(limit):
         x = eval("e." + xVar)
         y = eval("e." + yVar)
@@ -551,33 +703,57 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
             xVals.append(x)
             yVals.append(y)
             zVals.append(2*z)
-            if i == 0:
-                xbest = xVals[-1]
-                ybest = yVals[-1]
-                zbest = zVals[-1]
+            if z == 0:
+                listxbest.append(xVals[-1])
+                listybest.append(yVals[-1])
+                listzbest.append(zVals[-1])
 
     c = ROOT.TCanvas()
-
-    graph = ROOT.TGraph2D()
-    for i in range(len(xVals)):
-        graph.SetPoint(i, xVals[i], yVals[i], zVals[i])
+    xbest = fsum(listxbest)/len(listxbest)
+    ybest = fsum(listybest)/len(listybest)
+    zbest = fsum(listzbest)/len(listzbest)
+    graph = None
+    if doProfile:
+        xmin = min(xVals)
+        xmax = max(xVals)
+        nx = int(round((xmax-xmin)*100,0))
+        if nx == 0:
+            nx = 10
+        ymin = min(yVals)
+        ymax = max(yVals)
+        ny = int(round((ymax-ymin)*100,0))
+        if ny == 0:
+            ny = 10
+        graph = ROOT.TProfile2D("profile2D", ";;", nx, xmin, xmax, ny, ymin, ymax)
+    else:
+        graph = ROOT.TGraph2D()
+    
+    fill_graph(graph = graph, xVals = xVals, yVals = yVals, zVals = zVals)
+    
     bestfit = ROOT.TGraph()
     bestfit.SetPoint(0, xbest, ybest)
     bestfit.SetMarkerStyle(34)
     bestfit.SetMarkerSize(1)
-    graph.GetHistogram().GetXaxis().SetTitle(xtitle)
-    graph.GetHistogram().GetYaxis().SetTitle(ytitle)
-    graph.GetHistogram().GetZaxis().SetTitle("2#Delta NLL")
-    graph.SetTitle("Scan of {0} over {1}".format(ytitle, xtitle))
+    
+    set_titles( graph = graph, xtitle = xtitle, ytitle = ytitle,
+                ztitle = "2#Delta NLL")
+    
+    
     graph.Draw("COLZ")
+    graph.Write("nllscan")
     bestfit.Draw("P")
+    bestfit.Write("bestfit")
     label = helperfuncs.getLegend()
     label.AddEntry(bestfit, "Best Fit Value", "p")
     contours = []
     for cl in cls:
         contourname = "countour_" + cl
         contourname = contourname.replace("%", "")
-        contours.append(graph.GetHistogram().Clone(contourname))
+        if isinstance(graph, ROOT.TGraph):
+            contours.append(graph.GetHistogram().Clone(contourname))
+        else:
+            contours.append(graph.Clone(contourname))    
+        
         contours[-1].SetContour(1)
         contours[-1].SetContourLevel(0,get_cl_value(cl = cl))
         contours[-1].SetLineStyle(cls[cl])
@@ -587,15 +763,14 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
     
     label.Draw("Same")
     c.SetMargin(0.25, 0.15, 0.15, 0.08);
-    filename = ("nllscan_2D_{0}_{1}{2}").format(xtitle,ytitle, suffix)
-    filename = filename.replace("#", "")
-    filename = filename.replace(" ", "_")
-    filename = outputDirectory + "/" + filename
     
     save_output(canvas = c, graph = graph, name = filename)
+    c.Write("canvas")
+    outfile.Close()
 
 def merge_files(filelist):
     cmd = "hadd -f merged_combine_output.root " + " ".join(filelist)
+    print cmd
     subprocess.call([cmd], shell = True)
     if os.path.exists("merged_combine_output.root"):
         return os.path.abspath("merged_combine_output.root")
@@ -641,6 +816,15 @@ if __name__ == '__main__':
     parser.add_option(  "--setYtitle", 
                         help = "manually set title for x axis (default = yVariable)",
                         dest = "ytitle")
+    parser.add_option(  "--loadErrorsFrom",
+                        help = "load uncertainty interval from RooFitResult in this .root file",
+                        dest = "pathToErrors",
+                        metavar = "path/to/rootfile")
+    parser.add_option(  "--doProfile",
+                        help = "create intermediary TProfile. Intended to get mean nll values for multiple scans (default = False). You should use this with 'directlyDrawFrom' option",
+                        action = "store_true",
+                        dest = "doProfile",
+                        default = False)
     (options, args) = parser.parse_args()
     
     directDrawPath = options.directDraw
@@ -656,10 +840,18 @@ if __name__ == '__main__':
     workspace = options.workspace
     plot2D = options.plot2D
     granularity = options.granularity
+    pathToErrors = options.pathToErrors
+    doProfile = options.doProfile
+    if pathToErrors is not None:
+        if not os.path.exists(pathToErrors):
+            parser.error("could not find root file with uncertainties!")
+        else:
+            pathToErrors = os.path.abspath(pathToErrors)
     
-
     if directDrawPath == None:
-        
+        if not plot2D and not (additionalCmds and any("--floatOtherPOIs 1" in x for x in additionalCmds)):
+            print "WARNING:\tyou might be fixing other POIs! Calculation of uncertainties might not work properly (you should use '--floatOtherPOIs 1')"
+
         if datacard == None:
             parser.error("datacard for toy generation/fitting must be specified!")
         else:
@@ -723,9 +915,13 @@ if __name__ == '__main__':
     fitresFile = None
     if directDrawPath:
         
-        if "*" in directDrawPath:
+        if "*" in directDrawPath or "?" in directDrawPath:
             filelist = glob.glob(directDrawPath)
-            fitresFile = merge_files(filelist = filelist)
+            if len(filelist) == 1:
+                subprocess.call(["cp {0} ./merged_combine_output.root".format(filelist[-1])], shell= True)
+                fitresFile = "merged_combine_output.root"
+            else:
+                fitresFile = merge_files(filelist = filelist)
         elif "," in directDrawPath:
             existingResults = []
             results = directDrawPath.split(",")
@@ -769,14 +965,18 @@ if __name__ == '__main__':
                                 outputDirectory = outputDirectory, 
                                 suffix = suffix,
                                 xtitle = xtitle,
-                                ytitle = ytitle)
+                                ytitle = ytitle,
+                                pathToErrors = pathToErrors,
+                                doProfile = doProfile)
                 else:
                     do1DScan(   limit, xVar = xVar, yVar = yVar, 
                                 outputDirectory = outputDirectory, 
                                 suffix = suffix,
                                 granularity = granularity,
                                 xtitle = xtitle,
-                                ytitle = ytitle)
+                                ytitle = ytitle,
+                                pathToErrors = pathToErrors,
+                                doProfile = doProfile)
     
     
             else:
