@@ -77,7 +77,7 @@ def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
     if additionalCmds:
         multidimfitcmd.append(" ".join(additionalCmds))
         
-    multidimfitcmd.append('--rMin -10 --rMax 10')
+    # multidimfitcmd.append('--rMin -10 --rMax 10')
     multidimfitcmd.append('--saveFitResult')
     multidimfitcmd.append('--saveInactivePOI 1')
         
