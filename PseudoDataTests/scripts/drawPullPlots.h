@@ -85,7 +85,9 @@ namespace drawPullPlots{
         TString outputRootName = *canvasName + ".root";
         //std::cout << "canvas name: " << *canvasName << std::endl;
         TFile* outputRoot = TFile::Open(outputRootName.Data(), "RECREATE");
-        TCanvas canvas("pullplot", "pullplot", 3500, 2200);
+        TCanvas canvas("pullplot", "pullplot", 1200, 600);
+        canvas.SetBottomMargin(canvas.GetBottomMargin()*2.2);
+        canvas.SetLeftMargin(canvas.GetLeftMargin()*0.4);
 
 
         TH1D* hExpectation = NULL;
@@ -248,8 +250,8 @@ namespace drawPullPlots{
 
         hPrefitMeans->GetYaxis()->SetRangeUser(lowerBound,upperBound);
         hPrefitMeans->GetYaxis()->SetTitle("#theta_{postfit} - #theta_{prefit}");
-        hPrefitMeans->GetYaxis()->SetTitleOffset(1.);
-        hPrefitMeans->GetXaxis()->SetLabelSize(0.02);
+        hPrefitMeans->GetYaxis()->SetTitleOffset(0.7);
+        hPrefitMeans->GetXaxis()->SetLabelSize(0.03);
         
         addToCanvas(hPrefitMeans, legend, "Prefit Means", "HIST", "prefit");
         double binwidth = hPrefitMeans->GetBinWidth(1);
@@ -272,9 +274,9 @@ namespace drawPullPlots{
         }
         else{
                 graphs.push_back(get_graph(hPostfitBmeansWithFitErrors, 0.2*binwidth));
-                addToCanvas(graphs.back(), legend, "B-only fit Means + Mean Error", "PEsame","postfitBmeans");
+                addToCanvas(graphs.back(), legend, "B-only fit Means + Mean Fitted Error", "PEsame","postfitBmeans");
                 graphs.push_back(get_graph(hPostfitSBmeansWithFitErrors, -0.2*binwidth));
-                addToCanvas(graphs.back(), legend, "S+B fit Means + Fitted Error", "PEsame", "postfitSBmeans_fittedError");
+                addToCanvas(graphs.back(), legend, "S+B fit Means + Mean Fitted Error", "PEsame", "postfitSBmeans_fittedError");
         }
         
         std::cout << "drew postfit s+b\n";
