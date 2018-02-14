@@ -208,7 +208,14 @@ public:
   TH2D* getCorrelationPlotPostfitS() const{
     return getCorrelationPlot(correlationsPostfitS_);
   }
-
+  void printCorrelations(const std::map<TString, std::map<TString,TH1*> >& correlations, const TString& outpath) const;
+  void printPostfitScorrelations(const TString& outpath) const{
+    printCorrelations(correlationsPostfitS_, outpath);
+  }
+  void printPostfitBcorrelations(const TString& outpath) const{
+    printCorrelations(correlationsPostfitB_, outpath);
+  }
+  
 private:
   bool debug_;
   bool fitBmustConverge_;
@@ -967,6 +974,28 @@ void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,T
   for(auto& np_i : values){
     for(auto& np_j : values){
       correlations[np_i][np_j]->Fill(result->correlation(np_i, np_j));
+    }
+  }
+}
+
+void PseudoExperiments::printCorrelations(const std::map<TString, std::map<TString,TH1*> >& correlations, const TString& outpath) const {
+  TString currentName;
+  for(std::map<TString, std::map<TString,TH1*> >::const_iterator it = correlations.begin(); it != correlations.end(); it++){
+    for(std::map<TString,TH1*>::const_iterator sub_it = it->second.begin(); sub_it != it->second.end(); sub_it++){
+      currentName.Form("correlation_%s_%s_%s",it->first.Data(), sub_it->first.Data(), label_.Data());
+      currentName.ReplaceAll("=", "_");
+      currentName.ReplaceAll(" ", "_");
+      currentName.ReplaceAll(".", "p");
+      currentName.Prepend(outpath);
+      currentName.Append(".root");
+      TFile* outfile = TFile::Open(currentName.Data(), "RECREATE");
+      TCanvas canvas;
+      sub_it->second->Draw();
+      sub_it->second->Write();
+      canvas.Write("canvas");
+      currentName.ReplaceAll(".root", ".pdf");
+      canvas.SaveAs(currentName.Data());
+      outfile->Close();
     }
   }
 }
