@@ -513,13 +513,13 @@ def treat_special_chars(string):
     return string
 
 def fill_graph(graph, xVals, yVals, zVals = None):
-    if isinstance(graph, ROOT.TGraph):
+    if isinstance(graph, ROOT.TGraph) or isinstance(graph, ROOT.TGraph2D):
         for i in range(len(xVals)):
             if zVals is not None:
                 graph.SetPoint(i, xVals[i], yVals[i], zVals[i])
             else:
                 graph.SetPoint(i, xVals[i], yVals[i])
-    elif isinstance(graph, ROOT.TProfile):
+    elif isinstance(graph, ROOT.TH1):
         for i in range(len(xVals)):
             if zVals is not None:
                 graph.Fill(xVals[i], yVals[i], zVals[i])
@@ -529,13 +529,13 @@ def fill_graph(graph, xVals, yVals, zVals = None):
         sys.exit("could not fill graph! Aborting")
 
 def set_titles(graph, xtitle, ytitle, ztitle = None):
-    if isinstance(graph, ROOT.TGraph):
+    if isinstance(graph, ROOT.TGraph) or isinstance(graph, ROOT.TGraph2D):
         graph.GetHistogram().GetXaxis().SetTitle(xtitle)
         graph.GetHistogram().GetYaxis().SetTitle(ytitle)
         if ztitle is not None:
             graph.GetHistogram().GetZaxis().SetTitle(ztitle)
         
-    elif isinstance(graph, ROOT.TProfile):
+    elif isinstance(graph, ROOT.TH1):
         graph.GetXaxis().SetTitle(xtitle)
         graph.GetYaxis().SetTitle(ytitle)
         if ztitle is not None:
@@ -749,7 +749,7 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
     for cl in cls:
         contourname = "countour_" + cl
         contourname = contourname.replace("%", "")
-        if isinstance(graph, ROOT.TGraph):
+        if not isinstance(graph, ROOT.TH1):
             contours.append(graph.GetHistogram().Clone(contourname))
         else:
             contours.append(graph.Clone(contourname))    
