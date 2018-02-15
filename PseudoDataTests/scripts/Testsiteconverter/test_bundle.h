@@ -8,7 +8,7 @@
 #include "fstream"
 #include "sstream"
 #include "iomanip"
-#include "dirent.h"
+//#include "dirent.h"
 #include "ctime"
 #endif
 
@@ -28,7 +28,8 @@ int createfiles(TString output = "toytest/bla_some", float signal = 1, int files
 	// Processing fitDiagnostics (compressing and gathering in one folder) and combining data into Histograms
 	
 	TString newdir = directory;
-	newdir.Append(output).Append("/sig").Append(TString(signalchar)).Append("/converted/");
+	
+	newdir += output + "/sig" + TString(signalchar) + "/converted/";
 	newdir.Prepend("mkdir ");
 	system(newdir.Data());
 	
@@ -47,11 +48,13 @@ int createfiles(TString output = "toytest/bla_some", float signal = 1, int files
 		foldername.Append(output).Append("/sig").Append(signalchar).Append("/PseudoExperiment").Append(tempfiles).Append("/fitDiagnostics");
 		TConvert(foldername,save,tempfiles);
 	}
+	
 	TString combining = directory;
-	combining.Append(output.Data()).Append("/sig").Append(signalchar).Append("/converted/");
+	combining += output + "/sig" + TString(signalchar) + "/converted/";
 	TString savecomb = combining;
 	savecomb.Append("combined1.root");
 	combining.Append("fitDiagnostics*.root");
+	
 	chaining(combining.Data(),savecomb.Data());
 	
 	return 0;
