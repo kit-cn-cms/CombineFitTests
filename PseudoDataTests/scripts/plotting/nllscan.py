@@ -502,7 +502,7 @@ def create_lines(   graph, xbest, clStyles, granularity, ybest = None,
 def save_output(canvas, graph, name):
     canvas.SaveAs(name + ".pdf")
     canvas.SaveAs(name+".png")
-    # canvas.SaveAs(name + "_canvas.root")
+    canvas.SaveAs(name + "_canvas.root")
     # graph.SaveAs(name + ".root")
 
 def treat_special_chars(string):
@@ -755,7 +755,7 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
             contours.append(graph.Clone(contourname))    
         
         contours[-1].SetContour(1)
-        contours[-1].SetContourLevel(0,get_cl_value(cl = cl))
+        contours[-1].SetContourLevel(0,get_cl_value(cl = cl, npois = 1))
         contours[-1].SetLineStyle(cls[cl])
         contours[-1].SetLineWidth(3)
         contours[-1].Draw('same cont3')
@@ -764,8 +764,8 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
     label.Draw("Same")
     c.SetMargin(0.25, 0.15, 0.15, 0.08);
     
-    save_output(canvas = c, graph = graph, name = filename)
     c.Write("canvas")
+    save_output(canvas = c, graph = graph, name = filename)
     outfile.Close()
 
 def merge_files(filelist):
