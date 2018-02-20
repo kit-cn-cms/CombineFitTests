@@ -61,8 +61,8 @@ TDirectoryFile* shapes(TFile* file, int mode =0)
 		folder->Add(Ttemp);
 		List->RemoveLast();
 	}
-	List->~TList();
-	Dirsub->~TDirectoryFile();
+	//List->~TList();
+	//Dirsub->~TDirectoryFile();
 	return folder;
 }
 
@@ -140,6 +140,10 @@ void change(TFile* file, int mod = 0, TDirectoryFile* Fpostb = NULL, TDirectoryF
 	}
 	Fpostb->Write();
 	Fcorr->Write();
+	Ifitb.~TIter();
+	//Tcorr->~TTree();
+	//Vartemp1->~RooRealVar();
+	//Vartemp2->~RooRealVar();
 }
 
 bool checkFitStatus(TFile* file){
