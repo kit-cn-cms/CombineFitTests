@@ -54,8 +54,6 @@ int createfiles(int dirs = 20, int toys = 30, TString save ="/toytest/", TString
 		command.Append(workdir).Append(origin).Append(" -o ").Append(workdir).Append(save).Append("some").Append(tempc).Append("/").Append(" -s ").Append(sign).Append(" -n ").Append(temp1c).Append(" --startSeed ").Append(temp2c);
 		system(command.Data());
 	}
-	std::cout << "Used Seeds: " << std::endl;
-	for(int i =1; i<=dirs;++i){std::cout << i << " | " << seeds[i] << std::endl;}
 	std::cout << "DONE" << std::endl;
 	return 0;
 }
