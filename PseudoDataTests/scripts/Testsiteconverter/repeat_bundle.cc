@@ -6,6 +6,7 @@
 #include "sstream"
 #include "fstream"
 #include "Draw_fit.h"
+#include "Draw_final.h"
 #include "ctime"
 
 int repeat(TString save1 = "toytest", TString save2 = "some*", int runs = 20, int files = 100, float signal = 1)
@@ -80,8 +81,11 @@ int repeat(TString save1 = "toytest", TString save2 = "some*", int runs = 20, in
 	savedir.Append("combined").Append(sign).Append(".root");
 	savedir.Prepend(working.Data());
 	collect.Prepend(working.Data());
-	// The idea here is to include TChaining and collect all the converted files in one last file. Currently, TChaining has a performance problem...
-
+	TString call = working + "/" + save1 + "/converted/combined*_histo.root";
+	TString savep = working + "/" + save1 + "/converted/collected.root";
+	// Chaining the resulting datasets
+	chaining(call.Data(),savep.Data());
+	CreateFinalHist(savep.Data());
 	for(int i = 1; i <= runs; ++i)
 	{
 		std::cout << "Durchlaufnr. " << i << " : " << differences[i] << std::endl;
