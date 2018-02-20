@@ -6,7 +6,6 @@
 #include "TString.h"
 #include "TFile.h"
 
-
 int CreateHist(TString  file = "newfile.root")
 {
 	// Copying file
@@ -47,10 +46,6 @@ int CreateHist(TString  file = "newfile.root")
 			// Filling TTree
 			TTree* Ttemp = (TTree*) Dir->Get(tList->Last()->GetName());
 			
-			std::cout << HDir->GetName() << std::endl;
-			std::cout << tList->Last()->GetName() << std::endl;
-
-	
 			// Setting data values
 			double val = -9999;
 			double err = -9999;
@@ -81,19 +76,27 @@ int CreateHist(TString  file = "newfile.root")
 			double serr = -999;
 			double shie = -999;
 			double sloe = -999;
+			double mene = -999;
+			double mode = -999;
+			double tempmax = -999;
 
 			// Creating TTree and Branches to save means of Hists
 			TTree* Tsave = new TTree(Ttemp->GetName(), Ttemp->GetTitle());
 			Tsave->Branch("Value", &sval, "value/D");
 			Tsave->Branch("Error", &serr, "error/D");
-			Tsave->Branch("High Error", &shie, "high error/D");
-			Tsave->Branch("Low Error", &sloe, "low error/D");
+			Tsave->Branch("High_Error", &shie, "high_error/D");
+			Tsave->Branch("Low_Error", &sloe, "low_error/D");
+			Tsave->Branch("Mean_Error", &mene, "mean_error/D");
+			Tsave->Branch("Mode_Value", &mode, "mode/D");
 
 			// Assigning Means
 			sval = HistVal.GetMean();
 			serr = HistErr.GetMean();
 			shie = HistHiE.GetMean();
 			sloe = HistLoE.GetMean();
+			mene = HistVal.GetMeanError();
+			mode = 200./1000.*HistVal.GetMaximumBin();
+			std::cout << HistVal.GetMaximumBin() << std::endl;
 
 			Tsave->Fill();
 
@@ -103,15 +106,9 @@ int CreateHist(TString  file = "newfile.root")
 		}
 		HDir->Write();
 		}
-		//HDir->Write();
-
 		// Removing last entry of list
 		List->RemoveLast();
 	}
 	output->Close();
-
-	// Deleting origin file
-	delfile.Prepend("rm ");
-	system(delfile.Data());
 	return 0;
 }
