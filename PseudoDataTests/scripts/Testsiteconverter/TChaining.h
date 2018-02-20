@@ -37,11 +37,12 @@ int chaining(TString Filename = "fitDiagnosics1.root", TString Output = "combine
 			TString Spath = TString(Lsamples->Last()->GetName());
 			Spath += TString("/") + TString(Lsub->Last()->GetName());
 			// Calling Chain
-			TChain temp(Spath.Data());
-			temp.Add(Filename.Data());
+			TChain* temp= new TChain(Spath.Data());
+			temp->Add(Filename.Data());
 			// saving TTree
-			temp.Merge(output,1000,"keep");
+			temp->Merge(output,1000,"keep, fast");
 			Lsub->RemoveLast();
+			temp->~TChain();
 		}
 		Lsamples->RemoveLast();
 	}
