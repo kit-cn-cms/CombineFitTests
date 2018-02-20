@@ -53,19 +53,22 @@ int CreateFinalHist(TString  file = "newfile.root")
                         double hie = -9999;
                         double loe = -9999;
 			double mer = -9999;
+			double mod = -9999;
                         // Setting Adresses
                         Ttemp->SetBranchAddress("Value",&val);
                         Ttemp->SetBranchAddress("Error",&err);
                         Ttemp->SetBranchAddress("High_Error",&hie);
                         Ttemp->SetBranchAddress("Low_Error",&loe);
 			Ttemp->SetBranchAddress("Mean_Error",&mer);
+			Ttemp->SetBranchAddress("Mode",&mod);
                         // Creating Histogramms
-			TH1D* HistVal = new TH1D((TString("Value").Append(Ttemp->GetName())).Data(),"Values",1000,0,5);
-                        TH1D* HistErr = new TH1D((TString("Error").Append(Ttemp->GetName())).Data(),"Errors",1000,0,20);
-                        TH1D* HistHiE = new TH1D((TString("Hi_Er").Append(Ttemp->GetName())).Data(),"High_Error",1000,0,20);
-                        TH1D* HistLoE = new TH1D((TString("Lo_Er").Append(Ttemp->GetName())).Data(),"Low_Error",1000,-20,20);
-			TH1D* HistMer = new TH1D((TString("Me_Er").Append(Ttemp->GetName())).Data(),"Mean_Error",1000,0,20);
-                        for(int i = 0; i < Ttemp->GetEntries(); ++i)
+			TH1D* HistVal = new TH1D((TString("Value_").Append(Ttemp->GetName())).Data(),"Values",1000,0.6,3);
+                        TH1D* HistErr = new TH1D((TString("Error_").Append(Ttemp->GetName())).Data(),"Errors",1000,0,20);
+                        TH1D* HistHiE = new TH1D((TString("Hi_Er_").Append(Ttemp->GetName())).Data(),"High_Error",1000,0,20);
+                        TH1D* HistLoE = new TH1D((TString("Lo_Er_").Append(Ttemp->GetName())).Data(),"Low_Error",1000,-20,20);
+			TH1D* HistMer = new TH1D((TString("Me_Er_").Append(Ttemp->GetName())).Data(),"Mean_Error",1000,0,20);
+                        TH1D* HistMod = new TH1D((TString("Mod_Val_").Append(Ttemp->GetName())).Data(),"Mod_Value",1000,0.6,3);
+			for(int i = 0; i < Ttemp->GetEntries(); ++i)
                         {
                                 Ttemp->GetEntry(i);
                                 HistVal->Fill(val);
@@ -73,6 +76,7 @@ int CreateFinalHist(TString  file = "newfile.root")
                                 HistHiE->Fill(hie);
                                 HistLoE->Fill(loe);
 				HistMer->Fill(mer);
+				HistMod->Fill(mod);
                         }
 
                         HDir->Add(HistVal);
@@ -80,6 +84,7 @@ int CreateFinalHist(TString  file = "newfile.root")
 			HDir->Add(HistHiE);
 			HDir->Add(HistLoE);
 			HDir->Add(HistMer);
+			HDir->Add(HistMod);
                         // Removing last entry from tlist
                         tList->RemoveLast();
                 }
@@ -89,9 +94,5 @@ int CreateFinalHist(TString  file = "newfile.root")
                 List->RemoveLast();
         }
         output->Close();
-
-        // Deleting origin file
-        delfile.Prepend("rm ");
-        //system(delfile.Data());
         return 0;
 }
