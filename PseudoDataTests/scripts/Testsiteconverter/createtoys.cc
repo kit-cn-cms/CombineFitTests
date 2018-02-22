@@ -24,17 +24,13 @@ int createfiles(int dirs = 20, int toys = 30, TString save ="/toytest/", TString
 
 	int seeds[dirs];
 
-	std::cout << "Before for loop\n";
-
 	for(int i = 1; i <= dirs; ++i)
 	{
 		int seed =0;
 		while(seed <1)
 		{
-		std::cout << "In while loop\n";
 		seed = generator.Uniform() *1000;
 		}
-		std::cout << "Left while loop\n";
 		seeds[i] = seed;
 		int templ =0;
 		int tempi =i;
@@ -51,7 +47,7 @@ int createfiles(int dirs = 20, int toys = 30, TString save ="/toytest/", TString
 		sprintf(temp2c, "%d", seed);
 
 		TString command = TString("python tth_analysis_study.py -d ");
-		command.Append(workdir).Append(origin).Append(" -o ").Append(workdir).Append(save).Append("some").Append(tempc).Append("/").Append(" -s ").Append(sign).Append(" -n ").Append(temp1c).Append(" --startSeed ").Append(temp2c);
+		command+=workdir + origin + " -o " + workdir + save + "some" + tempc + "/" + " -s " + sign + " -n " + temp1c + " --startSeed " + temp2c + " --addToyCommand \"--toysNoSystematics\"";
 		system(command.Data());
 	}
 	std::cout << "DONE" << std::endl;
