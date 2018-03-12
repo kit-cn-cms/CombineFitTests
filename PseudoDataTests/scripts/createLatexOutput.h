@@ -14,16 +14,19 @@ void writeValues(std::ofstream& output, const int& bin, const TH1* hMeans, const
   //get postfit b values to write
   double value = helperFuncs::checkValues(hMeans->GetBinContent(bin));
   double meanError = helperFuncs::checkValues(hMeans->GetBinError(bin));
+  double median = helperFuncs::checkValues(hMedians->GetBinContent(bin));
   double rms = helperFuncs::checkValues(hMedians->GetBinError(bin));
   double meanFitError = 0;
   if(writeFittedErrors) meanFitError = helperFuncs::checkValues(hFittedErrors->GetBinError(bin));
   std::cout << "\t" << value << ",\t" << meanError << ",\t" << rms;
   if(writeFittedErrors) std::cout << ",\t" << meanFitError;
+  std::cout << "\tmedian: " << median;
   std::cout << std::endl;
   //~ output << " \t& \\num{" << value << "} $\\pm$ \\num{" << meanError << "} $\\pm$ \\num{" << rms << "}";
   //~ if(writeFittedErrors) output << " $\\pm$ \\num{"<< meanFitError << "}";
   output << "\t& " << value << "," << meanError << "," << rms;
   if(writeFittedErrors) output << "," << meanFitError;
+  output << "\t" << median;
   if(hExpectation != NULL) output << "," << helperFuncs::checkValues(hExpectation->GetBinContent(bin));
   output << "\n";
 }
