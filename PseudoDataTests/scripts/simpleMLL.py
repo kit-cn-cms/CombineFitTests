@@ -5,17 +5,20 @@ from math import exp, log, isnan
 import imp
 import numpy as np
 from scipy.stats import distributions
-
+from array import array
+ROOT.gROOT.SetBatch(True)
     
 def loadHisto(infile, key):
     hist = infile.Get(key)
     if not isinstance(hist, ROOT.TH1): 
         sys.exit("Could not load histogram %s" % key)
     return hist.Clone()
-    
+def make_int(k):
+    return int(round(k))
+        
 def poisson(k, l):
     # print "calculating poisson for k={0}, lambda={1}".format(k, l)
-    k = int(round(k))
+    k = make_int(k)
     
     poisson = distributions.poisson
     # fac = 1
@@ -27,8 +30,8 @@ def poisson(k, l):
     return result
 
 def getNLL(r, listHsignals, listHbkgs, data_obss):
-    print "calling getNLL with"
-    print "r =", r
+    # print "calling getNLL with"
+    # print "r =", r
     # print "listHsignals =", listHsignals
     # print "listHbkgs =", listHbkgs,
     # print "data_obss =", data_obss
@@ -56,6 +59,54 @@ def getNLL(r, listHsignals, listHbkgs, data_obss):
             loglikelihood += log(poisson(  k = data_obss[cat].GetBinContent(i),
                                     l = s))
     return -1*loglikelihood
+
+def check_lists(dic):
+    first = ""
+    for key in dic:
+        if first == "":
+            first = key
+        if not len(dic[key]) == len(dic[first]):
+            return False
+    return True
+
+def save_as_TTree(dic, outfile):
+    """
+    save value lists (wrapped in a dictionary) to TTree limit in 
+    outfile. The keywords in the dictionary are used as branch names.
+    
+    dic     --  dictionary containing value lists, e.g.
+                {"branchname" : list_of_values, ...}
+    outfile --  root file which will contain the TTree
+    """
+    print "checking lists in dictionary"
+    
+    if not check_lists(dic = dic):
+        print "Error when checking lists to save in TTree!"
+        print "Number of list entries does not match"
+        outfile.Close()
+        sys.exit(0)
+    entries = 0    
+    tree = ROOT.TTree("limit", "limit tree")
+    branchlinks = {}
+    print "setting up branchlinks"
+    for key in dic:
+        if entries == 0:
+            entries = len(dic[key])
+        branchlinks[key] = array("d", [0.])
+    print "setting up branches in tree", tree.GetName()
+    for key in branchlinks:
+        tree.Branch(key, branchlinks[key], "{0}/D".format(key))
+    print "filling tree"
+    for i in range(entries):
+        for key in dic:
+            branchlinks[key][0] = dic[key][i]
+            print "\tfilling", branchlinks[key][0]
+        tree.Fill()
+    tree.Write()
+    
+def make_counting_histo(h):
+    for i in range(1, h.GetNbinsX()+1):
+        h.SetBinContent(i, make_int(h.GetBinContent(i)))
 
 if __name__ == '__main__':
     rootfilepath = sys.argv[1]
@@ -91,28 +142,32 @@ if __name__ == '__main__':
             listHbkgs[cat] = []
         for h in config.signalHistos[cat]:
             listHsignals[cat].append(loadHisto(infile = infile, key = h))
+            make_counting_histo(listHsignals[cat][-1])
             #for asimov data set with sig = 1
             if asimov: 
                 print "adding histo {0} to pseudo observed data".format(h)
                 data_obss[cat].Add(listHsignals[cat][-1])
         for h in config.backgroundHistos[cat]:
             listHbkgs[cat].append(loadHisto(infile = infile, key = h))
+            make_counting_histo(listHbkgs[cat][-1])
             #for asimov data set containing background
             if asimov: 
                 print "adding histo {0} to pseudo observed data".format(h)
                 data_obss[cat].Add(listHbkgs[cat][-1])
     
-    scanrange = np.linspace(-5, 5, num=1000)
+    scanrange = np.linspace(-5, 5, num=10000)
     nlls = []
     rs = []
-    for r in scanrange:
+    for i, r in enumerate(scanrange):
+        if (i+1)%100 == 0:
+            print "scanning point #", i+1
         nll = getNLL(   r = r, 
                             listHsignals = listHsignals, 
                             listHbkgs = listHbkgs, 
                             data_obss = data_obss)
-        print "NLL({0}) = {1}".format(r, nll)
+        # print "NLL({0}) = {1}".format(r, nll)
         if not isnan(nll):
-            print "\tsaving", nll
+            # print "\tsaving", nll
             nlls.append(nll)
             rs.append(r)
 
@@ -154,6 +209,11 @@ if __name__ == '__main__':
     bestfit.Write("bestfit")   
     c.SaveAs(outname + ".pdf")
     c.Write("canvas")
+    
+    save_as_TTree(  dic = { "r" : [bestfit_r]+x, 
+                            "deltaNLL" : [bestfit_nll]+deltanlls}, 
+                    outfile = outfile)  
+    
     outfile.Close()
     
         
