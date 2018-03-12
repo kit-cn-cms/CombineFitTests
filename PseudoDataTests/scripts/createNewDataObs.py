@@ -6,8 +6,14 @@ ROOT.gROOT.SetBatch(True)
 
 inpath = os.path.abspath(sys.argv[1])
 
-listOfProcesses = ["ttbarOther", "ttbarPlusB", "ttbarPlus2B", "ttbarPlusBBbar", "ttbarPlusCCbar"]
-# listOfProcesses = "ttbarZ          diboson         ttbarPlusB      ttbarW          singlet         wjets           ttbarPlus2B     ttbarOther      ttbarPlusBBbar  zjets           ttbarPlusCCbar ".split()
+writeToFile = False
+
+# listOfProcesses = ["ttbarOther", "ttbarPlusB", "ttbarPlus2B", "ttbarPlusBBbar", "ttbarPlusCCbar"]
+# listOfProcesses = ["ttbarOther", "ttbarPlusBBbar", "ttbarPlusCCbar"]
+# listOfProcesses = "ttbarZ          diboson         ttbarPlusB      ttbarW          singlet         wjets           ttbarPlus2B     ttbarOther      ttbarPlusBBbar  zjets           ttbarPlusCCbar".split()
+# listOfProcesses = "ttH_hbb ttbarZ          diboson         ttbarPlusB      ttbarW          singlet         wjets           ttbarPlus2B     ttbarOther      ttbarPlusBBbar  zjets           ttbarPlusCCbar".split()
+listOfProcesses = "ttH_hbb ttbarZ diboson ttbarW singlet wjets ttbarOther ttbarPlusBBbar zjets ttbarPlusCCbar".split()
+# listOfProcesses = " ttbarZ diboson ttbarW singlet wjets ttbarOther ttbarPlusBBbar zjets ttbarPlusCCbar".split()
 # categories = ["ljets_j4_t2", "ljets_j4_t3", "ljets_j4_t4", "ljets_j5_t2", "ljets_j5_t3", "ljets_j5_tge4", "ljets_jge6_t2", "ljets_jge6_t3", "ljets_jge6_tge4"]
 categories = [  "ljets_j4_t4", 
                 "ljets_j5_tge4", 
@@ -97,7 +103,8 @@ if os.path.exists(inpath):
                 new = orig_data_obs.Clone()
                 orig_data_obs.SetName(suffix+orig_data_obs.GetName())
                 print "saving original data_obs as {0}\t Integral = {1}".format(orig_data_obs.GetName(), orig_data_obs.Integral())
-                orig_data_obs.Write()
+                if writeToFile:
+                    orig_data_obs.Write()
 
                 new.Reset()
                 for proc in listOfProcesses:
@@ -107,7 +114,8 @@ if os.path.exists(inpath):
                     else:
                         print "WARNING! Could not load template for process", proc
                 print "saving new data_obs as {0}\t Integral = {1}".format(new.GetName(), new.Integral())
-                new.Write(new.GetName(), ROOT.TObject.kWriteDelete)
+                if writeToFile:
+                    new.Write(new.GetName(), ROOT.TObject.kWriteDelete)
             else:
                 print "Could not find data_obs histo for category", cat
 

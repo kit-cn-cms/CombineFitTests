@@ -8,7 +8,8 @@ ROOT.gROOT.SetBatch(True)
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 
-wildcards = sys.argv[1:]
+signal = sys.argv[1]
+wildcards = sys.argv[2:]
 for wildcard in wildcards:
 	for inputFile in glob.glob(wildcard):
     		inputFile = os.path.abspath(inputFile)

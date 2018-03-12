@@ -3,6 +3,8 @@
 
 #include "TH1.h"
 #include "TH1D.h"
+#include "TGraph.h"
+#include "TGraphErrors.h"
 #include "TTree.h"
 #include "TString.h"
 #include "TColor.h"
@@ -16,14 +18,14 @@
 
 namespace helperFuncs{
   
-  TH1D* createHistoFromVector(const TString& histName, const std::vector<Double_t>& vec, const TString& title=""){
+  TH1D* createHistoFromVector(const TString& histName, const std::vector<Double_t>& vec, const TString& title="", const Double_t defaultXmin = -5, const Double_t defaultXmax = 5){
     int position = std::distance(vec.begin(), std::min_element(vec.begin(), vec.end()));
     double minVal = vec[position];
     position = std::distance(vec.begin(), std::max_element(vec.begin(), vec.end()));
     double maxVal = vec[position];
     if(minVal == maxVal){
-      minVal = minVal - 5;
-      maxVal = maxVal + 5;
+      minVal = minVal + defaultXmin;
+      maxVal = maxVal + defaultXmax;
     }
     int nBins = 2000;
     TH1D* histo = new TH1D(histName, title.Data(), nBins, minVal, maxVal);
@@ -144,10 +146,57 @@ namespace helperFuncs{
       }
     }
   }
-
-  void setXRange(TH1* h, const double min, const double max) {
-    if(h!= NULL) h->GetXaxis()->SetRangeUser(min,max);
+  void treat_special_chars(TString& name){
+    if(name.Contains(".")) name.ReplaceAll(".", "p");
+    if(name.Contains(":")) name.ReplaceAll(":", "_");
+    if(name.Contains(" = ")) name.ReplaceAll(" = ", "_");
+    if(name.Contains(" ")) name.ReplaceAll(" ", "_");
   }
+  void setXRange(TH1* h, const double min, const double max) {
+    if(h!= NULL) 
+    {
+        TString name = h->GetName();
+        treat_special_chars(name);
+        name.Append(".root");
+        // h->SaveAs(name.Data());
+        std::cout << "setting histo range to " << min << "\t" << max << std::endl;
+        h->GetXaxis()->SetRangeUser(min,max);
+    }
+  }
+  double find_min_x(TH1* h){
+      double min = 0;
+      int nbins = h->GetNbinsX();
+      for(int i=1; i<=nbins; i++){
+          if(h->GetBinContent(i) > 0){
+              min = h->GetBinLowEdge(i);
+              break;
+          }
+      }
+      return min;
+  }
+  double find_max_x(TH1* h){
+      double max = 0;
+      int nbins = h->GetNbinsX();
+      for(int i=1; i<=nbins; i++){
+          if(h->GetBinContent(i) > 0){
+              max = h->GetXaxis()->GetBinUpEdge(i);
+          }
+      }
+      return max;
+  }
+
+  void setXRange(TH1* h) {
+    if(h!= NULL) 
+    {
+        double additionalRange = 0.2;
+        double max = find_max_x(h);
+        max += TMath::Abs(max*additionalRange);
+        double min = find_min_x(h);
+        min -= TMath::Abs(min*additionalRange);
+        setXRange(h, min, max);
+    }
+  }
+  
 
   void setLineStyle(TH1* h, const int color, const int style) {
     if(h != NULL){
@@ -166,26 +215,45 @@ namespace helperFuncs{
       h->SetLineWidth(2);
     }
   }
+  void setLineStyle(TGraph* h, const int color, const int style) {
+    if(h != NULL){
+      h->SetLineColor(color);
+      h->SetLineStyle(style);
+      h->SetLineWidth(2);
+    }
+  }
+
+  void setLineStyle(TGraph* h, const Color_t color, const int style, const int markerstyle=1) {
+    if(h!= NULL){
+      h->SetLineColor(color);
+      h->SetLineStyle(style);
+      h->SetMarkerStyle(markerstyle);
+      h->SetMarkerColor(color);
+      h->SetLineWidth(2);
+    }
+  }
 
   void setupHistogramBin(TH1* histo, const int& bin, const TString binLabel, const Double_t binContent, const Double_t binError = -99999 )
   {
     if(histo != NULL){
-      std::cout << "current histogram: " << histo->GetName() << std::endl;
-      std::cout << "\tsetting label of bin " << bin << " to " << binLabel << std::endl;
+      // std::cout << "current histogram: " << histo->GetName() << std::endl;
+      // std::cout << "\tchecking label to set for bin " << bin << ": " << binLabel << std::endl;
       TString finalLabel = binLabel;
       if(finalLabel.BeginsWith("CMS_ttH_")) finalLabel.ReplaceAll("CMS_ttH_","");
       histo->GetXaxis()->SetBinLabel(bin, finalLabel);
+      // std::cout << "\tsetting label of bin " << bin << " to " << finalLabel << std::endl;
       histo->GetXaxis()->LabelsOption("v");
       histo->GetXaxis()->SetLabelSize(0.04);
-      std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
 
       histo->SetBinContent(bin, binContent);
-      double finalBinError = binError;
+      // std::cout << "\tsetting content of bin " << bin << " to " << binContent << std::endl;
 
+      double finalBinError = binError;
+      // std::cout << "\tchecking error of bin " << bin << ": " << finalBinError << std::endl;
       if( finalBinError == -99999) finalBinError = checkValues(histo->GetMeanError());
-      std::cout << "\tsetting error of bin " << bin << " to " << finalBinError << std::endl;
+      // std::cout << "\tsetting error of bin " << bin << " to " << finalBinError << std::endl;
       histo->SetBinError(bin, finalBinError);
-      std::cout << "done setting up histo bin!\n";
+      // std::cout << "done setting up histo bin!\n";
     }
   }
 
@@ -252,6 +320,14 @@ namespace helperFuncs{
           std::cout << "Resizing histo " << hist->GetName() << "with nBins = " << nBins << "\txmin = " << xmin << "\txmax = " << xmax << std::endl;
           //hist->SetBins(nBins, xmin, xmax);
       }
+  }
+  TLatex* getLatex(const TString text = "CMS private work", const double x=0.12, const double y=0.91 ){
+    std::cout << "creating header\n";
+    TLatex* tests = new TLatex(x, y,text);
+    tests->SetTextFont(42);
+    tests->SetTextSize(0.04);
+    tests->SetNDC();
+    return tests;
   }
 
 

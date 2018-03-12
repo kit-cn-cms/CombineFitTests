@@ -36,19 +36,21 @@ if __name__ == '__main__':
     body = [" "]
     labellist = []
     for i, fkey in enumerate(results):
-        body.append(fkey)
+        body.append(fkey + "\n")
         for label in results[fkey]:
             if not label in labellist:
                 labellist.append(label)
         for label in labellist:
-            if label in results[fkey]:
-                
-                vals = results[fkey][label]
-                
-                body[-1] +=  " & {0}".format(vals.replace(",", " +- "))
-            else:
-                body[-1] += " & -"
-    body[0] += "& " + " & ".join(labellist)
+            if label.startswith("r_"):
+                body.append(label)
+                if label in results[fkey]:
+                    
+                    vals = results[fkey][label]
+                    
+                    body[-1] +=  " & {0}\n".format(vals.replace(",", " +- "))
+                else:
+                    body[-1] += " & -\n"
+    # body[0] += "& " + " & ".join(labellist)
             
     if len(body) > 1:
         with open(outputname, "w") as out:

@@ -26,7 +26,7 @@ listOfPoisCombis = [
         #{"r_ttbbPlus2B" : "(ttbarPlusBBbar|ttbarPlus2B):r_ttbbPlus2B[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]"},
         #{"r_ttbbPlusB" : "(ttbarPlusBBbar|ttbarPlusB):r_ttbbPlusB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
-        # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
+        {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]"},
         # {"r_ttbb" : "(ttbarPlusBBbar):r_ttbb[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
         # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]"},
         # {"r_ttXB" : "(ttbarPlusBBbar|ttbarPlusB|ttbarPlus2B):r_ttXB[1,-10,10]", "r_ttcc" : "(ttbarPlusCCbar):r_ttcc[1,-10,10]"},
@@ -79,9 +79,9 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
             string = " ".join(additionalCmds)
         else:
             string = additionalCmds
-    runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
+    # runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
     if pathToSherpa:
-        runScript(targetPath, base_suffix+"sherpa_normedto_ttbarPlusBBbar", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
+        runScript(targetPath = targetPath, suffix = base_suffix+"sherpa_normedto_ttbarPlusXbar", pathToDatacard = pathToDatacard, pois = pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
     # if pathToAMC:
         # runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
@@ -170,12 +170,14 @@ def throwToys(  wildcard, suffix = None, rootfile = None,
     # sherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v22/finalComb_v22_fresh/SL_BDTonly_645444635343_sherpa.txt"
     # sherpa = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v24/SL_DNN_sherpa_normedto_ttbarPlusXB.txt"
     sherpa = None
+    
     for datacard in glob.glob(wildcard):
         if os.path.exists(os.path.abspath(datacard)):
             datacard = os.path.abspath(datacard)
             targetPath = os.path.dirname(datacard)
             rootfile = os.path.abspath(rootfile)
             parts = os.path.basename(datacard).split(".")
+            sherpa = datacard.replace(".txt", "_sherpa.txt")
             
             outputDirectory = targetPath
             if additionalCmds and "asimov" in additionalCmds:
@@ -232,34 +234,34 @@ def test_systematics(   wildcard, npsToTest, rootfile = None,
                     pathToConfig = pathToConfig,
                     additionalCmds = cmds,
                     pois = pois, suffix = "noNps_" + np)
-    with open("/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v24/impacts/sig1.0/SL_2D/onesidedNPs.txt") as npfilter:
-        nps = npfilter.read().splitlines()
-        nps = [x.replace(" ", "") for x in nps]
-        nps = [x.replace("\n", "") for x in nps]
-        cmds = additionalCmds[:]
-        cmds.append('--addFitCommand "--freezeParameters ' + ",".join(nps) + '"')
-        throwToys(  wildcard = wildcard, 
-                    rootfile = rootfile, 
-                    pathToConfig = pathToConfig,
-                    additionalCmds = cmds,
-                    pois = pois, suffix = "noOnesidedNps")
+    # with open("/nfs/dust/cms/user/pkeicher/tth_analysis_study/Spring17_v24/impacts/sig1.0/SL_2D/onesidedNPs.txt") as npfilter:
+        # nps = npfilter.read().splitlines()
+        # nps = [x.replace(" ", "") for x in nps]
+        # nps = [x.replace("\n", "") for x in nps]
+        # cmds = additionalCmds[:]
+        # cmds.append('--addFitCommand "--freezeParameters ' + ",".join(nps) + '"')
+        # throwToys(  wildcard = wildcard, 
+                    # rootfile = rootfile, 
+                    # pathToConfig = pathToConfig,
+                    # additionalCmds = cmds,
+                    # pois = pois, suffix = "noOnesidedNps")
 
 if __name__ == '__main__':
     
     paramgroups = ["exp", "thy", "syst", "btag", "jes", "bgn", "ps"]
     
-    test_systematics(   wildcard = sys.argv[1], 
-                        rootfile = sys.argv[2], 
-                        pathToConfig = sys.argv[3],
-                        additionalCmds = sys.argv[4:],
-                        pois = listOfPoisCombis,
-                        npsToTest = paramgroups)
+    # test_systematics(   wildcard = sys.argv[1], 
+                        # rootfile = sys.argv[2], 
+                        # pathToConfig = sys.argv[3],
+                        # additionalCmds = sys.argv[4:],
+                        # pois = listOfPoisCombis,
+                        # npsToTest = paramgroups)
     
-    # throwToys(  wildcard = sys.argv[1], 
-                # rootfile = sys.argv[2], 
-                # pathToConfig = sys.argv[3],
-                # additionalCmds = sys.argv[4:],
-                # pois = listOfPoisCombis)
+    throwToys(  wildcard = sys.argv[1], 
+                rootfile = sys.argv[2], 
+                pathToConfig = sys.argv[3],
+                additionalCmds = sys.argv[4:],
+                pois = listOfPoisCombis)
 
 
     # for pois in listOfPoisCombis:

@@ -14,16 +14,19 @@ void writeValues(std::ofstream& output, const int& bin, const TH1* hMeans, const
   //get postfit b values to write
   double value = helperFuncs::checkValues(hMeans->GetBinContent(bin));
   double meanError = helperFuncs::checkValues(hMeans->GetBinError(bin));
+  double median = helperFuncs::checkValues(hMedians->GetBinContent(bin));
   double rms = helperFuncs::checkValues(hMedians->GetBinError(bin));
   double meanFitError = 0;
   if(writeFittedErrors) meanFitError = helperFuncs::checkValues(hFittedErrors->GetBinError(bin));
   std::cout << "\t" << value << ",\t" << meanError << ",\t" << rms;
   if(writeFittedErrors) std::cout << ",\t" << meanFitError;
+  std::cout << "\tmedian: " << median;
   std::cout << std::endl;
   //~ output << " \t& \\num{" << value << "} $\\pm$ \\num{" << meanError << "} $\\pm$ \\num{" << rms << "}";
   //~ if(writeFittedErrors) output << " $\\pm$ \\num{"<< meanFitError << "}";
   output << "\t& " << value << "," << meanError << "," << rms;
   if(writeFittedErrors) output << "," << meanFitError;
+  output << "\t" << median;
   if(hExpectation != NULL) output << "," << helperFuncs::checkValues(hExpectation->GetBinContent(bin));
   output << "\n";
 }
@@ -114,6 +117,7 @@ void writeValues(std::ofstream& output, const int& bin, const TH1* hMeans, const
     else std::cerr << "ERROR: could not open .tex table!\n";
   }
   void writeTextTable(const TH1* hMeans, const TH1* hMedians, const TString& outputPath, const TH1* hExpectation, const TH1* hMeansWithFittedError = NULL){
+    std::cout << "writing values into " << outputPath.Data() << std::endl;
     std::ofstream output(outputPath.Data(), std::ofstream::out);
     if(output.is_open() && hMeans != NULL && hMedians != NULL){
       TString processName;

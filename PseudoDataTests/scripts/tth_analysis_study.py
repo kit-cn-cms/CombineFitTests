@@ -2,6 +2,7 @@ from array import array
 from optparse import OptionParser
 from optparse import OptionGroup
 import ROOT
+ROOT.PyConfig.IgnoreCommandLineOptions = True
 import sys
 import os
 import stat
@@ -20,7 +21,7 @@ if not basefolder in sys.path:
     sys.path.append(basefolder)
 
 from batchConfig import *
-batch = batchConfig(queue="short")
+batch = batchConfig(queue="long")
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
@@ -130,6 +131,19 @@ help = "create workspaces, even if they already exist",
 dest = "doWorkspaces",
 action = "store_true",
 default = False)
+
+group_globalOptions.add_option("--range",
+help = "set range for fit. Set to 0 to omit the --rMin/Max option (default = 10)",
+dest = "range",
+default = 10.0,
+type = "float"
+)
+group_globalOptions.add_option("--nToysPerRun",
+help = "set number of toys that are generated for each call of the generated shell scrip OUTPUT/temp/generateToysAndFits.sh (default = 1). Careful: If you do this, the post-fit values are in a TTree, not in the RooFitResult object!",
+type = "int",
+default = 1,
+dest = "toyMode")
+
 parser.add_option_group(group_required)
 parser.add_option_group(group_globalOptions)
 parser.add_option_group(group_scalingOptions)
@@ -163,6 +177,7 @@ if options.asimov and options.numberOfToys:
 
 verbose = options.verbose
 asimov = options.asimov
+murange = options.range
 listOfMus = options.signalStrengths
 if listOfMus == None:
     listOfMus = [0.,1.]
@@ -171,7 +186,7 @@ for mu in listOfMus:
 #set up parameters for toy generation here
 numberOfToys = options.numberOfToys
 numberOfToysPerJob = options.nPerJob
-toyMode = 1 #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
+toyMode = options.toyMode #controls how many toys per experiment are generated. Should be set to -1 for asimov toys
 if options.asimov:
     toyMode = -1
     if verbose:
@@ -240,7 +255,7 @@ if listOfProcessesString and scaleFuncList:
 #----------------------------------------------------------------------------------------------------------------------------------------------
 
 def generateShellScript(targetDatacard, toyDatacard, numberOfToysPerExperiment,
-pathToMSworkspace, additionalToyCmds, additionalFitCmds):
+pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     """
     generate bash script to generate toys and perform maximum likelihood fits.
 
@@ -248,7 +263,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard
 
     Command for MaxLikelihoodFit (both for simple fit and multi signal model):
-    combine -M MaxLikelihoodFit -m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001  --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
+    combine -M MaxLikelihoodFit -m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
 
     Keyword arguments:
 
@@ -275,8 +290,13 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     mlfitCmd += "-m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 "
     mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
     mlfitCmd += "--cminDefaultMinimizerTolerance 1e-5 "
-    mlfitCmd += "--saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 "
-    mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile --minos all "
+    if not murange == 0:
+        mlfitCmd += "--rMin=$rMin --rMax=$rMax "
+    mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile "
+    #time consuming commands
+    # mlfitCmd += "--saveNormalizations --saveShapes "
+    mlfitCmd += "--minos all "
+    # mlfitCmd += "--minos none "
     # mlfitCmd += "--robustFit 1 "
     if additionalFitCmds is not None:
         for cmd in additionalFitCmds:
@@ -287,6 +307,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     mswExists = pathToMSworkspace is not None and not pathToMSworkspace == ""
     shellscript = []
     shellscript.append('#!/bin/bash')
+    shellscript.append('ulimit -s unlimited')
     shellscript.append('pathToCMSSWsetup='+pathToCMSSWsetup)
     shellscript.append('if [[ -f "$pathToCMSSWsetup" ]]; then\n')
 
@@ -299,7 +320,10 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     shellscript.append('\tsignalStrength=$1')
     shellscript.append('\trandomseed=$2')
     shellscript.append('\toutputPath=$3')
-    shellscript.append('\tnumberOfToysPerExperiment=$4\n')
+    shellscript.append('\tnumberOfToysPerExperiment=$4')
+    if not murange == 0:
+        shellscript.append('\trMin=`echo "$signalStrength - ' + str(murange) + '" | bc`')
+        shellscript.append('\trMax=`echo "$signalStrength + ' + str(murange) + '" | bc`')
 
     shellscript.append('#___________________________________________________')
     shellscript.append('\techo "input variables:"')
@@ -308,7 +332,8 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     shellscript.append('\techo "#Toys/Experiment = $numberOfToysPerExperiment"')
     shellscript.append('\techo "mu = $signalStrength"')
     shellscript.append('\techo "randomseed = $randomseed"')
-    shellscript.append('\techo "pathToMSworkspace = $pathToMSworkspace"')
+    if mswExists:
+        shellscript.append('\techo "pathToMSworkspace = $pathToMSworkspace"')
     shellscript.append('\techo "outputPath = $outputPath"\n')
 
     shellscript.append('\techo "changing directory to $outputPath"')
@@ -324,7 +349,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds):
     shellscript.append('\t\t\t\trm *.root.dot')
     shellscript.append('\t\t\tfi\n')
 
-    shellscript.append('\t\t\ttoyFile="higgsCombine_$((numberOfToysPerExperiment))toys_sig$signalStrength.GenerateOnly.mH125.$((randomseed)).root"')
+    shellscript.append('\t\t\ttoyFile=`ls higgsCombine_$((numberOfToysPerExperiment))toys_sig$signalStrength.GenerateOnly.mH125.*.root`')
     shellscript.append('\t\t\techo "$toyFile"')
 
     shellscript.append('\t\t\tif [[ -f $toyFile ]]; then')
@@ -392,8 +417,9 @@ def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript.append('\t\tif [[ -d PseudoExperiment$i ]]; then')
     shellscript.append('\t\t\tcd PseudoExperiment$i\n')
 
-    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
-
+    # shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength $i $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
+    shellscript.append('\t\t\teval "' + generatorScriptPath + ' $signalStrength -1 $outputPath/PseudoExperiment$i $numberOfToysPerExperiment"\n')
+    
     shellscript.append('\t\t\tcd ../\n')
     shellscript.append('\t\telse')
     shellscript.append('\t\t\t echo "Could not generate folder PseudoExperiment$i in $outputPath"')
@@ -404,93 +430,20 @@ def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript.append('fi')
     return shellscript
 
-# def submitArrayToNAF(scripts, arrayscriptpath):
-    # """
-    # generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
-
-    # Keyword arguments:
-
-    # scripts         -- list of scripts to be submitted
-    # arrayscriptpath -- path to safe script array in
-    # """
-    # submitclock=ROOT.TStopwatch()
-    # submitclock.Start()
-    # logdir = os.getcwd()+"/logs"
-    # if os.path.exists(logdir):
-        # print "emptying directory", logdir
-        # shutil.rmtree(logdir)
-
-    # os.makedirs(logdir)
-
-    # #get nscripts
-    # nscripts=len(scripts)
-    # tasknumberstring='1-'+str(nscripts)
-
-    # #create arrayscript to be run on the birds. Depinding on $SGE_TASK_ID the script will call a different plot/run script to actually run
-
-    # arrayscriptcode="#!/bin/bash \n"
-    # arrayscriptcode+="subtasklist=(\n"
-    # for scr in scripts:
-        # arrayscriptcode+=scr+" \n"
-
-    # arrayscriptcode+=")\n"
-    # arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
-    # arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
-    # arrayscriptcode+="echo \"${thescript}\n"
-    # arrayscriptcode+="echo \"${thescriptbasename}\n"
-    # arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
-    # arrayscriptfile=open(arrayscriptpath,"w")
-    # arrayscriptfile.write(arrayscriptcode)
-    # arrayscriptfile.close()
-    # st = os.stat(arrayscriptpath)
-    # os.chmod(arrayscriptpath, st.st_mode | stat.S_IEXEC)
-
-    # print 'submitting',arrayscriptpath
-    # #command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', logdir+'/dev/null', '-e', logdir+'/dev/null', arrayscriptpath]
-    # command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', '/dev/null', '-e', '/dev/null', arrayscriptpath]
-    # a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-    # output = a.communicate()[0]
-    # jobidstring = output
-    # if len(jobidstring)<2:
-        # sys.exit("something did not work with submitting the array job")
-
-    # jobidstring=jobidstring.split(".")[0]
-    # print "the jobID", jobidstring
-    # jobidint=int(jobidstring)
-    # submittime=submitclock.RealTime()
-    # print "submitted job", jobidint, " in ", submittime
-    # return [jobidint]
-
-# def submitToNAF(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace):
-    # jobids=[]
-    # command=[workdir+"/submitCombineToyCommand.sh", pathToDatacard, datacardToUse, outputDirectory, str(numberOfToys), str(numberOfToysPerJob), str(toyMode), pathToMSworkspace]
-    # print command
-    # a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-    # output = a.communicate()[0]
-    # #print output
-    # jobidstring = output.split()
-    # for jid in jobidstring:
-        # if jid.isdigit():
-            # jobid=int(jid)
-            # print "this job's ID is", jobid
-            # jobids.append(jobid)
-            # continue
-
-    # return jobids
-
-def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus):
+def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus, murange):
 
     generatorScript = os.path.abspath(outputDirectory + "/temp/generateToysAndFits.sh")
     folderGeneratorScript = os.path.abspath(outputDirectory + "/temp/generateFolders.sh")
 
     genScript = open(generatorScript, "w")
     genScript.write("\n".join(generateShellScript(
-    targetDatacard = pathToDatacard,
-    toyDatacard = datacardToUse,
-    numberOfToysPerExperiment = toyMode,
-    pathToMSworkspace = pathToMSworkspace,
-    additionalFitCmds = additionalFitCmds,
-    additionalToyCmds = additionalToyCmds ) ) )
+        targetDatacard = pathToDatacard,
+        toyDatacard = datacardToUse,
+        numberOfToysPerExperiment = toyMode,
+        pathToMSworkspace = pathToMSworkspace,
+        additionalFitCmds = additionalFitCmds,
+        additionalToyCmds = additionalToyCmds,
+        murange = murange ) ) )
     genScript.close()
 
     if os.path.exists(generatorScript):
@@ -542,28 +495,6 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
             print "Could not write folder generator!"
     else:
         print "Could not write toy and fit generator!"
-
-def do_qstat(jobids):
-    allfinished=False
-    while not allfinished:
-        time.sleep(10)
-        a = subprocess.Popen(['qstat'], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-        qstat=a.communicate()[0]
-        lines=qstat.split('\n')
-        nrunning=0
-        for line in lines:
-            words=line.split()
-            for jid in words:
-                if jid.isdigit():
-                    jobid=int(jid)
-                    if jobid in jobids:
-                        nrunning+=1
-                        break
-
-        if nrunning>0:
-            print nrunning,'jobs running'
-        else:
-            allfinished=True
 
 def checkCopy(original, copy):
     if original.GetNbinsX() is not copy.GetNbinsX():
@@ -711,6 +642,7 @@ def saveHistos(category, key, processScalingDic, inputRootFile, outputFile, path
         tempObject.Write()
 
 def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys, listOfNormsPrescale, listOfNormsPostscale):
+    if verbose: print "starting copy/scaling"
     tempObject = None
     data_obs = {}
 
@@ -740,16 +672,6 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
             saved=False
             for cat in config.categories:
                 if not saved:
-                    if not cat in data_obs:
-                        histoCatKey = config.histoKey.replace("$CHANNEL", cat)
-                        data_obs_key = histoCatKey.replace("$PROCESS", "data_obs")
-                        temp = inputRootFile.Get(data_obs_key)
-                        if not isinstance(temp, ROOT.TH1):
-                            sys.exit("Unable to load data_obs with key %s! Aborting" % data_obs_key)
-    
-                        data_obs[cat] = temp.Clone()
-                        data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
-                        data_obs[cat].Reset()
     
                     for signalHistoName in config.signalHistos[cat]:
                         parts = signalHistoName.split("/")
@@ -779,6 +701,18 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
                                 pathFromKey = "/".join(parts[:len(parts)-1])
                             if not path == pathFromKey:
                                 continue
+                            
+                            if not cat in data_obs:
+                                histoCatKey = config.histoKey.replace("$CHANNEL", cat)
+                                data_obs_key = histoCatKey.replace("$PROCESS", "data_obs")
+                                temp = inputRootFile.Get(data_obs_key)
+                                if not isinstance(temp, ROOT.TH1):
+                                    sys.exit("Unable to load data_obs with key %s! Aborting" % data_obs_key)
+            
+                                data_obs[cat] = temp.Clone()
+                                data_obs[cat].SetDirectory(outputFile.GetDirectory(path))
+                                data_obs[cat].Reset()
+                            
                             comparestring = parts[-1]
                             if keyName.startswith(comparestring):
                                 saveHistos( category = cat, 
@@ -795,8 +729,9 @@ def copyOrScaleElements(inputRootFile, outputFile, processScalingDic, listOfKeys
                                 break
                 else:
                     break
+    if verbose: print "NUMBER OF DATA_OBS CATEGORIES:", len(data_obs)
     for cat in data_obs:
-        data_obs[cat].Write()
+        data_obs[cat].Write(data_obs[cat].GetName(), ROOT.TObject.kOverwrite)
     print "\tdone with copying/scaling"
 
 def checkForMSworkspace(pathToDatacard, POImap):
@@ -804,11 +739,14 @@ def checkForMSworkspace(pathToDatacard, POImap):
     PathToMSDatacard = pathToDatacard
     msworkspacePath = ""
     if not( POImap is None or POImap == ""):
+        pathparts = PathToMSDatacard.split(".")
+        extension = "."+pathparts[-1]
         for mapping in POImap:
             containsPOIname = mapping.split(":")[-1]
             POIname = containsPOIname.split("[")[0]
-            PathToMSDatacard = PathToMSDatacard.replace(".txt", "_"+POIname+".txt")
-        msworkspacePath = PathToMSDatacard.replace(".txt","_multisig.root")
+            PathToMSDatacard = PathToMSDatacard.replace(extension, "_"+POIname+extension)
+        msworkspacePath = PathToMSDatacard.replace(extension,"_multisig.root")
+        print "checking for multi signal workspace in", msworkspacePath
         if os.path.exists(PathToMSDatacard):
             if not os.path.exists(msworkspacePath) or doWorkspaces:
                 bashCmd = "source {0} ;".format(pathToCMSSWsetup)
@@ -877,14 +815,16 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     
             copyOrScaleElements(inputRootFile, outputFile, processScalingDic, inputRootFile.GetListOfKeys(), listOfNormsPrescale, listOfNormsPostscale)
             outputFile.Close()
-        
+            print "closed file with scaled templates"
         if not os.path.exists(newRootFileName):
             sys.exit("Could not find root file with scaled input!")
         
         datacardToUse = os.path.abspath(writeDatacard(pathToDatacard, newRootFileName, listOfProcesses))
 
         newRootFileName = "temp_shape_expectation.root"#_" + suffix + os.path.basename(inputRootFile.GetName())
+        print "starting saving of expectations for norms"
         saveListAsTree(listOfNormsPrescale, listOfNormsPostscale, newRootFileName)
+        print "done saving norm expectations"
         shapeExpectation = "{0}/temp/{1}".format(outputPath, newRootFileName)
         os.chdir("../")
     elif pathToScaledDatacard is None:
@@ -899,6 +839,7 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
         pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
+        print ""
         print "checking if all datacards are workspaces"
         
         temp = check_workspace(pathToDatacard)
@@ -916,14 +857,8 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
                                 numberOfToysPerJob = numberOfToysPerJob,
                                 toyMode = toyMode,
                                 pathToMSworkspace = pathToMSworkspace,
-                                listOfMus = listOfMus)
-        print "waiting for toy generation to finish"
-        # do_qstat(jobids)
-        # os.chdir(workdir)
-        # print "calling plotResults with arguments:"
-        # print "\toutputPath =", outputPath
-        # print "\tshapeExpectation =", shapeExpectation
-        # subprocess.check_call([workdir+"/submitScript.sh", outputPath, shapeExpectation])
+                                listOfMus = listOfMus,
+                                murange = murange)
 
     else:
         print "Couldn't find datacard", datacardToUse
@@ -989,7 +924,6 @@ def writeDatacard(pathToDatacard, newRootFileName, listOfProcesses):
     datacard.close()
     print "\tdone"
     return newDatacardName
-
 
 if os.path.exists(pathToDatacard):
     pathToDatacard=os.path.abspath(pathToDatacard)

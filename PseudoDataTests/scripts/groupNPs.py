@@ -11,17 +11,17 @@ excludes = ["Combination", "imax", "jmax", "kmax", "shapes", "process",
             ]           
 
 def check_wildcard(key, nuisancelist):
-    print "input list:\n", nuisancelist
+    # print "input list:\n", nuisancelist
     for np in nuisancelist:
         if "*" in np:
-            print "checking", np
+            # print "checking", np
             parts = np.split("*")
             start = parts[0]
             body = parts[1:len(parts)-1]
             end = parts[-1]
-            print "start =", start
-            print "body = ", body
-            print "end = ", end
+            # print "start =", start
+            # print "body = ", body
+            # print "end = ", end
             if  key.startswith(start) and all( x in key for x in body) and key.endswith(end):
                 return True
         else:
@@ -33,7 +33,7 @@ def save_val(dic, group, val):
     if not group in dic:
         dic[group] = []
     if not val in dic[group]:
-        print "\tappending parameter", val
+        # print "\tappending parameter", val
         dic[group].append(val)
 
 # jsonfile = path.abspath(jsonfile)

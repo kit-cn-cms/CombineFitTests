@@ -132,19 +132,22 @@ void ShapeContainer::loadShapes(TFile& file, const TString& folderName, const TS
   TString helper;
   if(folderName.EndsWith("/")) helper = folderName + categoryName_;
   else helper.Form("%s/%s", folderName.Data(), categoryName_.Data());
-  file.cd(helper.Data());
-  TDirectory* categoryDir = gDirectory;
-  TIter nextHistoObject(categoryDir->GetListOfKeys());
-  TKey* key;
-  while ((key = (TKey*)nextHistoObject()) && (!key->IsFolder()) ) {
-    TClass *cl = gROOT->GetClass(key->GetClassName());
-    if(cl->InheritsFrom("TH1") && !cl->InheritsFrom("TH2")) loadShape((TH1D*)key->ReadObj());
-    else{
-      if(debug_) std::cout << "DEBUG    object " << key->GetName() << " does not inherit from TH1, skipping\n";
+  if(file.cd(helper.Data()))
+  {
+    TDirectory* categoryDir = gDirectory;
+    TIter nextHistoObject(categoryDir->GetListOfKeys());
+    TKey* key;
+    while ((key = (TKey*)nextHistoObject()) && (!key->IsFolder()) ) {
+      TClass *cl = gROOT->GetClass(key->GetClassName());
+      if(cl->InheritsFrom("TH1") && !cl->InheritsFrom("TH2")) loadShape((TH1D*)key->ReadObj());
+      else{
+        if(debug_) std::cout << "DEBUG    object " << key->GetName() << " does not inherit from TH1, skipping\n";
+      }
     }
+    delete key;
+    delete categoryDir;
   }
-  delete key;
-  delete categoryDir;
+  else std::cerr << "could not change into directory " << helper.Data() << std::endl;
 
   if(debug_) std::cout << "DEBUG    done saving normalisations for category " << categoryName_.Data() << std::endl;
   if(debug_) checkShapeContainer();
