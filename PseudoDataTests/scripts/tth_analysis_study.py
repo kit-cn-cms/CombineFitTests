@@ -141,8 +141,8 @@ type = "float"
 group_globalOptions.add_option("--nToysPerRun",
 help = "set number of toys that are generated for each call of the generated shell scrip OUTPUT/temp/generateToysAndFits.sh (default = 1). Careful: If you do this, the post-fit values are in a TTree, not in the RooFitResult object!",
 type = "int",
-default = 1
-dest = toyMode)
+default = 1,
+dest = "toyMode")
 
 parser.add_option_group(group_required)
 parser.add_option_group(group_globalOptions)
@@ -263,7 +263,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard
 
     Command for MaxLikelihoodFit (both for simple fit and multi signal model):
-    combine -M MaxLikelihoodFit -m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001  --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
+    combine -M MaxLikelihoodFit -m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
 
     Keyword arguments:
 
