@@ -79,9 +79,9 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
             string = " ".join(additionalCmds)
         else:
             string = additionalCmds
-    runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
+    # runScript(targetPath = targetPath, suffix = base_suffix+"noScaling", pathToDatacard = pathToDatacard, pois = pois, key = string)
     if pathToSherpa:
-        runScript(targetPath, base_suffix+"sherpa_normedto_ttbarPlusXbar", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
+        runScript(targetPath = targetPath, suffix = base_suffix+"sherpa_normedto_ttbarPlusXbar", pathToDatacard = pathToDatacard, pois = pois, key= "--scaledDatacard " + pathToSherpa + " " + string)
     # if pathToAMC:
         # runScript(targetPath, base_suffix+"amc", pathToDatacard, pathToRoofile, pois, key= "--scaledDatacard " + pathToAMC)
     for key in processDic:
@@ -110,14 +110,14 @@ def do_scaling( targetPath, pathToDatacard, pathToRoofile = None,
                     string += " " + additionalCmds
 
 
-            runScript(  targetPath  = targetPath,
-                        suffix      = suffix,
-                        pathToDatacard = pathToDatacard,
-                        pathToRoofile = pathToRoofile,
-                        pois = pois,
-                        key = string,
-                        factor = "--scaleFuncs " + factor,
-                        pathToConfig = pathToConfig)
+            # runScript(  targetPath  = targetPath,
+                        # suffix      = suffix,
+                        # pathToDatacard = pathToDatacard,
+                        # pathToRoofile = pathToRoofile,
+                        # pois = pois,
+                        # key = string,
+                        # factor = "--scaleFuncs " + factor,
+                        # pathToConfig = pathToConfig)
 
 
 def tth_fit_stability(pois, additionalCmds = None):
