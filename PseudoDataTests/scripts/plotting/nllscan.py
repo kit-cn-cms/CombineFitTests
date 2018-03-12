@@ -384,15 +384,18 @@ def create_parabola(xmin, xmax, xbest, ybest=None):
     parabel.SetLineColor(ROOT.kBlack)
     return parabel
 
-def create_lines_from_RooFitResult(var, pathToErrors, xmin, xmax, ymin,ymax):
+def create_lines_from_RooFitResult(var, pathToErrors, xmin, xmax, ymin,ymax, bonly = False):
     clresults = {}
     style = 2
     clname = "68.27%"
     if intact_root_file(pathToErrors):
         f = ROOT.TFile.Open(pathToErrors)
-        fit_s = f.Get("fit_s")
-        if isinstance(fit_s, ROOT.RooFitResult):
-            results = fit_s.floatParsFinal().find(var)
+        if bonly:
+            fit = f.Get("fit_b")
+        else:
+            fit = f.Get("fit_s")
+        if isinstance(fit, ROOT.RooFitResult):
+            results = fit.floatParsFinal().find(var)
             if isinstance(results, ROOT.RooRealVar):
 
                 x_down = results.getVal() + results.getErrorLo()
@@ -425,6 +428,7 @@ def create_lines_from_RooFitResult(var, pathToErrors, xmin, xmax, ymin,ymax):
                 clresults[clname] = {"lines" : lines, "vals" : vals}
             else:
                 print "could not load var {0} from {1}".format(var, pathToErrors)
+            fit.Delete()
         else:
             print "could not load RooFitResult object from", pathToErrors
     else:
@@ -546,7 +550,7 @@ def set_titles(graph, xtitle, ytitle, ztitle = None):
 
 def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
                 xtitle = None, ytitle = None, pathToErrors = None,
-                doProfile = False):
+                doProfile = False, bonly = False):
     cls = { "68.27%"    : 2,  
             # "95%"       : 3
             }       
@@ -559,6 +563,8 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     filename = "nllscan_{0}_{1}{2}".format(xtitle,ytitle, suffix)
     filename = treat_special_chars(string = filename)
     filename = outputDirectory + "/" + filename
+    if bonly:
+        filename += "_bonly"
     outfile = ROOT.TFile(filename + ".root", "RECREATE")
     xVals = []
     yVals = []
@@ -625,7 +631,8 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
             results = create_lines_from_RooFitResult(var = xVar, 
                                                     pathToErrors = pathToErrors,
                                                     xmin = xmin, xmax = xmax,
-                                                    ymin = ymin, ymax = ymax)
+                                                    ymin = ymin, ymax = ymax,
+                                                    bonly = bonly)
         if len(results) == 0:
             results = create_lines( graph = graph, xbest = xbest, 
                                     clStyles = cls, ymin = ymin, 
@@ -638,7 +645,7 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
             # print lines
             for i, line in enumerate(lines):
                 if i == 0:
-                    label = "{0}: {1}".format(cl, round(xbest,3))
+                    label = "{0}: {1}".format(cl, round(xbest,2))
                     
                     down = vals[0]
                     if isinstance(down, float):
@@ -675,7 +682,7 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     
 def do2DScan(   limit, xVar, yVar, outputDirectory, suffix, 
                 xtitle= None, ytitle = None, pathToErrors = None,
-                doProfile = False):
+                doProfile = False, npois = None):
     cls = { "68.27%"    : 2,  #68%
             "95%"       : 3}  #95%
     if xtitle == None:
@@ -755,7 +762,7 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
             contours.append(graph.Clone(contourname))    
         
         contours[-1].SetContour(1)
-        contours[-1].SetContourLevel(0,get_cl_value(cl = cl, npois = 1))
+        contours[-1].SetContourLevel(0,get_cl_value(cl = cl, npois = npois))
         contours[-1].SetLineStyle(cls[cl])
         contours[-1].SetLineWidth(3)
         contours[-1].Draw('same cont3')
@@ -797,7 +804,7 @@ if __name__ == '__main__':
     parser.add_option("--directlyDrawFrom", metavar = "path/to/scan/results", dest = "directDraw", help = "skip multi dim fit and draw plots directly from this file (needs to contain limit tree)")
     parser.add_option("--points", dest = "points", metavar = "numberOfPoints", help = "number of points to scan (default = 1000)", type = "int", default = "1000")
     parser.add_option("--nPointsPerJob", dest = "nPointsPerJob", type = "int", default = 30, help = "number of points that is calculated per job (default = 30)")
-    parser.add_option("--bonly", help = "perform background only fit (creates multiSignalModel where signal strength is not mapped to anything)", action = "store_true", default = False, dest = "bonly")
+    parser.add_option("--bonly", help = "perform background only fit (set signal strength to 0 and freezes it there)", action = "store_true", default = False, dest = "bonly")
     parser.add_option("-w", "--workspace", dest = "workspace", metavar = "path/to/workspace", help = "path to workspace to use for fit")
     parser.add_option("--scanUnconstrained", dest = "unconstrained", action = "store_true", default = False, help = "Drop constraints for scaned parameters")
     parser.add_option("--doWorkspaces", dest = "doWorkspaces", action = "store_true", default = False, help = "Force creation of workspaces even if they exist already (default = false)")
@@ -825,6 +832,10 @@ if __name__ == '__main__':
                         action = "store_true",
                         dest = "doProfile",
                         default = False)
+    parser.add_option(  "--npois",
+                        help = "in 2D contour, draw cl level for this number of pois",
+                        dest = "npois",
+                        type = "int")
     (options, args) = parser.parse_args()
     
     directDrawPath = options.directDraw
@@ -842,6 +853,8 @@ if __name__ == '__main__':
     granularity = options.granularity
     pathToErrors = options.pathToErrors
     doProfile = options.doProfile
+    npois = options.npois
+    
     if pathToErrors is not None:
         if not os.path.exists(pathToErrors):
             parser.error("could not find root file with uncertainties!")
@@ -967,7 +980,8 @@ if __name__ == '__main__':
                                 xtitle = xtitle,
                                 ytitle = ytitle,
                                 pathToErrors = pathToErrors,
-                                doProfile = doProfile)
+                                doProfile = doProfile,
+                                npois = npois)
                 else:
                     do1DScan(   limit, xVar = xVar, yVar = yVar, 
                                 outputDirectory = outputDirectory, 
@@ -976,7 +990,8 @@ if __name__ == '__main__':
                                 xtitle = xtitle,
                                 ytitle = ytitle,
                                 pathToErrors = pathToErrors,
-                                doProfile = doProfile)
+                                doProfile = doProfile,
+                                bonly = bonly)
     
     
             else:
