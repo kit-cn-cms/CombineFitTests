@@ -7,9 +7,12 @@ import glob
 
 infiless=sys.argv[1:]
 
-toRemove="ttH_hcc ttH_htt  ttH_hgg       ttH_hgluglu     ttH_hww         ttH_hzz         ttH_hzg         ttbarZ          diboson ttbarW          singlet           wjets                      zjets".split()
+# toRemove="ttH_hcc ttH_htt  ttH_hgg       ttH_hgluglu     ttH_hww         ttH_hzz         ttH_hzg".split()
+# toRemove+="ttbarZ          diboson ttbarW          singlet           wjets                      zjets".split()
 # toRemove=["QCD"]
-# toRemove="ttbarPlusB ttbarPlus2B".split()
+toRemove="ttbarPlusB ttbarPlus2B".split()
+setVariable = ["ttbarPlusBBbar"]
+# setVariable = []
 for infiles in infiless:
     for inf in glob.glob(infiles):
         inf = os.path.abspath(inf)
@@ -23,6 +26,7 @@ for infiles in infiless:
                 inlist = infl.read().splitlines()
                 infprocs=[]
                 for line in inlist:
+                    if line.startswith("#"): continue
                     if "process " in line and infprocs==[]:
                         print "found process line"
                         # sl=line.replace("\n","").replace("\t","").replace("  "," ").split(" ")
@@ -34,6 +38,7 @@ for infiles in infiless:
                         print infprocs
                 
                 for line in inlist:
+                    if line.startswith("#"): continue
                     # sl=line.replace("\n","").replace("\t","").replace("  "," ").split(" ")
                     sl = line.split()
                     print sl
@@ -49,6 +54,9 @@ for infiles in infiless:
                                 if infprocs[im] in toRemove:
                                     print "remove ", infprocs[im], " in ", sl
                                     newline+=""
+                                elif infprocs[im] in setVariable and "rate" in line:
+                                    print "setting {0} yield variable".format(infprocs[im])
+                                    newline += " -1"
                                 else:
                                     newline+=" "+m
     
