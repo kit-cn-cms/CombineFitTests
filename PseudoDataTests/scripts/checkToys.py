@@ -363,26 +363,22 @@ def check_for_reset(foldername):
         rmtree(foldername)
     os.makedirs(foldername)
 
-def save_histo(hist, pdfOutputPath):
+def save_histo(hist, pdfOutputPath, ext):
     if isinstance(hist, ROOT.TH1):
         name = hist.GetName()
         parts = name.split("_")
         name = "_".join(parts[0:len(parts)-1])
         
-        outFile = ROOT.TFile(pdfOutputPath+name+".root", "RECREATE")
-        if outFile.IsOpen():
-            canvas = ROOT.TCanvas()
-            
-            hist.Draw()
-            hist.Write()
-            canvas.Write()
-            outputdic = {pdfOutputPath + "pdfs" : ".pdf",
-                            pdfOutputPath + "pngs": ".png"}
-            for foldername in outputdic:
-                check_for_reset(foldername = foldername)
-                if os.path.exists(foldername):
-                    canvas.Print(foldername + "/"+name+outputdic[foldername])
-            outFile.Close()
+        # outFile = ROOT.TFile(pdfOutputPath+name+".root", "RECREATE")
+        # if outFile.IsOpen():
+        canvas = ROOT.TCanvas()
+        
+        hist.Draw()
+        # hist.Write()
+        # canvas.Write()
+        
+        canvas.Print(pdfOutputPath + "/"+name+ext)
+            # outFile.Close()
         if isinstance(hist, ROOT.TH2):
             filename = pdfOutputPath
             index = -2
@@ -405,38 +401,41 @@ def save_histo(hist, pdfOutputPath):
 
 def print2dDictionary(data_obs_dic, pdfOutputPath, labelbase = ";"):
     print "saving 2d dictionary"
-    for cat in data_obs_dic:
-        if cat == "total_integral":
-                uid = ROOT.TUUID()
-                histname = "scatterplot_total_integral_"+uid.AsString()
-                label = labelbase + "total_integral"
-                hist = create_2Dhisto(histvals = data_obs_dic[cat], 
-                                    histname = histname,
-                                    label = label)
-                # save_histo( hist = data_obs_dic[cat], 
-                            # pdfOutputPath = pdfOutputPath)
-                save_histo( hist = hist, 
-                            pdfOutputPath = pdfOutputPath)
-        else:
-            for i in data_obs_dic[cat]:
-                uid = ROOT.TUUID()
-                histname = "scatterplot_" + cat+ "_" + str(i)+"_"+uid.AsString()
-                label = labelbase
-                floatX = True
-                if not isinstance(i, str):
-                    label += "bin content {0}".format(i)
-                else: 
-                    if label == ";" and "_vs_" in i:
-                        label += i.replace("_vs_", ";")
-                        floatX = False
-                    else:
-                        label += i
-                hist = create_2Dhisto(histvals = data_obs_dic[cat][i],
-                                    histname = histname,
-                                    label = label,
-                                    floatX = floatX)   
-                save_histo( hist = hist,
-                            pdfOutputPath = pdfOutputPath)
+    outputdic = {pdfOutputPath + "pdfs" : ".pdf",
+                    pdfOutputPath + "pngs": ".png"}
+    
+    for foldername in outputdic:
+        for cat in data_obs_dic:
+            outfolder = pdfOutputPath + "/" + cat
+            check_for_reset(outfolder)
+            if cat == "total_integral":
+                    uid = ROOT.TUUID()
+                    histname = "scatterplot_total_integral_"+uid.AsString()
+                    label = labelbase + "total_integral"
+                    hist = create_2Dhisto(histvals = data_obs_dic[cat], 
+                                        histname = histname,
+                                        label = label)
+            else:
+                for i in data_obs_dic[cat]:
+                    uid = ROOT.TUUID()
+                    histname = "scatterplot_" + cat+ "_" + str(i)+"_"+uid.AsString()
+                    label = labelbase
+                    floatX = True
+                    if not isinstance(i, str):
+                        label += "bin content {0}".format(i)
+                    else: 
+                        if label == ";" and "_vs_" in i:
+                            label += i.replace("_vs_", ";")
+                            floatX = False
+                        else:
+                            label += i
+                    hist = create_2Dhisto(histvals = data_obs_dic[cat][i],
+                                        histname = histname,
+                                        label = label,
+                                        floatX = floatX)   
+            save_histo( hist = hist, 
+                        pdfOutputPath = outfolder + "/",
+                        ext = outputdic[foldername])
 
 def print1dDictionary(data_obs_dic, pdfOutputPath, doFits = False, origFile = None, scatterplots = False):
     print "saving dictionary:"
@@ -551,7 +550,7 @@ def getDataObss(pathToPseudoExps, dataObsFile, pdfOutputPath = "./", suffix = No
                     pathToFitResults += "/"+infile
                 rootFile = ROOT.TFile(pathToFitResults)
                 if rootFile.IsOpen() and not rootFile.IsZombie() and not rootFile.TestBit(ROOT.TFile.kRecovered):
-                    print "cd into shapes_prefit"
+                    # print "cd into shapes_prefit"
                     rootFile.cd("shapes_prefit")
                     listOfKeys = ROOT.gDirectory.GetListOfKeys()
                     for key in listOfKeys:
@@ -573,7 +572,7 @@ def getDataObss(pathToPseudoExps, dataObsFile, pdfOutputPath = "./", suffix = No
                                 scatterplots_bin_dic = scatterplots_bin_dic)
 
                     rootFile.Close()
-                    print "done with", path+"/"+infile
+                    # print "done with", path+"/"+infile
                 else:
                     print "Could not read {0} in {1}".format(infile, path)
 
