@@ -44,8 +44,11 @@ void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const
         correlationPlot->Draw("coltz");
         correlationPlot->Write();
         can.Write(outputName);
+        TLatex* header = helperFuncs::getLatex();
+        header->Draw("Same");
         std::cout << "creating " << outputName << ".pdf\n";
         can.SaveAs(outputName+".pdf");
+        delete header;
         output->Close();
     }
     else{
@@ -85,6 +88,8 @@ void compareDistributions(const std::vector<TH1*>& hists,
     dummy.GetXaxis()->SetTitle(hists.front()->GetXaxis()->GetTitle());
     dummy.GetYaxis()->SetRangeUser(ymin, ymax);
     dummy.Draw();
+    TLatex* header = helperFuncs::getLatex();
+    header->Draw("SAME");
     TH1D* h = NULL;
     TString name;
     if(hists.front() != NULL) 
@@ -180,7 +185,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
     can->SaveAs(outLabel+".pdf");
     std::cout << "printing distribution as " << outLabel << ".root\n";
     can->Write();
-    
+    delete header;
     std::cout << "deleting temporary objects\n";
     if( hNorm ) delete hNorm;
     if(leg != NULL) delete leg;
@@ -253,6 +258,8 @@ void compareMeanValues(TH1* hFittedValues,
 
         legend->AddEntry(hFittedValues, "mean values+mean error", "lp");
         hInitValues->Draw("HIST");
+        TLatex* header = helperFuncs::getLatex();
+        header->Draw("SAME");
         std::cout << "drawing " << hFittedValues->GetName() << std::endl;
         //for (int i=1; i<=hFittedValues->GetEntries(); i++) std::cout << "\tValue in bin " << i << " = " << hFittedValues->GetBinContent(i) << std::endl;
         hFittedValues->Draw("PE1same");
@@ -266,7 +273,7 @@ void compareMeanValues(TH1* hFittedValues,
         std::cout << "Printing Mean Value plot as " << outLabel << ".pdf\n";
         can->SaveAs(outLabel+".pdf");
         can->SaveAs(outLabel+".root");
-
+        delete header;
         if(can != NULL) delete can;
     }
 }
@@ -276,7 +283,7 @@ void selectParameters(const PseudoExperiments& exp, std::vector<TString>& list, 
 
   for(auto& np : exp.nps()){
       push_back = true;
-      if( ignoreBinByBinNPs && np.Contains("BDTbin") ) continue;
+      if( ignoreBinByBinNPs && (np.Contains("BDTbin") || np.Contains("prop_bin")) ) continue;
       for(auto& entry: list){
           if(np.EqualTo(entry)){
               push_back = false;
@@ -385,6 +392,7 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
             loadHistogram(exp.postfitS(np), hCompareNPMeansList[1], hCompareNPMediansList[1], histsPostfitS, bin, exp(), labels, exp.color());
             if(exp.postfitSerrorHiDist(np)){
                 histsPostfitSerrorHi.push_back(exp.postfitSerrorHiDist(np));
+                
                 helperFuncs::setXRange(histsPostfitSerrorHi.back());
             }
             if(exp.postfitSerrorLoDist(np)){
@@ -529,7 +537,7 @@ void saveFitValues(const int bin, TH1D* hMeans, double mean, double meanError, s
     fitResultsContainer.push_back(vectorToSafe);
 }
 
-void normVals(std::vector<std::vector<Double_t> >* toNorm, std::vector<std::vector<Double_t> >* norm, int nAllExps){
+void normVals(std::vector<std::vector<Double_t> >* toNorm, std::vector<std::vector<Double_t> >* norm, const int& nAllExps, const double* backup_ratios = NULL){
     if(toNorm != NULL && norm != NULL){
         for(int nExp=0; nExp<nAllExps; nExp++){
             //std::cout << "\tnorming experiment #" << nExp << std::endl;
@@ -544,14 +552,31 @@ void normVals(std::vector<std::vector<Double_t> >* toNorm, std::vector<std::vect
                 double preFitMeanErr = norm[nExp][i][1];
                 double preFitMedian = norm[nExp][i][2];
                 double preFitRMS = norm[nExp][i][3];
-                if(norm[nExp][i][0] != 0 && norm[nExp][i][2] != 0)
+                if(preFitMeanVal == 0 && backup_ratios){
+                    std::cout << "prefit mean is 0! Will try to calculate it using post mu ratio " << backup_ratios[nExp] << std::endl;
+                    preFitMeanVal =  postFitMeanVal*backup_ratios[nExp];
+                }
+                if(preFitMedian == 0 && backup_ratios){
+                    std::cout << "prefit median is 0! Will try to calculate it using post mu ratio " << backup_ratios[nExp] << std::endl;
+                    preFitMedian =  postFitMedian*backup_ratios[nExp];
+                }
+                if(preFitMeanVal != 0)
                 {
-                    toNorm[nExp][i][0] = helperFuncs::checkValues(postFitMeanVal/preFitMeanVal);
-                    //std::cout << "\t\t\tnew mean val = " << toNorm[nExp][i][0] << std::endl;
+                    toNorm[nExp][i][0] = helperFuncs::checkValues((postFitMeanVal - preFitMeanVal)/preFitMeanVal);
+                    // std::cout << "\t\t\tnew mean val = " << toNorm[nExp][i][0] << std::endl;
                     //std::cout << "postFitMeanErr = " << postFitMeanErr << "\tpreFitMeanErr = " << preFitMeanErr << std::endl;
                     toNorm[nExp][i][1] = helperFuncs::checkValues(toNorm[nExp][i][0]*TMath::Sqrt(TMath::Power(postFitMeanErr/postFitMeanVal,2) + TMath::Power(preFitMeanErr/preFitMeanVal,2)));
                     //std::cout << "\t\t\tnew mean err = " << toNorm[nExp][i][1] << std::endl;
-                    toNorm[nExp][i][2] = postFitMedian/preFitMedian;
+                }
+                else
+                {
+                    std::cout << "\tWARNING! Values to norm to are 0 in bin " << i <<"! Setting all values to 0\n";
+                    toNorm[nExp][i][0] = 0;
+                    toNorm[nExp][i][1] = 0;
+                }
+                if(preFitMedian != 0)
+                {
+                    toNorm[nExp][i][2] = helperFuncs::checkValues((postFitMedian - preFitMedian)/preFitMedian);
                     //std::cout << "\t\t\tnew median val = " << toNorm[nExp][i][2] << std::endl;
 
                     toNorm[nExp][i][3] = helperFuncs::checkValues(toNorm[nExp][i][2]*TMath::Sqrt(TMath::Power(postFitRMS/postFitMedian,2) + TMath::Power(preFitRMS/preFitMedian,2)));
@@ -559,14 +584,68 @@ void normVals(std::vector<std::vector<Double_t> >* toNorm, std::vector<std::vect
                 }
                 else
                 {
-                    //std::cout << "\tmean value to norm to is 0! Setting all values to 0\n";
-                    for(int i=0; i<int(norm[nExp][i].size()); i++) toNorm[nExp][i][i] = 0;
+                    std::cout << "\tWARNING! Values to norm to are 0 in bin " << i <<"! Setting all values to 0\n";
+                    toNorm[nExp][i][2] = 0;
+                    toNorm[nExp][i][3] = 0;
                 }
             }
         }
     }
 }
 
+void calculate_total_yields(const std::vector<TString>& listOfProcesses,std::vector<std::vector<Double_t> >* PrefitValsAndErrors, std::vector<std::vector<Double_t> >* PostfitValsAndErrors, const int& nAllExps, const double* backup_ratios){
+    std::cout << "yields to be calculated: total, total_background, total_signal\n";
+    double total_signal_mean = 0;
+    double total_signal_median = 0;
+    int position_total_signal = 0;
+    double total_background_mean = 0;
+    double total_background_median = 0;
+    int position_total_background = 0;
+    int position_total = 0;
+    TString name;
+    for(int nExp=0; nExp<nAllExps; nExp++)
+    {
+        for(int i=0; i<int(listOfProcesses.size());i++){
+            name = listOfProcesses[i];
+            if(name.BeginsWith("ttH_")) 
+            {
+                total_signal_mean += PostfitValsAndErrors[nExp][i][0]*backup_ratios[nExp];
+                PrefitValsAndErrors[nExp][i][0] = PostfitValsAndErrors[nExp][i][0]*backup_ratios[nExp];
+        
+                total_signal_median += PostfitValsAndErrors[nExp][i][2]*backup_ratios[nExp];
+                PrefitValsAndErrors[nExp][i][2] = PostfitValsAndErrors[nExp][i][2]*backup_ratios[nExp];
+            }
+            else{
+                if(name.EqualTo("total")) 
+                {
+                    position_total = i;
+                    continue;
+                }
+                if(name.EqualTo("total_signal"))
+                {
+                    position_total_signal = i;
+                    continue;
+                }
+                if(name.EqualTo("total_background"))
+                {
+                    position_total_background = i;
+                    continue;
+                }
+                total_background_mean += PostfitValsAndErrors[nExp][i][0];
+                total_background_median += PostfitValsAndErrors[nExp][i][2]; 
+            }
+        }
+        std::cout << "setting total_signal (position " << position_total_signal << ") to " << total_signal_mean <<std::endl;
+        PrefitValsAndErrors[nExp][position_total_signal][0] = total_signal_mean;
+        PrefitValsAndErrors[nExp][position_total_signal][2] = total_signal_median;
+        std::cout << "setting total_background (position " << position_total_background << ") to " << total_background_mean <<std::endl;
+        PrefitValsAndErrors[nExp][position_total_background][0] = total_background_mean;
+        PrefitValsAndErrors[nExp][position_total_background][2] = total_background_median;
+        std::cout << "setting total (position " << position_total << ") to " << total_signal_mean + total_background_mean <<std::endl;
+        PrefitValsAndErrors[nExp][position_total][0] = total_signal_mean + total_background_mean;
+        PrefitValsAndErrors[nExp][position_total][2] = total_signal_median + total_background_median;
+    }
+}
 
 void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& outLabel, const TString& pathToShapeExpectationRootfile=""){
     std::vector<TString> listOfProcesses;
@@ -592,6 +671,9 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
 
     TString categoryName;
     TString np;
+    //hotfix: combine does not save prefit signal shapes-> using workaround if prefitval == 0
+    double* postfitsb_mu_ratios = new double[exps.size()];
+    for(int i = 0 ; i<exps.size(); i++) postfitsb_mu_ratios[i] = -99999;
 
     for(int nCategory=0; nCategory< int(exps.begin()->getPrefitShapes().size()); nCategory++)
     {
@@ -599,7 +681,7 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
         PostfitBvalsAndErrors = new std::vector<std::vector<Double_t> >[exps.size()];
         PostfitSBvalsAndErrors = new std::vector<std::vector<Double_t> >[exps.size()];
         PrefitValsAndErrors = new std::vector<std::vector<Double_t> >[exps.size()];
-
+        
         categoryName = exps.begin()->getPrefitShapes()[nCategory]->getName();
 
         for(int nProcess=0; nProcess<int(listOfProcesses.size()); nProcess++ ) {
@@ -618,7 +700,7 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
             hCompareNPMediansList[0] = (TH1D*)hNPs->Clone(TString(categoryName + "_normalisation_"+np+"_median_PostfitB").Data());
             hCompareNPMediansList[1] = (TH1D*)hNPs->Clone(TString(categoryName + "_normalisation_"+np+"_median_PostfitS").Data());
             hPrefit = (TH1D*)(hNPs->Clone(TString("hPrefit_"+categoryName + "_normalisation_"+np).Data()));
-
+            
 
             for(size_t iE = 0; iE < exps.size(); ++iE) {
                 const int bin = iE+1;
@@ -671,6 +753,11 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
                 histsPostfitS.push_back( postfitSshapes->getDist(np) );
                 // helperFuncs::norm( histsPostfitS.back() );
                 helperFuncs::setLineStyle( histsPostfitS.back(), exp.color(), 1 );
+                if(postfitsb_mu_ratios[iE] == -99999) 
+                {
+                    if(exps[iE].postfitSMean("r") != 0) postfitsb_mu_ratios[iE] = 1./ exps[iE].postfitSMean("r");
+                    else postfitsb_mu_ratios[iE] = exps[iE].postfitSMean("r");
+                }
             }
             // plot np distributions
             // std::cout << "\tPostFitB histogram entries:\n";
@@ -705,18 +792,19 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
             histsPostfitS.clear();
         }
         std::cout << "collected " << listOfProcesses.size() << " names of processes!\n";
+        calculate_total_yields(listOfProcesses, PrefitValsAndErrors, PostfitSBvalsAndErrors, int(labels.size()), postfitsb_mu_ratios);
 
         std::cout << "norming PostfitBvals to PrefitVals\n";
         normVals(PostfitBvalsAndErrors, PrefitValsAndErrors, int(labels.size()));
         std::cout << "norming PostfitSBvals to PrefitVals\n";
-        normVals(PostfitSBvalsAndErrors, PrefitValsAndErrors, int(labels.size()));
+        normVals(PostfitSBvalsAndErrors, PrefitValsAndErrors, int(labels.size()), postfitsb_mu_ratios);
         std::cout << "norming PrefitVals to PrefitVals\n";
         normVals(PrefitValsAndErrors, PrefitValsAndErrors, int(labels.size()));
 
         std::cout << "drawing norm pullplots\n";
         if(listOfProcesses.size() != 0){
             for(int i = 0; i<int(exps.size()); i++){
-              drawPullPlots::drawPullPlots(listOfProcesses, labels[i], PostfitBvalsAndErrors[i], PostfitSBvalsAndErrors[i], PrefitValsAndErrors[i], outLabel+categoryName +"_normalisation_", -1, 3, pathToShapeExpectationRootfile, categoryName);
+              drawPullPlots::drawPullPlots(listOfProcesses, labels[i], PostfitBvalsAndErrors[i], PostfitSBvalsAndErrors[i], PrefitValsAndErrors[i], outLabel+categoryName +"_normalisation_", -2, 2, pathToShapeExpectationRootfile, categoryName);
             }
 
         }
@@ -725,6 +813,7 @@ void compareShapes(const std::vector<PseudoExperiments>& exps, const TString& ou
         delete[] PrefitValsAndErrors;
         listOfProcesses.clear();
     }
+    delete[] postfitsb_mu_ratios;
 
 }
 
@@ -788,9 +877,9 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   {
       
       if(pathname.Contains("PseudoExperiment")){
-        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "", "mlfit.root");
         ncolor++;
-        // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "extended model, ", "fitDiagnostics_MS_mlfit.root");
+        // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "extended model ", "fitDiagnostics_MS_mlfit.root");
         // ncolor++;
       }
       else{
@@ -806,13 +895,13 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
             if (folder->IsDirectory() && folderName.Contains("sig")) {
               loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
               ncolor++;
-              // loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "extended model, ", "fitDiagnostics_MS_mlfit.root");
+              // loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "extended model ", "fitDiagnostics_MS_mlfit.root");
               // ncolor++;
             }
             if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
               loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
               ncolor++;
-              // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "extended model, ", "fitDiagnostics_MS_mlfit.root");
+              // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "extended model ", "fitDiagnostics_MS_mlfit.root");
               // ncolor++;
               break;
             }
@@ -849,7 +938,7 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
               outputString.Form("#Entries: %f\n",exp.postfitS(poi)->GetEntries());
               std::cout << outputString << std::endl;
           }
-          temp.Form("%s %f +- %f +- %f +- %f (%f + %f)\n", poi.Data(), exp.postfitSMean(poi), exp.postfitSMeanError(poi), exp.postfitSRMS(poi), exp.postfitSerror(poi), exp.postfitSerrorLo(poi), exp.postfitSerrorHi(poi));
+          temp.Form("%s %f +- %f +- %f +- %f (%f + %f)\t%f\n", poi.Data(), exp.postfitSMean(poi), exp.postfitSMeanError(poi), exp.postfitSRMS(poi), exp.postfitSerror(poi), exp.postfitSerrorLo(poi), exp.postfitSerrorHi(poi), helperFuncs::getMedian(exp.postfitS(poi)));
           outputString += temp;
           std::cout << "\t" << temp.Data() << std::endl;
           std::cout << "\tmedian = " << helperFuncs::getMedian(exp.postfitS(poi)) << std::endl;
@@ -859,12 +948,12 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
       correlation = exp.getCorrelationPlotPostfitB();
       printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitB_" + exp());
       if(correlation) delete correlation;
-      exp.printPostfitBcorrelations(outputPath+"_PostfitB_");
+      // exp.printPostfitBcorrelations(outputPath+"PostfitB_");
       std::cout << "\tprinting correlation for S+B fit\n";
       correlation = exp.getCorrelationPlotPostfitS();
       printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitS_" + exp());
       if(correlation) delete correlation;
-      exp.printPostfitScorrelations(outputPath+"_PostfitS_");
+      // exp.printPostfitScorrelations(outputPath+"PostfitS_");
       
       TString tablename = "POIs_" + exp();
       if(tablename.Contains(".")) tablename.ReplaceAll(".", "p");

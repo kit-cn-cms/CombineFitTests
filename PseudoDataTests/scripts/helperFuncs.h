@@ -18,14 +18,14 @@
 
 namespace helperFuncs{
   
-  TH1D* createHistoFromVector(const TString& histName, const std::vector<Double_t>& vec, const TString& title=""){
+  TH1D* createHistoFromVector(const TString& histName, const std::vector<Double_t>& vec, const TString& title="", const Double_t defaultXmin = -5, const Double_t defaultXmax = 5){
     int position = std::distance(vec.begin(), std::min_element(vec.begin(), vec.end()));
     double minVal = vec[position];
     position = std::distance(vec.begin(), std::max_element(vec.begin(), vec.end()));
     double maxVal = vec[position];
     if(minVal == maxVal){
-      minVal = minVal - 5;
-      maxVal = maxVal + 5;
+      minVal = minVal + defaultXmin;
+      maxVal = maxVal + defaultXmax;
     }
     int nBins = 2000;
     TH1D* histo = new TH1D(histName, title.Data(), nBins, minVal, maxVal);
@@ -146,10 +146,19 @@ namespace helperFuncs{
       }
     }
   }
-
+  void treat_special_chars(TString& name){
+    if(name.Contains(".")) name.ReplaceAll(".", "p");
+    if(name.Contains(":")) name.ReplaceAll(":", "_");
+    if(name.Contains(" = ")) name.ReplaceAll(" = ", "_");
+    if(name.Contains(" ")) name.ReplaceAll(" ", "_");
+  }
   void setXRange(TH1* h, const double min, const double max) {
     if(h!= NULL) 
     {
+        TString name = h->GetName();
+        treat_special_chars(name);
+        name.Append(".root");
+        // h->SaveAs(name.Data());
         std::cout << "setting histo range to " << min << "\t" << max << std::endl;
         h->GetXaxis()->SetRangeUser(min,max);
     }
@@ -311,6 +320,14 @@ namespace helperFuncs{
           std::cout << "Resizing histo " << hist->GetName() << "with nBins = " << nBins << "\txmin = " << xmin << "\txmax = " << xmax << std::endl;
           //hist->SetBins(nBins, xmin, xmax);
       }
+  }
+  TLatex* getLatex(const TString text = "CMS private work", const double x=0.12, const double y=0.91 ){
+    std::cout << "creating header\n";
+    TLatex* tests = new TLatex(x, y,text);
+    tests->SetTextFont(42);
+    tests->SetTextSize(0.04);
+    tests->SetNDC();
+    return tests;
   }
 
 

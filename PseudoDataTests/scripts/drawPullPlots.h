@@ -19,23 +19,31 @@
 namespace drawPullPlots{
 
   TGraphErrors* get_graph(const TH1* hist, const double& shift){
-        TGraphErrors* gr = new TGraphErrors();
-        TString name = hist->GetName();
-        name.Prepend("graph_");
-        gr->SetName(name.Data());
-        double x = 0;
-        double y = 0;
-        double e = 0;
-        for(int i=0; i< hist->GetNbinsX();i++)
+        if(hist != NULL)
         {
-                x = hist->GetBinCenter(i+1)+shift;
-                y = hist->GetBinContent(i+1);
-                e = hist->GetBinError(i+1);
-                gr->SetPoint(i,x,y);
-                gr->SetPointError(i,TMath::Abs(shift)*0.8,e);
+                TGraphErrors* gr = new TGraphErrors();
+                TString name = hist->GetName();
+                name.Prepend("graph_");
+                gr->SetName(name.Data());
+                double x = 0;
+                double y = 0;
+                double e = 0;
+                for(int i=0; i< hist->GetNbinsX();i++)
+                {
+                        x = hist->GetBinCenter(i+1)+shift;
+                        y = hist->GetBinContent(i+1);
+                        e = hist->GetBinError(i+1);
+                        gr->SetPoint(i,x,y);
+                        gr->SetPointError(i,0,e);
+                }
+                helperFuncs::setLineStyle(gr, hist->GetLineColor(), hist->GetLineStyle(), hist->GetMarkerStyle());
+                gr->SetMarkerSize(hist->GetMarkerSize());
+                return gr;
         }
-        helperFuncs::setLineStyle(gr, hist->GetLineColor(), hist->GetLineStyle(), hist->GetMarkerStyle());
-        return gr;
+        else{
+                std::cout << "WARNING: received empty histogram in drawPullPlots::get_graph()!";
+                return NULL;
+        }
   }
   void addToCanvas(TH1* h, TLegend* l, const TString legendlabel, const TString drawOpt, const TString writeOpt){
       if(h != NULL){
@@ -54,6 +62,18 @@ namespace drawPullPlots{
           l->AddEntry(h, legendlabel.Data(), legOpt.Data());
           h->Write(writeOpt.Data());
       }
+  }
+  
+  void saveGraphs(std::vector<TGraphErrors*>& graphs, TLegend* legend, const TH1* bfit, const TH1* sbfit, const double& binwidth){
+        // graphs.push_back(get_graph(bfit, 0.2*binwidth));
+        // std::cout << "saved postfitB TGraph\n";
+        // addToCanvas(graphs.back(), legend, "B-only fit Means + Mean Fitted Error", "PEsame","postfitBmeans");
+        // std::cout << "bonly marker style: " << graphs.back()->GetMarkerStyle() << std::endl;
+        // std::cout << "drew postfitB\n";
+        graphs.push_back(get_graph(sbfit, -0.2*binwidth));
+        std::cout << "saved postfitSB TGraph\n";
+        addToCanvas(graphs.back(), legend, "S+B fit Means + Mean Fitted Error", "PEsame", "postfitSBmeans_fittedError");
+        std::cout << "drew postfitSB\n";
   }
   
   void drawPullPlots(const std::vector<TString>& listOfNPs,
@@ -189,11 +209,11 @@ namespace drawPullPlots{
               }
               if(listOfNPs[np].BeginsWith("ttH") || listOfNPs[np].Contains("signal"))
               {
-                if(prescaleVal != 0) ratio = signalStrength*postscaleVal/prescaleVal;
+                if(prescaleVal != 0) ratio = signalStrength*postscaleVal/prescaleVal - 1;
                 else ratio = 0;
               }
               else{
-                if(prescaleVal != 0) ratio = postscaleVal/prescaleVal;
+                if(prescaleVal != 0) ratio = postscaleVal/prescaleVal - 1;
                 else ratio = 0;
               }
               //std::cout << "fill histogram with value " << ratio << std::endl;
@@ -239,11 +259,11 @@ namespace drawPullPlots{
         helperFuncs::setLineStyle(hPrefitMedians, kBlack, 2);
 
         helperFuncs::setLineStyle(hPostfitBmeans, kBlue, 1, 20);
-        if(hPostfitBmeansWithFitErrors != NULL) helperFuncs::setLineStyle(hPostfitBmeansWithFitErrors, kBlue, 1, 1);
+        if(hPostfitBmeansWithFitErrors != NULL) helperFuncs::setLineStyle(hPostfitBmeansWithFitErrors, kBlue, 1, 20);
         helperFuncs::setLineStyle(hPostfitBmedians, kBlue, 2, 21);
 
         helperFuncs::setLineStyle(hPostfitSBmeans, kRed, 1, 20);
-        if(hPostfitSBmeansWithFitErrors != NULL) helperFuncs::setLineStyle(hPostfitSBmeansWithFitErrors, kRed, 1, 1);
+        if(hPostfitSBmeansWithFitErrors != NULL) helperFuncs::setLineStyle(hPostfitSBmeansWithFitErrors, kRed, 1, 20);
         helperFuncs::setLineStyle(hPostfitSBmedians, kRed, 1, 21);
 
         std::cout << "set line style successfully\n";
@@ -273,18 +293,21 @@ namespace drawPullPlots{
                 addToCanvas(hPostfitSBmeansWithFitErrors, legend, "S+B fit Means + Fitted Error", "PEsame", "postfitSBmeans_fittedError");
         }
         else{
-                graphs.push_back(get_graph(hPostfitBmeansWithFitErrors, 0.2*binwidth));
-                addToCanvas(graphs.back(), legend, "B-only fit Means + Mean Fitted Error", "PEsame","postfitBmeans");
-                graphs.push_back(get_graph(hPostfitSBmeansWithFitErrors, -0.2*binwidth));
-                addToCanvas(graphs.back(), legend, "S+B fit Means + Mean Fitted Error", "PEsame", "postfitSBmeans_fittedError");
+                if(hPostfitBmeansWithFitErrors != NULL || hPostfitSBmeansWithFitErrors != NULL){
+                        saveGraphs(graphs, legend, hPostfitBmeansWithFitErrors, hPostfitSBmeansWithFitErrors, binwidth);
+                }
+                else{
+                        saveGraphs(graphs, legend, hPostfitBmeans, hPostfitSBmeans, binwidth);
+                }
         }
         
-        std::cout << "drew postfit s+b\n";
+        
 
         legend->SetFillStyle(1001);
         legend->Draw("Same");
         std::cout << "drew legend\n";
-
+        TLatex* header = helperFuncs::getLatex();
+        header->Draw("Same");
         
         //std::cout << "prepending path: " << outLabel << "pullplot_" << std::endl;
         //~ createLatexOutput::writeLatexTable(hPostfitBmeans, hPostfitBmedians, hPostfitSBmeans, hPostfitSBmedians, outLabel+"values_"+*canvasName+".txt", "Values for "+label, hExpectation, hPostfitBmeansWithFitErrors, hPostfitSBmeansWithFitErrors);
@@ -297,7 +320,7 @@ namespace drawPullPlots{
         canvas.SaveAs(*canvasName+".pdf");
         
         std::cout << "saved canvas successfully\n";
-
+        delete header;
         if(hPostfitSBmeans != NULL) delete hPostfitSBmeans;
         if(hPostfitSBmeansWithFitErrors != NULL) delete hPostfitSBmeansWithFitErrors;
         if(hPostfitSBmedians != NULL) delete hPostfitSBmedians;
