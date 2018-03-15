@@ -9,7 +9,7 @@
 #include "Draw_final.h"
 #include "ctime"
 
-int repeat(TString save1 = "toytest", TString save2 = "some*", int runs = 20, int files = 100, float signal = 1)
+void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1 , int runs = 20, int files = 100, float signal = 1)
 {
 	TString savesite = save1;
 	savesite.Append("/").Append(save2);
@@ -30,7 +30,7 @@ int repeat(TString save1 = "toytest", TString save2 = "some*", int runs = 20, in
 
 	double differences[runs+1];
 
-	for(int i = 1; i <= runs; ++i)
+	for(int i = startruns; i <= runs; ++i)
 	{
 		// Checking time to controll performance
 		time_t begin;
@@ -85,12 +85,30 @@ int repeat(TString save1 = "toytest", TString save2 = "some*", int runs = 20, in
 	TString savep = working + "/" + save1 + "/converted/collected.root";
 	// Chaining the resulting datasets
 	chaining(call.Data(),savep.Data());
-	CreateFinalHist(savep.Data());
+	CreateFinalHist(savep.Data(),1);
+
+	// Copying and processing values
+	system(TString(TString("mkdir ") + working + save1 + TString("/Values/")).Data());
+	for(int i = startruns; i < runs; ++i)
+	{
+		int templ =0;
+		int tempi = i;
+		do{++templ;
+		tempi/=10;}
+		while(tempi);
+		char tempnr[templ];
+		sprintf(tempnr,"%d",i);
+		TString temporigin = working + save1 + "/some" + tempnr + "/sig" + sign + "/converted/combined" + tempnr + ".root";
+		TString tempsave = working + save1 + "/Values/";
+		TString move = "cp " + temporigin + " " + tempsave;
+		system(move.Data());
+	}
+	chaining(TString(working+save1+TString("Values/combined*.root")).Data(),TString(working+save1+TString("Values/final.root")).Data());
+	CreateFinalHist(TString(working+save1+TString("Values/final.root")).Data(),signal);
 	for(int i = 1; i <= runs; ++i)
 	{
 		std::cout << "Durchlaufnr. " << i << " : " << differences[i] << std::endl;
 	}
-	return 0;
 }
 
 int main()
@@ -100,16 +118,19 @@ int main()
 	int runs;
 	int files;
 	float signal;
+	int startrun;
 	std::cout << "Geben Sie den Zielordner der Form toytest an: ";
 	std::cin >> folder;
 	std::cout << "Geben sie den Unterordner an: ";
 	std::cin >> sub;
+	std::cout << "Erster Run? ";
+	std::cin >> startrun;
 	std::cout << "Wie viele Runs? ";
 	std::cin >> runs;
 	std::cout << "Wie viele files? ";
 	std::cin >> files;
 	std::cout << "Signalstarke? ";
 	std::cin >> signal;
-	repeat(folder, sub, runs, files, signal);
+	repeat(folder, sub,startrun, runs, files, signal);
 	return 0;
 }

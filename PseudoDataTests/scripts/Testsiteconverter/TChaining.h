@@ -8,20 +8,34 @@
 
 int chaining(TString Filename = "fitDiagnosics1.root", TString Output = "combined_fits.root")
 {
+	bool proper = false;
+	int i = 1;
+	TFile* output;
+	TFile* Samplefile;
+	TList* Lsamples;
+	while(!proper)
+	{
+	// Converting int to char
+	int templ =0;
+	int tempi = i;
+	do{++templ;
+	tempi/=10;} while(tempi);
+	char tempc[templ];
+	sprintf(tempc,"%d",i);
 	TString firstfile = Filename;
 	while(firstfile.MaybeWildcard())
 	{	int aces = firstfile.Index("*",1);
 		firstfile.Replace(aces,1,"1");	}
 
-	// Loading first file as a sample, to dynamically create the right amount of TChains
-	TFile* Samplefile = new TFile(firstfile.Data());
-
-	// Creating File, to store all the collected Trees
-	TFile* output = TFile::Open(Output.Data(),"RECREATE");
-
-	// Creating sample list
-	TList* Lsamples = (TList*) Samplefile->GetListOfKeys();
-
+	if(TFile(firstfile.Data()).GetListOfKeys()->Contains("signal"))
+	{
+		output = TFile::Open(Output.Data(),"RECREATE");
+		Samplefile = new TFile(firstfile.Data());
+	        Lsamples = (TList*) Samplefile->GetListOfKeys();
+		proper = true;
+	}
+	else {++i;}
+	}
 	while(Lsamples->GetSize()!=0)
 	{
 		// Temporalily save subdirectory

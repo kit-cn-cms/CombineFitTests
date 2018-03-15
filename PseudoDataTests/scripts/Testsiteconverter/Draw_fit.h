@@ -58,7 +58,7 @@ int CreateHist(TString  file = "newfile.root")
 			Ttemp->SetBranchAddress("High Error",&hie);
 			Ttemp->SetBranchAddress("Low Error",&loe);
 			// Creating Histogramms
-			TH1D HistVal = TH1D((TString("Value").Append(Ttemp->GetName())).Data(),"Values",300,0,3);
+			TH1D HistVal = TH1D((TString("Value").Append(Ttemp->GetName())).Data(),"Values",300,-10,10);
 			TH1D HistErr = TH1D((TString("Error").Append(Ttemp->GetName())).Data(),"Errors",1000,0,20);
 			TH1D HistHiE = TH1D((TString("Hi_Er").Append(Ttemp->GetName())).Data(),"High Errors",1000,0,20);
 			TH1D HistLoE = TH1D((TString("Lo_Er").Append(Ttemp->GetName())).Data(),"Low Errors",1000,0,20);
@@ -126,7 +126,6 @@ int CreateHist(TString  file = "newfile.root")
 				Tsave->Branch("Mode_Value", res, "res[j]/D");
 			}
 			*/
-			HistVal.SetBins(300,0.,3.);
 
 			// Assigning Means
 			sval = HistVal.GetMean();

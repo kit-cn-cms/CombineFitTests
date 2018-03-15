@@ -61,8 +61,6 @@ TDirectoryFile* shapes(TFile* file, int mode =0)
 		folder->Add(Ttemp);
 		List->RemoveLast();
 	}
-	//List->~TList();
-	//Dirsub->~TDirectoryFile();
 	return folder;
 }
 
@@ -72,13 +70,13 @@ void change(TFile* file, int mod = 0, TDirectoryFile* Fpostb = NULL, TDirectoryF
 	// Initilazing fitb and setting the names of the folders
 	RooFitResult* fitb;
 	if(mod == 0){		file->GetObject("nuisances_prefit_res",fitb);
-				Fpostb= new TDirectoryFile("Prefit","Prefit Nuisances");
+				Fpostb= new TDirectoryFile("Prefit","Prefit_Nuisances");
 				Fcorr = new TDirectoryFile("Correlation_pre","Correlation_pre");}
 	else if(mod == 1){	file->GetObject("fit_b",fitb);
-				Fpostb= new TDirectoryFile("background","background Nuisances");
+				Fpostb= new TDirectoryFile("background","background_Nuisances");
 				Fcorr = new TDirectoryFile("Correlation_bac","Correaltion_bac");}
 	else if(mod == 2){	file->GetObject("fit_s",fitb);
-				Fpostb= new TDirectoryFile("signal","signal Nuisances");
+				Fpostb= new TDirectoryFile("signal","signal_Nuisances");
 				Fcorr = new TDirectoryFile("Correlation_sig","Correlation_sig");}
 	
 	// Creating Iterator for fitb
@@ -104,8 +102,8 @@ void change(TFile* file, int mod = 0, TDirectoryFile* Fpostb = NULL, TDirectoryF
 		// Assigning Branches with corresponding values to tree
 		Tnuisances->Branch("Value", &val, "value/D");
 		Tnuisances->Branch("Error", &err, "error/D");
-		Tnuisances->Branch("High Error", &hie, "high error/D");
-		Tnuisances->Branch("Low Error", &loe, "low error/D");
+		Tnuisances->Branch("High_Error", &hie, "high_error/D");
+		Tnuisances->Branch("Low_Error", &loe, "low_error/D");
 
 		val = Vartemp1->getVal();
 		err = Vartemp1->getError();
@@ -141,9 +139,6 @@ void change(TFile* file, int mod = 0, TDirectoryFile* Fpostb = NULL, TDirectoryF
 	Fpostb->Write();
 	Fcorr->Write();
 	Ifitb.~TIter();
-	//Tcorr->~TTree();
-	//Vartemp1->~RooRealVar();
-	//Vartemp2->~RooRealVar();
 }
 
 bool checkFitStatus(TFile* file){
