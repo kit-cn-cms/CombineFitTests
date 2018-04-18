@@ -55,13 +55,13 @@ int CreateHist(TString  file = "newfile.root")
 			// Setting Adresses
 			Ttemp->SetBranchAddress("Value",&val);
 			Ttemp->SetBranchAddress("Error",&err);
-			Ttemp->SetBranchAddress("High Error",&hie);
-			Ttemp->SetBranchAddress("Low Error",&loe);
+			Ttemp->SetBranchAddress("High_Error",&hie);
+			Ttemp->SetBranchAddress("Low_Error",&loe);
 			// Creating Histogramms
 			TH1D HistVal = TH1D((TString("Value").Append(Ttemp->GetName())).Data(),"Values",300,-10,10);
 			TH1D HistErr = TH1D((TString("Error").Append(Ttemp->GetName())).Data(),"Errors",1000,0,20);
-			TH1D HistHiE = TH1D((TString("Hi_Er").Append(Ttemp->GetName())).Data(),"High Errors",1000,0,20);
-			TH1D HistLoE = TH1D((TString("Lo_Er").Append(Ttemp->GetName())).Data(),"Low Errors",1000,0,20);
+			TH1D HistHiE = TH1D((TString("Hi_Er").Append(Ttemp->GetName())).Data(),"High_Errors",1000,0,20);
+			TH1D HistLoE = TH1D((TString("Lo_Er").Append(Ttemp->GetName())).Data(),"Low_Errors",1000,0,20);
 
 			for(int i = 0; i < Ttemp->GetEntries(); ++i)
 			{
@@ -79,39 +79,7 @@ int CreateHist(TString  file = "newfile.root")
 			double shie = -999;
 			double sloe = -999;
 			double mene = -999;
-			/*
-			const int bins = 200;
-			int mode[200] = {-999};
-			double hist[bins] = {0};
-			for(int i =0; i < Ttemp->GetEntries(); ++i)
-			{
-				for(int j=0; j < bins; ++j)
-				{
-					if((j*1./((float) bins) <= maxv[i])&&(maxv[i] < (j+1)*1./((float) bins))) {++hist[j];}
-				}
-			}
-			int j = 0;
-			for(int i = 0; i < bins; ++i)
-			{
-				if((hist[i] > hist[mode[0]])&&(hist[i]!=0))
-				{
-					for(int k =0; k < 10; ++k){mode[k]=0; j=0;}
-					mode[0]=i;
-				}
-				else if((hist[i] == hist[mode[0]])&&(hist[i]!=0))
-				{
-					++j;
-					mode[j] = i;
-				}
-			}
-			double res[j];
-			std::cout << Ttemp->GetName() << " : " << j << std::endl;
-			for(int i =0; i < j ; ++i)
-			{
-				res[i] = mode[i]/((float) bins);
-				std::cout << res[i] <<" | " << hist[mode[i]] << std::endl;
-			}
-			*/		
+			double m2er = -999;		
 			// Creating TTree and Branches to save means of Hists
 			TTree* Tsave = new TTree(Ttemp->GetName(), Ttemp->GetTitle());
 			Tsave->Branch("Value", &sval, "value[1]/D");
@@ -119,13 +87,7 @@ int CreateHist(TString  file = "newfile.root")
 			Tsave->Branch("High_Error", &shie, "high_error[1]/D");
 			Tsave->Branch("Low_Error", &sloe, "low_error[1]/D");
 			Tsave->Branch("Mean_Error", &mene, "mean_error[1]/D");
-			/*
-			if(j!=0)
-			{
-				Tsave->Branch("j", &j, "j/I");
-				Tsave->Branch("Mode_Value", res, "res[j]/D");
-			}
-			*/
+			Tsave->Branch("Error_of_Mean",&m2er, "error_of_mean[1]/D");
 
 			// Assigning Means
 			sval = HistVal.GetMean();
@@ -133,6 +95,7 @@ int CreateHist(TString  file = "newfile.root")
 			shie = HistHiE.GetMean();
 			sloe = HistLoE.GetMean();
 			mene = HistVal.GetMeanError();
+			m2er = HistVal.GetRMS();
 			Tsave->Fill();
 
 			HDir->Add(Tsave);

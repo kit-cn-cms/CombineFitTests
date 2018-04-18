@@ -8,6 +8,7 @@
 #include "Draw_fit.h"
 #include "Draw_final.h"
 #include "ctime"
+#include "Draw_Canvas.h"
 
 void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1 , int runs = 20, int files = 100, float signal = 1)
 {
@@ -22,14 +23,15 @@ void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1
 
         TString savedir = TString(save1);
 	savedir.Prepend("/");
-	savedir.Append("/converted/");
-        TString createdir = TString("mkdir ");
-        savedir.Prepend(working);
-        createdir.Append(savedir.Data());
-        system(createdir.Data());
+	savedir.Append("/Means/");
+	TString createdir = TString("mkdir ");
+	savedir.Prepend(working);
+	createdir.Append(savedir.Data());
+	system(createdir.Data());
 
 	double differences[runs+1];
 
+	
 	for(int i = startruns; i <= runs; ++i)
 	{
 		// Checking time to controll performance
@@ -67,7 +69,7 @@ void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1
 		CreateHist(current.Data());
 
 		// Copying Histogramdata into a new folder
-		copy.Append("/sig").Append(sign).Append("/converted/combined").Append(tempc).Append("_histo.root ").Append(working).Append("/").Append(save1).Append("/converted/");
+		copy.Append("/sig").Append(sign).Append("/converted/combined").Append(tempc).Append("_histo.root ").Append(working).Append("/").Append(save1).Append("/Means/");
 		copy.Prepend("cp ");
 		system(copy.Data());
 
@@ -81,15 +83,15 @@ void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1
 	savedir.Append("combined").Append(sign).Append(".root");
 	savedir.Prepend(working.Data());
 	collect.Prepend(working.Data());
-	TString call = working + "/" + save1 + "/converted/combined*_histo.root";
-	TString savep = working + "/" + save1 + "/converted/collected.root";
+	TString call = working + "/" + save1 + "/Means/combined*_histo.root";
+	TString savep = working + "/" + save1 + "/Means/final.root";
 	// Chaining the resulting datasets
 	chaining(call.Data(),savep.Data());
 	CreateFinalHist(savep.Data(),1);
 
 	// Copying and processing values
-	system(TString(TString("mkdir ") + working + save1 + TString("/Values/")).Data());
-	for(int i = startruns; i < runs; ++i)
+	system(TString(TString("mkdir ") + working +"/"+ save1 + TString("/Values/")).Data());
+	for(int i = 1; i < runs; ++i)
 	{
 		int templ =0;
 		int tempi = i;
@@ -98,13 +100,15 @@ void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1
 		while(tempi);
 		char tempnr[templ];
 		sprintf(tempnr,"%d",i);
-		TString temporigin = working + save1 + "/some" + tempnr + "/sig" + sign + "/converted/combined" + tempnr + ".root";
-		TString tempsave = working + save1 + "/Values/";
+		TString temporigin = working +"/" + save1 + "/some" + tempnr + "/sig" + sign + "/converted/combined" + tempnr + ".root";
+		TString tempsave = working +"/"+ save1 + "/Values/";
 		TString move = "cp " + temporigin + " " + tempsave;
 		system(move.Data());
 	}
-	chaining(TString(working+save1+TString("Values/combined*.root")).Data(),TString(working+save1+TString("Values/final.root")).Data());
-	CreateFinalHist(TString(working+save1+TString("Values/final.root")).Data(),signal);
+	chaining(TString(working+"/"+save1+TString("/Values/combined*.root")).Data(),TString(working+"/"+save1+"/"+TString("Values/final.root")).Data());
+	CreateFinalHist(TString(working+"/"+save1+TString("/Values/final.root")).Data(),signal);
+
+	finishDraw(TString(working+"/"+save1).Data());
 	for(int i = 1; i <= runs; ++i)
 	{
 		std::cout << "Durchlaufnr. " << i << " : " << differences[i] << std::endl;

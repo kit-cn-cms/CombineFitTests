@@ -54,21 +54,32 @@ int CreateFinalHist(TString  file = "newfile.root", float signal = 1.0)
                         double err = -9999;
                         double hie = -9999;
                         double loe = -9999;
-			//double mer = -9999;
+			double mer = -9999;
+			double m2e = -9999;
 			//double mod = -9999;
+			double tvmin =  9999;
+			double tvmax = -9999;
+			double temax = -9999;
+			double thmax = -9999;
+			double tlmax = -9999;
+			double tmmax = -9999;
+			double t2min =  9999;
+			double t2max = -9999;
                         // Setting Adresses
                         Ttemp->SetBranchAddress("Value",&val);
                         Ttemp->SetBranchAddress("Error",&err);
-                        Ttemp->SetBranchAddress("High Error",&hie);
-                        Ttemp->SetBranchAddress("Low Error",&loe);
-			//Ttemp->SetBranchAddress("Mean Error",&mer);
+                        Ttemp->SetBranchAddress("High_Error",&hie);
+                        Ttemp->SetBranchAddress("Low_Error",&loe);
+			Ttemp->SetBranchAddress("Mean_Error",&mer);
+			Ttemp->SetBranchAddress("Error_of_Mean",&m2e);
 			//Ttemp->SetBranchAddress("Mode",&mod);
                         // Creating Histogramms
 			TH1D* HistVal = new TH1D((TString("Value_").Append(Ttemp->GetName())).Data(),"Values",1000,-10,10);
-                        TH1D* HistErr = new TH1D((TString("Error_").Append(Ttemp->GetName())).Data(),"Errors",1000,0,20);
-                        TH1D* HistHiE = new TH1D((TString("Hi_Er_").Append(Ttemp->GetName())).Data(),"High_Error",1000,0,20);
-                        TH1D* HistLoE = new TH1D((TString("Lo_Er_").Append(Ttemp->GetName())).Data(),"Low_Error",1000,-20,20);
-			//TH1D* HistMer = new TH1D((TString("Me_Er_").Append(Ttemp->GetName())).Data(),"Mean_Error",1000,0,20);
+                        TH1D* HistErr = new TH1D((TString("Error_").Append(Ttemp->GetName())).Data(),"Errors",1000,-10,10);
+                        TH1D* HistHiE = new TH1D((TString("Hi_Er_").Append(Ttemp->GetName())).Data(),"High_Error",1000,-10,10);
+                        TH1D* HistLoE = new TH1D((TString("Lo_Er_").Append(Ttemp->GetName())).Data(),"Low_Error",1000,-10,10);
+			TH1D* HistMer = new TH1D((TString("Me_Er_").Append(Ttemp->GetName())).Data(),"Mean_Error",1000,-10,10);
+			TH1D* HistM2e = new TH1D((TString("Er_Me_").Append(Ttemp->GetName())).Data(),"Error_of_Mean",1000,-10,10);
                         //TH1D* HistMod = new TH1D((TString("Mod_Val_").Append(Ttemp->GetName())).Data(),"Mod_Value",1000,0.6,3);
 			for(int i = 0; i < Ttemp->GetEntries(); ++i)
                         {
@@ -77,9 +88,19 @@ int CreateFinalHist(TString  file = "newfile.root", float signal = 1.0)
                                 HistErr->Fill(err);
                                 HistHiE->Fill(hie);
                                 HistLoE->Fill(loe);
-				//HistMer->Fill(mer);
+				HistMer->Fill(mer);
+				HistM2e->Fill(m2e);
 				//HistMod->Fill(mod);
+				if(val < tvmin){tvmin = val;}
+				if(val > tvmax){tvmax = val;}
+				if(err > temax){temax = err;}
+				if(hie > thmax){thmax = hie;}
+				if(loe > tlmax){tlmax = loe;}
+				if(mer > tmmax){tmmax = mer;}
+				if(m2e < t2min){t2min = m2e;}
+				if(m2e > t2max){t2max = m2e;}
                         }
+
 
 			if((TString(List->Last()->GetName()).Contains("signal"))&&(TString(tList->Last()->GetName()).Contains("r")))
 			{
@@ -95,11 +116,12 @@ int CreateFinalHist(TString  file = "newfile.root", float signal = 1.0)
 				std::cout << "p_Value: "<< std::setprecision(6) << 1-erf(fabs(t)) << std::endl;
 			}
 
-			HistVal->SetAxisRange(-10+20*(HistVal->GetMinimumBin())/1000,-10+20*(HistVal->GetMaximumBin())/1000);
-			HistErr->SetAxisRange(20*(HistErr->GetMinimumBin())/1000,20*(HistErr->GetMaximumBin())/1000);
-			HistHiE->SetAxisRange(20*(HistHiE->GetMinimumBin())/1000,20*(HistHiE->GetMaximumBin())/1000);
-			HistLoE->SetAxisRange(20*(HistLoE->GetMinimumBin())/1000,20*(HistLoE->GetMaximumBin())/1000);
-			//HistMer->SetAxisRange(20*(HistMer->GetminimumBin())/1000,20*(HistMer->GetMaximumBin())/1000);
+			HistVal->SetAxisRange(tvmin,tvmax);
+			HistErr->SetAxisRange(0,temax);
+			HistHiE->SetAxisRange(0,thmax);
+			HistLoE->SetAxisRange(0,tlmax);
+			HistMer->SetAxisRange(0,tmmax);
+			HistM2e->SetAxisRange(0,t2max);
 			//HistMod->SetAxisRange(20*(HistMod->GetMinimumBin())/1000,20*(HistMod->GetMaximumBin())/1000);
 
 
@@ -107,7 +129,8 @@ int CreateFinalHist(TString  file = "newfile.root", float signal = 1.0)
 			HDir->Add(HistErr);
 			HDir->Add(HistHiE);
 			HDir->Add(HistLoE);
-			//HDir->Add(HistMer);
+			HDir->Add(HistMer);
+			HDir->Add(HistM2e);
 			//HDir->Add(HistMod);
                         // Removing last entry from tlist
                         tList->RemoveLast();

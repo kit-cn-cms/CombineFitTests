@@ -45,12 +45,13 @@ int createfiles(TString output = "toytest/bla_some", float signal = 1, int files
 		foldername.Append(output).Append("/sig").Append(signalchar).Append("/PseudoExperiment").Append(tempfiles).Append("/fitDiagnostics");
 		TConvert(foldername,save,tempfiles);
 	}
+	std::cout << "Processed all root files.\n";
 	TString combining = directory;
 	combining.Append(output.Data()).Append("/sig").Append(signalchar).Append("/converted/");
 	TString savecomb = combining;
 	savecomb.("combined1.root");
 	combining.Append("fitDiagnostics*.root");
-	//chaining(combining.Data(),savecomb.Data());
-	
+	chaining(combining.Data(),savecomb.Data());
+	std::cout << "Applied TChaining.\n";
 	return 0;
 }

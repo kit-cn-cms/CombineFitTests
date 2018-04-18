@@ -25,7 +25,7 @@ int chaining(TString Filename = "fitDiagnosics1.root", TString Output = "combine
 	TString firstfile = Filename;
 	while(firstfile.MaybeWildcard())
 	{	int aces = firstfile.Index("*",1);
-		firstfile.Replace(aces,1,"1");	}
+		firstfile.Replace(aces,1,tempc);}
 
 	if(TFile(firstfile.Data()).GetListOfKeys()->Contains("signal"))
 	{

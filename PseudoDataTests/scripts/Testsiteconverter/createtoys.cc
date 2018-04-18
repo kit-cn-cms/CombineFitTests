@@ -47,7 +47,7 @@ int createfiles(int dirs = 20, int toys = 30, TString save ="/toytest/", TString
 		sprintf(temp2c, "%d", seed);
 
 		TString command = TString("python tth_analysis_study.py -d ");
-		command+=workdir + origin + " -o " + workdir + save + "some" + tempc + "/" + " -s " + sign + " -n " + temp1c + " --startSeed " + temp2c + " --addToyCommand \"--toysNoSystematics\"";
+		command+=workdir + origin + " -o " + workdir + save + "some" + tempc + "/" + " -s " + sign + " -n " + temp1c + " --startSeed " + temp2c + " --addToyCommand \"--toysNoSystematics  --rMin=-10 --rMax=10\" ";
 		system(command.Data());
 	}
 	std::cout << "DONE" << std::endl;
