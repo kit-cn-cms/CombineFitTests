@@ -21,7 +21,14 @@ class batchConfig:
             self.subopts = "-q 8nh"
             self.arraysubmit = False
             self.arraysubopts = None
-        
+
+        elif "naf-cms" in hostname:
+            print "NAF HTCondor system detected!"
+            self.jobmode = "HTC"
+            self.subname = "condor_q"
+            self.subopts = "-l h=bird* -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
+            self.arraysumbmit = True
+
         else:
             print "going to default - desy naf bird system"
             self.jobmode = "SGE"
@@ -33,7 +40,10 @@ class batchConfig:
 
     def construct_array_submit(self):
         command = None
-        if self.arraysubmit:
+        if self.arraysubmit and self.jobmode == "HTC":
+            command = [self.subname, '-terse', '-o', 'logs/', '-e', 'logs/']
+            command += self.subopts
+        elif self.arraysubmit:
             command = [self.subname, '-terse','-o', '/dev/null', '-e', '/dev/null']
             command += self.subopts
         return command
@@ -62,7 +72,11 @@ class batchConfig:
         
         # get nscripts
         nscripts=len(scripts)
-        tasknumberstring='1-'+str(nscripts)
+        if self.jobmode == "HTC":
+            tasknumberstring='0-'+str(nscripts-1)+':1'
+        else:
+            tasknumberstring='1-'+str(nscripts)
+        
         
         #create arrayscript to be run on the birds. Depinding on $SGE_TASK_ID the script will call a different plot/run script to actually run
         
@@ -72,11 +86,16 @@ class batchConfig:
             arrayscriptcode+=scr+" \n"
         
         arrayscriptcode+=")\n"
-        arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
-        arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
-        arrayscriptcode+="echo \"${thescript}\n"
-        arrayscriptcode+="echo \"${thescriptbasename}\n"
-        arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
+        if self.jobmode == "HTC":
+            arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID]}\n"
+            arrayscriptcode+="echo \"${thescript}\n"
+            arrayscriptcode+=". $thescript"
+        else:
+            arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
+            arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
+            arrayscriptcode+="echo \"${thescript}\n"
+            arrayscriptcode+="echo \"${thescriptbasename}\n"
+            arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
         arrayscriptfile=open(arrayscriptpath,"w")
         arrayscriptfile.write(arrayscriptcode)
         arrayscriptfile.close()
@@ -102,9 +121,11 @@ class batchConfig:
             jobidstring = output
             if len(jobidstring)<2:
                 sys.exit("something did not work with submitting the array job")
-                
-            jobidstring=jobidstring.split(".")[0]
-            print "the jobID", jobidstring
+            
+            if self.jobmode == "HTC":
+                jobidstring=jobidstring.split(" ")[2]
+            else:
+                jobidstring=jobidstring.split(".")[0]
             jobidint=int(jobidstring)
             submittime=submitclock.RealTime()
             print "submitted job", jobidint, " in ", submittime
@@ -145,19 +166,30 @@ class batchConfig:
     def do_qstat(self, jobids):
         allfinished=False
         while not allfinished:
-            time.sleep(10)
-            a = subprocess.Popen(['qstat'], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+            time.sleep(5)
+            statname = 'condor_q' if self.jobmode == "HTC" else 'qstat'
+            a = subprocess.Popen([statname], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
             qstat=a.communicate()[0]
             lines=qstat.split('\n')
             nrunning=0
-            for line in lines:
-                words=line.split()
-                for jid in words:
-                    if jid.isdigit():
-                        jobid=int(jid)
-                        if jobid in jobids:
-                            nrunning+=1
-                            break
+            if self.jobmode == "HTC":
+                for line in lines:
+                    if "Total for query" in line:
+                    joblist = line.split(";")[1]
+                    states = joblist.split(",")
+                    jobs_running = int(states[2].split()[0])
+                    jobs_idle =  int(states[3].split()[0])
+                    print(str(jobs_running) + " jobs running, " + str(jobs_idle) + " jobs idling")
+                    nrunning = jobs_running + jobs_idle
+            else:
+                for line in lines:
+                    words=line.split()
+                    for jid in words:
+                        if jid.isdigit():
+                            jobid=int(jid)
+                            if jobid in jobids:
+                                nrunning+=1
+                                break
     
             if nrunning>0:
                 print nrunning,'jobs running'
