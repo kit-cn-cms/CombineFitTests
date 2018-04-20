@@ -9,7 +9,9 @@ wildcards = sys.argv[2:]
 datacardDir = os.path.abspath(datacardDir)
 if os.path.exists(datacardDir):
     basepath = os.getcwd()
+    print "wildcards:", wildcards
     for wildcard in wildcards:
+        print glob.glob(wildcard)
         for directory in glob.glob(wildcard):
             directory = os.path.abspath(directory)
             os.chdir(directory)
