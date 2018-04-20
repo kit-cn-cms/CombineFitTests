@@ -447,7 +447,9 @@ def create_lines(   graph, xbest, clStyles, granularity, ybest = None,
         
         parabel = create_parabola(xmin = xmin, xmax = xmax, xbest = xbest, ybest = ybest)
         graph.Fit(parabel, "R")
-        print "fitted parabola with #chi^2/ndf =", parabel.GetChisquare()/parabel.GetNDF()
+        if parabel.GetNDF() != 0:
+            print "fitted parabola with #chi^2/ndf =", parabel.GetChisquare()/parabel.GetNDF()
+
         print "probability:", parabel.GetProb()
         parabel.Draw("same")
         for clname in clStyles:
