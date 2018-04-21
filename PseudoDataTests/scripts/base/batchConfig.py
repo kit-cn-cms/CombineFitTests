@@ -25,7 +25,7 @@ class batchConfig:
         elif "naf-cms" in hostname:
             print "NAF HTCondor system detected!"
             self.jobmode = "HTC"
-            self.subname = "condor_q"
+            self.subname = "condor_qsub"
             self.subopts = "-l h=bird* -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
             self.arraysumbmit = True
 
