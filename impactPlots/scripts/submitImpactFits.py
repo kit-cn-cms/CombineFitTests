@@ -77,7 +77,8 @@ def create_impacts(outputPath, datacard, impactList):
 		cmd += " --rMin -10 --rMax 10 -d " + datacard
 		cmd += " " + additionalCmd
 		cmd += " --job-mode {0} --sub-opts='{1}'".format(config.jobmode, " ".join(config.subopts))
-		cmd += " --task-name {0} -n {0}".format(taskname)
+		cmd += " --task-name {0}".format(taskname)
+		cmd += " -n {0}".format(taskname)
 		
 		# cmd += " --split-points " + nPoints
 		
