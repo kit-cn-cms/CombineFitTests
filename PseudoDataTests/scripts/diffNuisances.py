@@ -79,12 +79,14 @@ hist_prefit = ROOT.TH1F("prefit_nuisancs","Prefit Nuisances    ;;#theta ",mypref
 for i in range(fpf_s.getSize()):
 
     nuis_s = fpf_s.at(i)
+    if not isinstance(nuis_s, ROOT.RooRealVar): continue
     name   = nuis_s.GetName();
 #    print name
     if ("BDTbin" in name) or ("bin" in name):
       print "skipping ", name
       continue
     nuis_b = fpf_b.find(name)
+    if not isinstance(nuis_b, ROOT.RooRealVar): continue
     nuis_p = prefit.find(name)
 
     # keeps information to be printed about the nuisance parameter
@@ -101,6 +103,7 @@ for i in range(fpf_s.getSize()):
     else:
         # get best-fit value and uncertainty at prefit for this 
         # nuisance parameter
+        if not isinstance(nuis_b, ROOT.RooRealVar): continue
         mean_p, sigma_p = (nuis_p.getVal(), nuis_p.getError())
 
 	if not sigma_p > 0: sigma_p = (nuis_p.getMax()-nuis_p.getMin())/2
