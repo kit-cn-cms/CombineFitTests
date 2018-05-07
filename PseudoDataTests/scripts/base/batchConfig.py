@@ -27,7 +27,7 @@ class batchConfig:
             self.jobmode = "HTC"
             self.subname = "condor_qsub"
             self.subopts = "-l h=bird* -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
-            self.arraysumbmit = True
+            self.arraysubmit = True
 
         else:
             print "going to default - desy naf bird system"
@@ -78,7 +78,7 @@ class batchConfig:
             tasknumberstring='1-'+str(nscripts)
         
         
-        #create arrayscript to be run on the birds. Depinding on $SGE_TASK_ID the script will call a different plot/run script to actually run
+        #create arrayscript to be run on the birds. Depending on $SGE_TASK_ID the script will call a different plot/run script to actually run
         
         arrayscriptcode="#!/bin/bash \n"
         arrayscriptcode+="subtasklist=(\n"
@@ -88,13 +88,13 @@ class batchConfig:
         arrayscriptcode+=")\n"
         if self.jobmode == "HTC":
             arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID]}\n"
-            arrayscriptcode+="echo \"${thescript}\n"
+            arrayscriptcode+='echo "${thescript}"\n'
             arrayscriptcode+=". $thescript"
         else:
             arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
             arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
-            arrayscriptcode+="echo \"${thescript}\n"
-            arrayscriptcode+="echo \"${thescriptbasename}\n"
+            arrayscriptcode+="echo \"${thescript}\"\n"
+            arrayscriptcode+="echo \"${thescriptbasename}\"\n"
             arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
         arrayscriptfile=open(arrayscriptpath,"w")
         arrayscriptfile.write(arrayscriptcode)
@@ -175,12 +175,12 @@ class batchConfig:
             if self.jobmode == "HTC":
                 for line in lines:
                     if "Total for query" in line:
-                    joblist = line.split(";")[1]
-                    states = joblist.split(",")
-                    jobs_running = int(states[2].split()[0])
-                    jobs_idle =  int(states[3].split()[0])
-                    print(str(jobs_running) + " jobs running, " + str(jobs_idle) + " jobs idling")
-                    nrunning = jobs_running + jobs_idle
+                        joblist = line.split(";")[1]
+                        states = joblist.split(",")
+                        jobs_running = int(states[2].split()[0])
+                        jobs_idle =  int(states[3].split()[0])
+                        print(str(jobs_running) + " jobs running, " + str(jobs_idle) + " jobs idling")
+                        nrunning = jobs_running + jobs_idle
             else:
                 for line in lines:
                     words=line.split()
