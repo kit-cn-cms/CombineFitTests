@@ -25,8 +25,8 @@ class batchConfig:
         elif "naf-cms" in hostname:
             print "NAF HTCondor system detected!"
             self.jobmode = "HTC"
-            self.subname = "condor_qsub"
-            self.subopts = "-l h=bird* -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
+            self.subname = "condor_submit"
+            self.memory = "2000M"
             self.arraysumbmit = True
 
         else:
@@ -38,14 +38,53 @@ class batchConfig:
                 self.subopts += ("-q " + queue + ".q ").split()
             self.arraysubmit = True
 
+    def writeSubmitCode(script, logdir, isArray = False, nscripts = 0):
+        '''
+        write the code for condor_submit file
+        script: path to .sh-script that should be executed
+        logdir: path to directory of logs
+        isArray: set True if script is an array script
+        nscripts: number of scripts in the array script. Only needed if isArray=True
+        
+        returns path to generated condor_submit file
+        '''
+        submitPath = script[:-3]+".sub"
+        submitScript = script.split("/")[-1][:-3]
+        
+        submitCode="universe = vanilla\n"
+        submitCode+="should_transfer_files = IF_NEEDED\n"
+        submitCode+="executable = /bin/bash\n"
+        submitCode+="arguments = " + script + "\n"
+        submitCode+="initialdir = "+os.getcwd()+"\n"
+        submitCode+="notification = Never\n"
+        submitCode+="priority = 0\n"
+        submitCode+="request_memory = "+self.memory+"\n"
+        #submitCode+="request_dist = 5800M\n"
+        
+        if isArray:
+            submitCode+="error = "+logdir+"/"+submitScript+".$(Cluster)_$(ProcId).err\n"
+            submitCode+="output = "+logdir+"/"+submitScript+".$(Cluster)_$(ProcId).out\n"
+            #submitCode+="log = "+logdir+"/"+submitScript+".$(Cluster)_$(ProcId).log\n"
+            submitCode+="Queue Environment From (\n"
+            for taskID in range(nscripts):
+                submitCode+="\"SGE_TASK_ID="+str(taskID)+"\"\n"
+                submitCode+=")"
+        else:
+            submitCode+="error = "+logdir+"/"+submitScript+".$(Cluster).err\n"
+            submitCode+="output = "+logdir+"/"+submitScript+".$(Cluster).out\n"
+            #submitCode+="log = "+logdir+"/"+submitScript+".$(Cluster).log\n"
+            submitCode+="queue"
+
+        submitFile = open(submitPath, "w")
+        submitFile.write(submitCode)
+        submitFile.close()
+
+        return submitPath
+
     def construct_array_submit(self):
         command = None
-        if self.arraysubmit and self.jobmode == "HTC":
-            command = [self.subname, '-terse', '-o', 'logs/', '-e', 'logs/']
-            command += self.subopts
-        elif self.arraysubmit:
-            command = [self.subname, '-terse','-o', '/dev/null', '-e', '/dev/null']
-            command += self.subopts
+        command = [self.subname, '-terse','-o', '/dev/null', '-e', '/dev/null']
+        command += self.subopts
         return command
     
     
@@ -72,10 +111,7 @@ class batchConfig:
         
         # get nscripts
         nscripts=len(scripts)
-        if self.jobmode == "HTC":
-            tasknumberstring='0-'+str(nscripts-1)+':1'
-        else:
-            tasknumberstring='1-'+str(nscripts)
+        tasknumberstring='1-'+str(nscripts)
         
         
         #create arrayscript to be run on the birds. Depinding on $SGE_TASK_ID the script will call a different plot/run script to actually run
@@ -102,11 +138,19 @@ class batchConfig:
         st = os.stat(arrayscriptpath)
         os.chmod(arrayscriptpath, st.st_mode | stat.S_IEXEC)
         
-        print 'submitting',arrayscriptpath
-        #command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', logdir+'/dev/null', '-e', logdir+'/dev/null', arrayscriptpath]
-        # command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', '/dev/null', '-e', '/dev/null', arrayscriptpath]
-        command = self.construct_array_submit()
-        if command:
+        if self.jobmode == "HTC":
+            print 'writing code for condor_submit-script'
+            submitPath = writeSubmitCode(arrayscriptpath, logdir, isArray = True, nscripts = nscripts)
+            
+            print 'submitting',submitPath
+            command = self.subname + " -terse " + submitPath
+            command = command.split()
+        else:
+            print 'submitting',arrayscriptpath
+            command = self.construct_array_submit()
+            if not command:            
+                print "could not generate array submit command"
+                return 
             command.append('-t')
             command.append(tasknumberstring)
             if jobid:
@@ -114,24 +158,23 @@ class batchConfig:
                 command.append(str(jobid))
             
             command.append(arrayscriptpath)
-            print command
-            print " ".join(command)
-            a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
-            output = a.communicate()[0]
-            jobidstring = output
-            if len(jobidstring)<2:
-                sys.exit("something did not work with submitting the array job")
-            
-            if self.jobmode == "HTC":
-                jobidstring=jobidstring.split(" ")[2]
-            else:
-                jobidstring=jobidstring.split(".")[0]
-            jobidint=int(jobidstring)
-            submittime=submitclock.RealTime()
-            print "submitted job", jobidint, " in ", submittime
-            return jobidint
-        else:
-            print "could not generate array submit command"
+        
+        print "command:", command
+        print " ".join(command)
+        a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+        output = a.communicate()[0]
+        jobidstring = output
+        if len(jobidstring)<2:
+            sys.exit("something did not work with submitting the array job")
+        
+        # extracting jobid
+        try:
+            jobidint = int(output.split(".")[0])
+        except:
+            sys.exit("something went wrong with calling condor_submit command, submission of jobs was not succesfull")
+        submittime=submitclock.RealTime()
+        print "submitted job", jobidint, " in ", submittime
+        return jobidint
     
     def submitJobToBatch(self, script, jobid = None):
         script = os.path.abspath(script)
@@ -139,16 +182,21 @@ class batchConfig:
         dirname = os.path.dirname(script)
         os.chmod(script, st.st_mode | stat.S_IEXEC)
         cmdlist = [self.subname]
-        cmdlist += self.subopts
-        temp = "-o {0}/log.out -e {0}/log.err".format(dirname)
-        cmdlist += temp.split()
-        if jobid:
-            cmdlist.append("-hold_jid")
-            cmdlist.append(str(jobid))
-        cmdlist.append(script)
+        if self.submod == "HTC":
+            submitPath = writeSubmitCode(script, logdir = dirname)
+            cmdlist.append("-terse")
+            cmdlist.append(submitPath)
+        else:
+            cmdlist += self.subopts
+            temp = "-o {0}/log.out -e {0}/log.err".format(dirname)
+            cmdlist += temp.split()
+            if jobid:
+                cmdlist.append("-hold_jid")
+                cmdlist.append(str(jobid))
+            cmdlist.append(script)
         jobids = []
         #command = " ".join(cmdlist)
-        print cmdlist
+        print "command:", cmdlist
         print " ".join(cmdlist)
         a = subprocess.Popen(cmdlist, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
         output = a.communicate()[0]
@@ -177,8 +225,8 @@ class batchConfig:
                     if "Total for query" in line:
                     joblist = line.split(";")[1]
                     states = joblist.split(",")
-                    jobs_running = int(states[2].split()[0])
-                    jobs_idle =  int(states[3].split()[0])
+                    jobs_running = int(states[3].split()[0])
+                    jobs_idle =  int(states[2].split()[0])
                     print(str(jobs_running) + " jobs running, " + str(jobs_idle) + " jobs idling")
                     nrunning = jobs_running + jobs_idle
             else:
