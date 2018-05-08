@@ -182,7 +182,7 @@ class batchConfig:
         dirname = os.path.dirname(script)
         os.chmod(script, st.st_mode | stat.S_IEXEC)
         cmdlist = [self.subname]
-        if self.submod == "HTC":
+        if self.jobmode == "HTC":
             submitPath = writeSubmitCode(script, logdir = dirname)
             cmdlist.append("-terse")
             cmdlist.append(submitPath)
@@ -201,14 +201,20 @@ class batchConfig:
         a = subprocess.Popen(cmdlist, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
         output = a.communicate()[0]
         #print output
-        jobidstring = output.split()
-        for jid in jobidstring:
-            if jid.isdigit():
-                jobid=int(jid)
-                print "this job's ID is", jobid
-                jobids.append(jobid)
-                continue
-        
+        if self.jobmode == "HTC":
+            try:
+                jobid = int(output.split(".")[0])
+            except:
+                sys.exit("something went wrong with calling condor_submit command, submission of jobs was not succesfull")
+        else:
+            jobidstring = output.split()
+            for jid in jobidstring:
+                if jid.isdigit():
+                    jobid=int(jid)
+                    continue
+
+        print "this job's ID is", jobid
+        jobids.append(jobid)
         return jobids
         
     def do_qstat(self, jobids):
@@ -216,6 +222,9 @@ class batchConfig:
         while not allfinished:
             time.sleep(5)
             statname = 'condor_q' if self.jobmode == "HTC" else 'qstat'
+            if self.jobmode == "HTC":
+                statname += jobids
+                statname = [str(stat) for stat in statname]
             a = subprocess.Popen([statname], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
             qstat=a.communicate()[0]
             lines=qstat.split('\n')
