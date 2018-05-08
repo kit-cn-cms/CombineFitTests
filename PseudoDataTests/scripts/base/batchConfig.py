@@ -38,7 +38,7 @@ class batchConfig:
                 self.subopts += ("-q " + queue + ".q ").split()
             self.arraysubmit = True
 
-    def writeSubmitCode(script, logdir, isArray = False, nscripts = 0):
+    def writeSubmitCode(self, script, logdir, isArray = False, nscripts = 0):
         '''
         write the code for condor_submit file
         script: path to .sh-script that should be executed
@@ -48,6 +48,7 @@ class batchConfig:
         
         returns path to generated condor_submit file
         '''
+        print(script)
         submitPath = script[:-3]+".sub"
         submitScript = script.split("/")[-1][:-3]
         
@@ -68,7 +69,7 @@ class batchConfig:
             submitCode+="Queue Environment From (\n"
             for taskID in range(nscripts):
                 submitCode+="\"SGE_TASK_ID="+str(taskID)+"\"\n"
-                submitCode+=")"
+            submitCode+=")"
         else:
             submitCode+="error = "+logdir+"/"+submitScript+".$(Cluster).err\n"
             submitCode+="output = "+logdir+"/"+submitScript+".$(Cluster).out\n"
@@ -124,7 +125,7 @@ class batchConfig:
         arrayscriptcode+=")\n"
         if self.jobmode == "HTC":
             arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID]}\n"
-            arrayscriptcode+="echo \"${thescript}\n"
+            arrayscriptcode+="echo \"${thescript}\"\n"
             arrayscriptcode+=". $thescript"
         else:
             arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
@@ -140,7 +141,7 @@ class batchConfig:
         
         if self.jobmode == "HTC":
             print 'writing code for condor_submit-script'
-            submitPath = writeSubmitCode(arrayscriptpath, logdir, isArray = True, nscripts = nscripts)
+            submitPath = self.writeSubmitCode(arrayscriptpath, logdir, isArray = True, nscripts = nscripts)
             
             print 'submitting',submitPath
             command = self.subname + " -terse " + submitPath
@@ -174,7 +175,7 @@ class batchConfig:
             sys.exit("something went wrong with calling condor_submit command, submission of jobs was not succesfull")
         submittime=submitclock.RealTime()
         print "submitted job", jobidint, " in ", submittime
-        return jobidint
+        return [jobidint]
     
     def submitJobToBatch(self, script, jobid = None):
         script = os.path.abspath(script)
@@ -183,7 +184,8 @@ class batchConfig:
         os.chmod(script, st.st_mode | stat.S_IEXEC)
         cmdlist = [self.subname]
         if self.jobmode == "HTC":
-            submitPath = writeSubmitCode(script, logdir = dirname)
+            print(script)
+            submitPath = self.writeSubmitCode(script, dirname)
             cmdlist.append("-terse")
             cmdlist.append(submitPath)
         else:
@@ -221,23 +223,22 @@ class batchConfig:
         allfinished=False
         while not allfinished:
             time.sleep(5)
-            statname = 'condor_q' if self.jobmode == "HTC" else 'qstat'
+            statname = ['condor_q'] if self.jobmode == "HTC" else ['qstat']
             if self.jobmode == "HTC":
                 statname += jobids
                 statname = [str(stat) for stat in statname]
-            a = subprocess.Popen([statname], stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+            a = subprocess.Popen(statname, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
             qstat=a.communicate()[0]
             lines=qstat.split('\n')
             nrunning=0
             if self.jobmode == "HTC":
                 for line in lines:
                     if "Total for query" in line:
-                    joblist = line.split(";")[1]
-                    states = joblist.split(",")
-                    jobs_running = int(states[3].split()[0])
-                    jobs_idle =  int(states[2].split()[0])
-                    print(str(jobs_running) + " jobs running, " + str(jobs_idle) + " jobs idling")
-                    nrunning = jobs_running + jobs_idle
+                        joblist = line.split(";")[1]
+                        states = joblist.split(",")
+                        jobs_running = int(states[3].split()[0])
+                        jobs_idle =  int(states[2].split()[0])
+                        nrunning = jobs_running + jobs_idle
             else:
                 for line in lines:
                     words=line.split()
