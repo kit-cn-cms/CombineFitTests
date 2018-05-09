@@ -7,7 +7,6 @@
 #include "fstream"
 #include "Draw_fit.h"
 #include "Draw_final.h"
-#include "ctime"
 #include "Draw_Canvas.h"
 
 void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1 , int runs = 20, int files = 100, float signal = 1)
@@ -28,18 +27,9 @@ void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1
 	savedir.Prepend(working);
 	createdir.Append(savedir.Data());
 	system(createdir.Data());
-
-	double differences[runs+1];
-
 	
 	for(int i = startruns; i <= runs; ++i)
 	{
-		// Checking time to controll performance
-		time_t begin;
-		time_t end;
-		time(&begin);
-
-
 		TString moment = save2;
 
 		// Converting int to char
@@ -72,10 +62,6 @@ void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1
 		copy.Append("/sig").Append(sign).Append("/converted/combined").Append(tempc).Append("_histo.root ").Append(working).Append("/").Append(save1).Append("/Means/");
 		copy.Prepend("cp ");
 		system(copy.Data());
-
-		// Calculating the time it took to complete one run
-		time(&end);
-		differences[i]= difftime(end,begin);
 	}
 
 	TString collect = savesite;
@@ -87,7 +73,7 @@ void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1
 	TString savep = working + "/" + save1 + "/Means/final.root";
 	// Chaining the resulting datasets
 	chaining(call.Data(),savep.Data());
-	CreateFinalHist(savep.Data(),1);
+	CreateFinalHist(savep.Data());
 
 	// Copying and processing values
 	system(TString(TString("mkdir ") + working +"/"+ save1 + TString("/Values/")).Data());
@@ -105,36 +91,21 @@ void repeat(TString save1 = "toytest", TString save2 = "some*",int startruns = 1
 		TString move = "cp " + temporigin + " " + tempsave;
 		system(move.Data());
 	}
-	chaining(TString(working+"/"+save1+TString("/Values/combined*.root")).Data(),TString(working+"/"+save1+"/"+TString("Values/final.root")).Data());
-	CreateFinalHist(TString(working+"/"+save1+TString("/Values/final.root")).Data(),signal);
 
-	finishDraw(TString(working+"/"+save1).Data());
-	for(int i = 1; i <= runs; ++i)
-	{
-		std::cout << "Durchlaufnr. " << i << " : " << differences[i] << std::endl;
-	}
+	chaining(TString(working+"/"+save1+TString("/Values/combined*.root")).Data(),TString(working+"/"+save1+"/"+TString("Values/final.root")).Data());
+	CreateFinalHist(TString(working+"/"+save1+TString("/Values/final.root")).Data());
+
+	finishDraw(TString(working+"/"+save1).Data(),signal);
+
 }
 
-int main()
+int main(int argc, char** argv)
 {
-	TString folder;
-	TString sub;
-	int runs;
-	int files;
-	float signal;
-	int startrun;
-	std::cout << "Geben Sie den Zielordner der Form toytest an: ";
-	std::cin >> folder;
-	std::cout << "Geben sie den Unterordner an: ";
-	std::cin >> sub;
-	std::cout << "Erster Run? ";
-	std::cin >> startrun;
-	std::cout << "Wie viele Runs? ";
-	std::cin >> runs;
-	std::cout << "Wie viele files? ";
-	std::cin >> files;
-	std::cout << "Signalstarke? ";
-	std::cin >> signal;
-	repeat(folder, sub,startrun, runs, files, signal);
+	int startrun = atoi(argv[3]);
+	int runs     = atoi(argv[4]);
+	int files    = atoi(argv[5]);
+	float signal = atof(argv[6]);
+	
+	repeat(argv[1],argv[2],startrun,runs,files,signal);
 	return 0;
 }

@@ -25,7 +25,6 @@ int createfiles(TString output = "toytest/bla_some", float signal = 1, int files
 	
 	TString newdir = "mkdir " + directory + output + "/sig" + TString(signalchar) + "/converted/";
 	system(newdir.Data());
-	
 	for(int i=1; i <= files; ++i)
 	{
 		int templ=0;

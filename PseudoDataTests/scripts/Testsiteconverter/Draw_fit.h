@@ -59,9 +59,9 @@ int CreateHist(TString  file = "newfile.root")
 			Ttemp->SetBranchAddress("Low_Error",&loe);
 			// Creating Histogramms
 			TH1D HistVal = TH1D((TString("Value").Append(Ttemp->GetName())).Data(),"Values",300,-10,10);
-			TH1D HistErr = TH1D((TString("Error").Append(Ttemp->GetName())).Data(),"Errors",1000,0,20);
-			TH1D HistHiE = TH1D((TString("Hi_Er").Append(Ttemp->GetName())).Data(),"High_Errors",1000,0,20);
-			TH1D HistLoE = TH1D((TString("Lo_Er").Append(Ttemp->GetName())).Data(),"Low_Errors",1000,0,20);
+			TH1D HistErr = TH1D((TString("Error").Append(Ttemp->GetName())).Data(),"Errors",1000,-20,20);
+			TH1D HistHiE = TH1D((TString("Hi_Er").Append(Ttemp->GetName())).Data(),"High_Errors",1000,-20,20);
+			TH1D HistLoE = TH1D((TString("Lo_Er").Append(Ttemp->GetName())).Data(),"Low_Errors",1000,-20,20);
 
 			for(int i = 0; i < Ttemp->GetEntries(); ++i)
 			{

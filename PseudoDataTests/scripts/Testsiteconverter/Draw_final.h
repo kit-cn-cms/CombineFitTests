@@ -9,7 +9,7 @@
 #include "TFile.h"
 
 
-int CreateFinalHist(TString  file = "newfile.root", float signal = 1.0)
+int CreateFinalHist(TString  file = "newfile.root")
 {
         // Copying file
         TString delfile = file;
@@ -56,15 +56,22 @@ int CreateFinalHist(TString  file = "newfile.root", float signal = 1.0)
                         double loe = -9999;
 			double mer = -9999;
 			double m2e = -9999;
+			double dif = -9999;
 			//double mod = -9999;
 			double tvmin =  9999;
 			double tvmax = -9999;
 			double temax = -9999;
+			double temin =  9999;
 			double thmax = -9999;
+			double thmin =  9999;
 			double tlmax = -9999;
+			double tlmin =  9999;
 			double tmmax = -9999;
-			double t2min =  9999;
+			double tmmin =  9999;
 			double t2max = -9999;
+			double t2min =  9999;
+			double tamax = -9999;
+			double tamin =  9999;
                         // Setting Adresses
                         Ttemp->SetBranchAddress("Value",&val);
                         Ttemp->SetBranchAddress("Error",&err);
@@ -80,6 +87,7 @@ int CreateFinalHist(TString  file = "newfile.root", float signal = 1.0)
                         TH1D* HistLoE = new TH1D((TString("Lo_Er_").Append(Ttemp->GetName())).Data(),"Low_Error",1000,-10,10);
 			TH1D* HistMer = new TH1D((TString("Me_Er_").Append(Ttemp->GetName())).Data(),"Mean_Error",1000,-10,10);
 			TH1D* HistM2e = new TH1D((TString("Er_Me_").Append(Ttemp->GetName())).Data(),"Error_of_Mean",1000,-10,10);
+			TH1D* HistAsy = new TH1D((TString("Er_As_").Append(Ttemp->GetName())).Data(),"Asymetry_of_Errors",1000,-10,10);
                         //TH1D* HistMod = new TH1D((TString("Mod_Val_").Append(Ttemp->GetName())).Data(),"Mod_Value",1000,0.6,3);
 			for(int i = 0; i < Ttemp->GetEntries(); ++i)
                         {
@@ -90,47 +98,47 @@ int CreateFinalHist(TString  file = "newfile.root", float signal = 1.0)
                                 HistLoE->Fill(loe);
 				HistMer->Fill(mer);
 				HistM2e->Fill(m2e);
+				dif = hie+loe;
+				HistAsy->Fill(dif);
 				//HistMod->Fill(mod);
 				if(val < tvmin){tvmin = val;}
 				if(val > tvmax){tvmax = val;}
 				if(err > temax){temax = err;}
+				if(err < temin){temin = err;}
 				if(hie > thmax){thmax = hie;}
+				if(hie < thmin){thmin = hie;}
 				if(loe > tlmax){tlmax = loe;}
+				if(loe < tlmin){tlmin = loe;}
 				if(mer > tmmax){tmmax = mer;}
+				if(mer < tmmin){tmmin = mer;}
 				if(m2e < t2min){t2min = m2e;}
 				if(m2e > t2max){t2max = m2e;}
+				if(dif < tamin){tamin = dif;}
+				if(dif > tamax){tamax = dif;}
                         }
-
-
-			if((TString(List->Last()->GetName()).Contains("signal"))&&(TString(tList->Last()->GetName()).Contains("r")))
-			{
-				double mean = HistVal->GetMean();
-				double dev = HistVal->GetStdDev();
-				int number = Ttemp->GetBranch("Value")->GetEntries();
-				double t = (mean-signal)*sqrt(number/(2))/dev;
-				std::cout << "Mean: " << mean << std::endl;
-				std::cout << "std deviation: " << dev << std::endl;
-				std::cout << "amount of values: " << number << std::endl;
-				std::cout << "t-value: " << t << std::endl;
-				std::cout << "Errorfunction: " << erf(t) << std::endl;
-				std::cout << "p_Value: "<< std::setprecision(6) << 1-erf(fabs(t)) << std::endl;
-			}
-
+			// Reshaping Axis, to make some sense of it
 			HistVal->SetAxisRange(tvmin,tvmax);
-			HistErr->SetAxisRange(0,temax);
-			HistHiE->SetAxisRange(0,thmax);
-			HistLoE->SetAxisRange(0,tlmax);
-			HistMer->SetAxisRange(0,tmmax);
-			HistM2e->SetAxisRange(0,t2max);
+			HistErr->SetAxisRange(temin,temax);
+			HistHiE->SetAxisRange(thmin,thmax);
+			HistLoE->SetAxisRange(tlmin,tlmax);
+			HistMer->SetAxisRange(tmmin,tmmax);
+			HistM2e->SetAxisRange(t2min,t2max);
+			HistAsy->SetAxisRange(tamin,tamax);
 			//HistMod->SetAxisRange(20*(HistMod->GetMinimumBin())/1000,20*(HistMod->GetMaximumBin())/1000);
 
-
+			// Output ranges
+			std::cout << Ttemp->GetName() << "	&	" << tvmin << "	&	" << tvmax << " \\\\ \n";
+			std::cout << Ttemp->GetName() << "	&	" << temin << "	&	" << temax << " \\\\ \n";
+			std::cout << Ttemp->GetName() << "	&	" << t2min << "	&	" << t2max << " \\\\ \n";
+			std::cout << Ttemp->GetName() << "	&	" << tamin << "	&	" << tamax << " \\\\ \n";
+			// Saving all Hists
                         HDir->Add(HistVal);
 			HDir->Add(HistErr);
 			HDir->Add(HistHiE);
 			HDir->Add(HistLoE);
 			HDir->Add(HistMer);
 			HDir->Add(HistM2e);
+			HDir->Add(HistAsy);
 			//HDir->Add(HistMod);
                         // Removing last entry from tlist
                         tList->RemoveLast();
