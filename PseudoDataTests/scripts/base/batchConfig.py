@@ -121,11 +121,11 @@ class batchConfig:
         releaseCode += "q.do_qstat("+str(oldJIDs)+")\n"
         releaseCode += "os.system('condor_release "+str(newJID)+"')"
         
-        releaseFile = "release_"+str(newJID)+".py"
-        with open(releaseFile, "w") as releaseFile:
+        releasePath = "release_"+str(newJID)+".py"
+        with open(releasePath, "w") as releaseFile:
             releaseFile.write(releaseCode)
-        os.system("python "+releaseFile+".py > /dev/null &")
-        os.system("rm "+releaseFile+".py")
+        os.system("python "+releasePath+".py > /dev/null &")
+        os.system("rm "+releasePath+".py")
 
     def submitArrayToBatch(self, scripts, arrayPath, jobid = None):
         """
