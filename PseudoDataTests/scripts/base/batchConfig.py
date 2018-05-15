@@ -43,6 +43,7 @@ class batchConfig:
         write the code for condor_submit file
         script: path to .sh-script that should be executed
         logdir: path to directory of logs
+        hold: boolean, if True initates the sript in hold mode, can be released manually or inbuild submitXXXtoBatch functions
         isArray: set True if script is an array script
         nscripts: number of scripts in the array script. Only needed if isArray=True
         
@@ -84,7 +85,13 @@ class batchConfig:
 
 
     def writeArrayCode(self, scripts, arrayPath):
+        '''
+        write code for array script
+        scripts: scripts to be executed by array script
+        arrayPath: filename of array script
 
+        returns arrayPath (redundand but safer than no return)
+        '''
         arrayCode="#!/bin/bash \n"
         arrayCode+="subtasklist=(\n"
         for scr in scripts:
@@ -130,15 +137,14 @@ class batchConfig:
         #os.system("rm "+releasePath)
 
     def submitArrayToBatch(self, scripts, arrayPath, jobid = None):
-        """
-        generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
-        
-        Keyword arguments:
-        
-        scripts         -- list of scripts to be submitted
-        arrayPath -- path to safe script array in
-        jobid           -- hold this job until job with jobid is done
-        """
+        '''
+        submits given scripts as array to batch system
+        scripts: scripts to be submitted as array
+        arrayPath: path to generated array file
+        jobid: newly created array job waits for the jobs given in jobid (as a list of ids) before executing
+
+        returns jobid of array as list
+        '''
         submitclock=TStopwatch()
         submitclock.Start()
         arrayPath = os.path.abspath(arrayPath)
@@ -198,6 +204,13 @@ class batchConfig:
         return [jobidint]
     
     def submitJobToBatch(self, script, jobid = None):
+        '''
+        submits a single job to batch system
+        script: script to be submitted
+        jobid: new job  waits for the jobs given in jobid (as a list of ids) before executing
+
+        returns jobid of submitted job as list
+        '''
         script = os.path.abspath(script)
         st = os.stat(script)
         dirname = os.path.dirname(script)
@@ -241,6 +254,12 @@ class batchConfig:
         return jobids
         
     def do_qstat(self, jobids):
+        '''
+        monitoring of job status
+        jobids: which jobs to be monitored
+
+        returns nothing, only stops if no more jobs are running/idling/held
+        '''
         allfinished=False
         while not allfinished:
             time.sleep(10)
