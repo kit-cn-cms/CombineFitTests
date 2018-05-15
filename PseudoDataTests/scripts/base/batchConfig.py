@@ -48,7 +48,6 @@ class batchConfig:
         
         returns path to generated condor_submit file
         '''
-        print(script)
         submitPath = script[:-3]+".sub"
         submitScript = script.split("/")[-1][:-3]
         
@@ -79,8 +78,36 @@ class batchConfig:
         submitFile = open(submitPath, "w")
         submitFile.write(submitCode)
         submitFile.close()
-
         return submitPath
+
+
+    def writeArraySubmitCode(self, scripts, arrayPath):
+
+        nscripts=len(scripts)
+        tasknumberstring='1-'+str(nscripts)
+
+        arrayCode="#!/bin/bash \n"
+        arrayCode+="subtasklist=(\n"
+        for scr in scripts:
+            arrayCode+=scr+" \n"
+
+        arrayCode+=")\n"
+        if self.jobmode == "HTC":
+            arrayCode+="thescript=${subtasklist[$SGE_TASK_ID]}\n"
+            arrayCode+="echo \"${thescript}\"\n"
+            arrayCode+=". $thescript"
+        else:
+            arrayCode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
+            arrayCode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
+            arrayCode+="echo \"${thescript}\n"
+            arrayCode+="echo \"${thescriptbasename}\n"
+            arrayCode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
+        arrayFile=open(arrayPath,"w")
+        arrayFile.write(arrayCode)
+        arrayFile.close()
+        st = os.stat(arrayPath)
+        os.chmod(arrayPath, st.st_mode | stat.S_IEXEC)
+        return tasknumberstring
 
     def construct_array_submit(self):
         command = None
@@ -89,65 +116,40 @@ class batchConfig:
         return command
     
     
-    def submitArrayToBatch(self, scripts, arrayscriptpath, jobid = None):
+    def submitArrayToBatch(self, scripts, arrayPath, jobid = None):
         """
         generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
         
         Keyword arguments:
         
         scripts         -- list of scripts to be submitted
-        arrayscriptpath -- path to safe script array in
+        arrayPath -- path to safe script array in
         jobid           -- hold this job until job with jobid is done
         """
         submitclock=TStopwatch()
         submitclock.Start()
-        arrayscriptpath = os.path.abspath(arrayscriptpath)
-        logdir = os.path.dirname(arrayscriptpath)+"/logs"
+        arrayPath = os.path.abspath(arrayPath)
+
+        logdir = os.path.dirname(arrayPath)+"/logs"
         print "will save logs in", logdir
         if os.path.exists(logdir):
             print "emptying directory", logdir
             shutil.rmtree(logdir)
-        
         os.makedirs(logdir)
         
-        # get nscripts
-        nscripts=len(scripts)
-        tasknumberstring='1-'+str(nscripts)
+        # write array script
+        tasknumberstring = self.writeArrayCode(scripts, arrayPath)
         
-        
-        #create arrayscript to be run on the birds. Depinding on $SGE_TASK_ID the script will call a different plot/run script to actually run
-        
-        arrayscriptcode="#!/bin/bash \n"
-        arrayscriptcode+="subtasklist=(\n"
-        for scr in scripts:
-            arrayscriptcode+=scr+" \n"
-        
-        arrayscriptcode+=")\n"
-        if self.jobmode == "HTC":
-            arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID]}\n"
-            arrayscriptcode+="echo \"${thescript}\"\n"
-            arrayscriptcode+=". $thescript"
-        else:
-            arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
-            arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
-            arrayscriptcode+="echo \"${thescript}\n"
-            arrayscriptcode+="echo \"${thescriptbasename}\n"
-            arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
-        arrayscriptfile=open(arrayscriptpath,"w")
-        arrayscriptfile.write(arrayscriptcode)
-        arrayscriptfile.close()
-        st = os.stat(arrayscriptpath)
-        os.chmod(arrayscriptpath, st.st_mode | stat.S_IEXEC)
-        
+        # prepate submit
         if self.jobmode == "HTC":
             print 'writing code for condor_submit-script'
-            submitPath = self.writeSubmitCode(arrayscriptpath, logdir, isArray = True, nscripts = nscripts)
+            submitPath = self.writeSubmitCode(arrayPath, logdir, isArray = True, nscripts = nscripts)
             
             print 'submitting',submitPath
             command = self.subname + " -terse " + submitPath
             command = command.split()
         else:
-            print 'submitting',arrayscriptpath
+            print 'submitting',arrayPath
             command = self.construct_array_submit()
             if not command:            
                 print "could not generate array submit command"
@@ -157,11 +159,10 @@ class batchConfig:
             if jobid:
                 command.append("-hold_jid")
                 command.append(str(jobid))
-            
-            command.append(arrayscriptpath)
+            command.append(arrayPath)
         
+        # submitting
         print "command:", command
-        print " ".join(command)
         a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
         output = a.communicate()[0]
         jobidstring = output
@@ -185,7 +186,7 @@ class batchConfig:
         cmdlist = [self.subname]
         if self.jobmode == "HTC":
             print(script)
-            submitPath = self.writeSubmitCode(script, dirname)
+            submitPath = self.writeSubmitCode(script, dirname+"/logs")
             cmdlist.append("-terse")
             cmdlist.append(submitPath)
         else:
@@ -199,7 +200,6 @@ class batchConfig:
         jobids = []
         #command = " ".join(cmdlist)
         print "command:", cmdlist
-        print " ".join(cmdlist)
         a = subprocess.Popen(cmdlist, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
         output = a.communicate()[0]
         #print output
