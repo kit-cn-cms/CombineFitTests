@@ -24,11 +24,18 @@ class batchConfig:
 
         elif "naf-cms" in hostname:
             print "NAF HTCondor system detected!"
+<<<<<<< HEAD
             self.jobmode = "condor"
             self.subname = "condor_qsub"
             self.subopts = "-l h=bird* -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
             self.arraysubmit = True
 
+=======
+            self.jobmode = "HTC"
+            self.subname = "condor_submit"
+            self.memory = "2000M"
+            self.arraysumbmit = True    
+>>>>>>> fc0cac04a16d2bec389cb8848a79012cf143206b
         else:
             print "going to default - desy naf bird system"
             self.jobmode = "SGE"
@@ -37,6 +44,49 @@ class batchConfig:
             if queue:
                 self.subopts += ("-q " + queue + ".q ").split()
             self.arraysubmit = True
+
+    def writeSubmitCode(self, script, logdir, isArray = False, nscripts = 0):
+        '''
+        write the code for condor_submit file
+        script: path to .sh-script that should be executed
+        logdir: path to directory of logs
+        isArray: set True if script is an array script
+        nscripts: number of scripts in the array script. Only needed if isArray=True
+        
+        returns path to generated condor_submit file
+        '''
+        submitPath = script[:-3]+".sub"
+        submitScript = script.split("/")[-1][:-3]
+        
+        submitCode="universe = vanilla\n"
+        submitCode+="should_transfer_files = IF_NEEDED\n"
+        submitCode+="executable = /bin/bash\n"
+        submitCode+="arguments = " + script + "\n"
+        submitCode+="initialdir = "+os.getcwd()+"\n"
+        submitCode+="notification = Never\n"
+        submitCode+="priority = 0\n"
+        submitCode+="request_memory = "+self.memory+"\n"
+        #submitCode+="request_dist = 5800M\n"
+        
+        if isArray:
+            submitCode+="error = "+logdir+"/"+submitScript+".$(Cluster)_$(ProcId).err\n"
+            submitCode+="output = "+logdir+"/"+submitScript+".$(Cluster)_$(ProcId).out\n"
+            #submitCode+="log = "+logdir+"/"+submitScript+".$(Cluster)_$(ProcId).log\n"
+            submitCode+="Queue Environment From (\n"
+            for taskID in range(nscripts):
+                submitCode+="\"SGE_TASK_ID="+str(taskID)+"\"\n"
+            submitCode+=")"
+        else:
+            submitCode+="error = "+logdir+"/"+submitScript+".$(Cluster).err\n"
+            submitCode+="output = "+logdir+"/"+submitScript+".$(Cluster).out\n"
+            #submitCode+="log = "+logdir+"/"+submitScript+".$(Cluster).log\n"
+            submitCode+="queue"
+
+        submitFile = open(submitPath, "w")
+        submitFile.write(submitCode)
+        submitFile.close()
+
+        return submitPath
 
     def construct_array_submit(self):
         command = None
@@ -86,21 +136,35 @@ class batchConfig:
             arrayscriptcode+=scr+" \n"
         
         arrayscriptcode+=")\n"
+<<<<<<< HEAD
         if self.jobmode == "condor":
             arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID]}\n"
             arrayscriptcode+='echo "${thescript}"\n'
+=======
+        if self.jobmode == "HTC":
+            arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID]}\n"
+            arrayscriptcode+="echo \"${thescript}\"\n"
+>>>>>>> fc0cac04a16d2bec389cb8848a79012cf143206b
             arrayscriptcode+=". $thescript"
         else:
             arrayscriptcode+="thescript=${subtasklist[$SGE_TASK_ID-1]}\n"
             arrayscriptcode+="thescriptbasename=`basename ${subtasklist[$SGE_TASK_ID-1]}`\n"
+<<<<<<< HEAD
             arrayscriptcode+="echo \"${thescript}\"\n"
             arrayscriptcode+="echo \"${thescriptbasename}\"\n"
             arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
+=======
+            arrayscriptcode+="echo \"${thescript}\n"
+            arrayscriptcode+="echo \"${thescriptbasename}\n"
+            arrayscriptcode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
+
+>>>>>>> fc0cac04a16d2bec389cb8848a79012cf143206b
         arrayscriptfile=open(arrayscriptpath,"w")
         arrayscriptfile.write(arrayscriptcode)
         arrayscriptfile.close()
         st = os.stat(arrayscriptpath)
         os.chmod(arrayscriptpath, st.st_mode | stat.S_IEXEC)
+<<<<<<< HEAD
         
         print 'submitting',arrayscriptpath
         #command=['qsub', '-cwd','-terse','-t',tasknumberstring,'-S', '/bin/bash','-l', 'h=bird*', '-hard','-l', 'os=sld6', '-l' ,'h_vmem=2000M', '-l', 's_vmem=2000M' ,'-o', logdir+'/dev/null', '-e', logdir+'/dev/null', arrayscriptpath]
@@ -138,6 +202,46 @@ class batchConfig:
         st = os.stat(script)
         dirname = os.path.dirname(script)
         os.chmod(script, st.st_mode | stat.S_IEXEC)
+=======
+
+        if self.jobmode == "HTC":
+            print 'writing code for condor_submit-script'
+            submitPath = self.writeSubmitCode(arrayscriptpath, logdir, isArray = True, nscripts = nscripts)
+            
+            print 'submitting',submitPath
+            command = self.subname + " -terse " + submitPath
+            command = command.split()
+        else:        
+            print 'submitting',arrayscriptpath
+            command = self.construct_array_submit()
+            if not command:
+                print "could not generate array submit command"
+                return
+
+            command.append('-t')
+            command.append(tasknumberstring)
+            command.append(arrayscriptpath)
+
+        print command
+        print " ".join(command)
+        a = subprocess.Popen(command, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
+        output = a.communicate()[0]
+        jobidstring = output
+        if len(jobidstring)<2:
+            sys.exit("something did not work with submitting the array job")
+               
+        # extractiong jobid
+        try:
+            jobidint=int(jobidstring.split(".")[0])
+        except:
+            sys.exit("womething went wrong with calling condor_submit comand, submission of jobs was not successfull")
+        submittime=submitclock.RealTime()
+        print "submitted job", jobidint, " in ", submittime
+        return [jobidint]
+    
+    # is this function even used? doesnt seem like it
+    def submitJobToBatch(self, scripts):
+>>>>>>> fc0cac04a16d2bec389cb8848a79012cf143206b
         cmdlist = [self.subname]
         cmdlist += self.subopts
         temp = "-o {0}/log.out -e {0}/log.err".format(dirname)

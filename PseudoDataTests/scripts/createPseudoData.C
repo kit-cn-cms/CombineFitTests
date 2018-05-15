@@ -135,7 +135,7 @@ void generatePseudoData(const TString& outdir,
     }
     out << "; do\n";
     out << "    cd ${i}\n";
-    out << "    qsub -q default.q -l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V -o log.out -e log.err " << nameRunScript << "\n";
+    out << "    condor_qsub -l os=sld6 -cwd -S /bin/bash -V -o log.out -e log.err " << nameRunScript << "\n";
     out << "    cd -\n";
     out << "done\n";
 
