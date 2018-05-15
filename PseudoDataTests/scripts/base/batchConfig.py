@@ -81,10 +81,7 @@ class batchConfig:
         return submitPath
 
 
-    def writeArraySubmitCode(self, scripts, arrayPath):
-
-        nscripts=len(scripts)
-        tasknumberstring='1-'+str(nscripts)
+    def writeArrayCode(self, scripts, arrayPath):
 
         arrayCode="#!/bin/bash \n"
         arrayCode+="subtasklist=(\n"
@@ -107,7 +104,7 @@ class batchConfig:
         arrayFile.close()
         st = os.stat(arrayPath)
         os.chmod(arrayPath, st.st_mode | stat.S_IEXEC)
-        return tasknumberstring
+        return arrayPath
 
     def construct_array_submit(self):
         command = None
@@ -138,7 +135,10 @@ class batchConfig:
         os.makedirs(logdir)
         
         # write array script
-        tasknumberstring = self.writeArrayCode(scripts, arrayPath)
+        nscripts=len(scripts)
+        tasknumberstring='1-'+str(nscripts)
+
+        arrayPath = self.writeArrayCode(scripts, arrayPath)
         
         # prepate submit
         if self.jobmode == "HTC":
