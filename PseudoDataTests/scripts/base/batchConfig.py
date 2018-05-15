@@ -122,10 +122,12 @@ class batchConfig:
         releaseCode += "os.system('condor_release "+str(newJID)+"')"
         
         releasePath = "release_"+str(newJID)+".py"
+        print(releasePath)
         with open(releasePath, "w") as releaseFile:
             releaseFile.write(releaseCode)
-        os.system("python "+releasePath+" > /dev/null &")
-        os.system("rm "+releasePath)
+        os.system("python "+releasePath+" > /dev/null && rm "+releasePath+" &")
+        #time.sleep(5)
+        #os.system("rm "+releasePath)
 
     def submitArrayToBatch(self, scripts, arrayPath, jobid = None):
         """
