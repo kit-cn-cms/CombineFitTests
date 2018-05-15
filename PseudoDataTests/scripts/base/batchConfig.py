@@ -124,8 +124,8 @@ class batchConfig:
         releasePath = "release_"+str(newJID)+".py"
         with open(releasePath, "w") as releaseFile:
             releaseFile.write(releaseCode)
-        os.system("python "+releasePath+".py > /dev/null &")
-        os.system("rm "+releasePath+".py")
+        os.system("python "+releasePath+" > /dev/null &")
+        os.system("rm "+releasePath)
 
     def submitArrayToBatch(self, scripts, arrayPath, jobid = None):
         """
