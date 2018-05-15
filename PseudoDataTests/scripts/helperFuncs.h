@@ -330,6 +330,10 @@ namespace helperFuncs{
     return tests;
   }
 
-
+bool compare_classname(const RooRealVar* param, const TString& classname)
+{
+  if(classname.EqualTo(param->ClassName())) return true;
+  return false;
+}
 }
 #endif

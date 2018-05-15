@@ -19,20 +19,20 @@ if len(sys.argv) == 2:
     pathToJson = sys.argv[1]
     pathToJson = os.path.abspath(pathToJson)
     if os.path.exists(pathToJson) and pathToJson.endswith(".json"):
-	print "loading impact submit infos from", pathToJson
-	with open(pathToJson) as f:
-	    dic = json.load(f)
-	listOfDatacards = dic["datacards"]
-	listOfResubFolders = dic["impact_folders"]
-	additionalSubmitCmds = dic["commands"]
+		print "loading impact submit infos from", pathToJson
+		with open(pathToJson) as f:
+		    dic = json.load(f)
+		listOfDatacards = dic["datacards"]
+		listOfResubFolders = dic["impact_folders"]
+		additionalSubmitCmds = dic["commands"]
     else:
-	sys.exit("Input has to be a .json file!")
+		sys.exit("Input has to be a .json file!")
 else:
     resubWildcard 		= sys.argv[1]
     datacardWildcard 	= sys.argv[2]
     additionalSubmitCmds 	= None
     if len(sys.argv) > 3:
-	additionalSubmitCmds= sys.argv[3:]
+		additionalSubmitCmds= sys.argv[3:]
     
     listOfDatacards = glob.glob(datacardWildcard)
     listOfResubFolders = glob.glob(resubWildcard)
@@ -67,50 +67,51 @@ def check_for_resubmit(folder):
 	    initFitList = glob.glob("higgsCombine_initialFit_*.root")
 	    redoInitFit = False
 	    if initFitList:
-		initFitFile = initFitList[0]
-		infile = TFile(initFitFile)
-		if not (infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(TFile.kRecovered)):
-		    redoInitFit = True
-		else:
-		    print "init file is working"
+			initFitFile = initFitList[0]
+			infile = TFile(initFitFile)
+			if not (infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(TFile.kRecovered)):
+			    redoInitFit = True
+			else:
+			    print "init file is working"
 	    else:
 		print "could not find initial fit file!"
 		return True
 	    
 	    if redoInitFit:
-		cmd = lines[1]
-		print cmd
-		subprocess.call([cmd], shell = True)
+			cmd = lines[1]
+			print cmd
+			subprocess.call([cmd], shell = True)
 	    
-	    if not len(scriptList) == len(rootfiles) or redoInitFit:
+	    if (not len(scriptList) == len(rootfiles) and not batch_config.jobmode == "condor") or redoInitFit:
 		    cmd = lines[-1]
 		    print cmd
 		    subprocess.call([cmd], shell = True)
 	    else:
-		scripts = []
-		for path in rootfiles:
-		    infile = TFile(path)
-		    if not (infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(TFile.kRecovered)):
-			print "looking for script for file", path
-			keywords = path.replace("higgsCombine", "").split(".")
-			for script in scriptList:
-			    script = os.path.abspath(script)
-			    s = open(script)
-			    lines = s.read().splitlines()
-			    s.close()
-			    if keywords[0] in lines[-1]:
-				scripts.append(script)
-				break
+	    	if not batch_config.jobmode == "conodor":
+				scripts = []
+				for path in rootfiles:
+				    infile = TFile(path)
+				    if not (infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(TFile.kRecovered)):
+						print "looking for script for file", path
+						keywords = path.replace("higgsCombine", "").split(".")
+						for script in scriptList:
+						    script = os.path.abspath(script)
+						    s = open(script)
+						    lines = s.read().splitlines()
+						    s.close()
+						    if keywords[0] in lines[-1]:
+								scripts.append(script)
+								break
 				
 		if len(scripts) is not 0:
 		    if useBatch:
-			if batch_config.arraysubmit is True:
-			    batch_config.submitArrayToBatch(scripts, folder + "/logs/arrayJob.sh")
-			else:
-			    batch_config.submitJobToBatch(scripts)
+				if batch_config.arraysubmit is True:
+				    batch_config.submitArrayToBatch(scripts, folder + "/logs/arrayJob.sh")
+				else:
+				    batch_config.submitJobToBatch(scripts)
 		    else:
-			for script in scripts:
-			    subprocess.call([script], shell=True)
+				for script in scripts:
+				    subprocess.call([script], shell=True)
 		else:
 		    print "all root files are intact"
 			    
@@ -128,33 +129,33 @@ def submit_missing(	impactFolders, listToCrossCheck,
     print "list of impact folders to be cross checked with list of datacards/workspaces"
     print basenames
     for path in listToCrossCheck:
-	parts = os.path.basename(path).split(".")
-	foldername = ".".join(parts[:len(parts)-1])
-	print "checking", foldername
-	for entry in listToResub:
-	    name = os.path.basename(entry)
-	    print "\tcomparing", name
-	    if foldername == name:
-		print "found match!"
-		folders.append(path)
-		break
-	if foldername in basenames:
-	    print "\tfound matching folder"
-	else:
-	    print "\t%s flagged for fresh submit" % foldername
-	    folders.append(path)
+		parts = os.path.basename(path).split(".")
+		foldername = ".".join(parts[:len(parts)-1])
+		print "checking", foldername
+		for entry in listToResub:
+		    name = os.path.basename(entry)
+		    print "\tcomparing", name
+		    if foldername == name:
+				print "found match!"
+				folders.append(path)
+				break
+		if foldername in basenames:
+		    print "\tfound matching folder"
+		else:
+		    print "\t%s flagged for fresh submit" % foldername
+		    folders.append(path)
 	    
     fresh_submit(folders, cmdList)
     
 def fresh_submit(datacards, cmdList = None):
     for datacard in datacards:
-	scriptPath = scriptDir + "/submitImpactFits.py"
-	print "calling", scriptPath
-	cmd = "python {0} {1}".format(scriptPath, datacard)
-	if cmdList:
-	    cmd += " " + " ".join(cmdList)
-	print cmd
-	subprocess.call([cmd], shell = True)
+		scriptPath = scriptDir + "/submitImpactFits.py"
+		print "calling", scriptPath
+		cmd = "python {0} {1}".format(scriptPath, datacard)
+		if cmdList:
+		    cmd += " " + " ".join(cmdList)
+		print cmd
+		subprocess.call([cmd], shell = True)
 
 #=======================================================================
 
@@ -178,7 +179,7 @@ for resubFolder in impactFolders:
     foldername = os.path.basename(resubFolder)
     
     if check_for_resubmit(folder = resubFolder):
-	toResub.append(resubFolder)
+		toResub.append(resubFolder)
     os.chdir(base)
 
 print "list to resubmit:"

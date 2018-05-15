@@ -65,11 +65,11 @@ namespace drawPullPlots{
   }
   
   void saveGraphs(std::vector<TGraphErrors*>& graphs, TLegend* legend, const TH1* bfit, const TH1* sbfit, const double& binwidth){
-        // graphs.push_back(get_graph(bfit, 0.2*binwidth));
-        // std::cout << "saved postfitB TGraph\n";
-        // addToCanvas(graphs.back(), legend, "B-only fit Means + Mean Fitted Error", "PEsame","postfitBmeans");
-        // std::cout << "bonly marker style: " << graphs.back()->GetMarkerStyle() << std::endl;
-        // std::cout << "drew postfitB\n";
+        graphs.push_back(get_graph(bfit, 0.2*binwidth));
+        std::cout << "saved postfitB TGraph\n";
+        addToCanvas(graphs.back(), legend, "B-only fit Means + Mean Fitted Error", "PEsame","postfitBmeans");
+        std::cout << "bonly marker style: " << graphs.back()->GetMarkerStyle() << std::endl;
+        std::cout << "drew postfitB\n";
         graphs.push_back(get_graph(sbfit, -0.2*binwidth));
         std::cout << "saved postfitSB TGraph\n";
         addToCanvas(graphs.back(), legend, "S+B fit Means + Mean Fitted Error", "PEsame", "postfitSBmeans_fittedError");
@@ -123,7 +123,7 @@ namespace drawPullPlots{
         TH1D* hPrefitMedians = NULL;
 
 
-        TLegend* legend = LabelMaker::legend("top left",3);
+        TLegend* legend = new TLegend(0.35, 0.75, 0.7, 1.00);
         TFile* expectationFile = NULL;
         if(!pathToShapeExpectationRootfile.EqualTo("")) expectationFile = new TFile(pathToShapeExpectationRootfile, "READ");
         TTree* tree = NULL;
@@ -304,6 +304,7 @@ namespace drawPullPlots{
         
 
         legend->SetFillStyle(1001);
+
         legend->Draw("Same");
         std::cout << "drew legend\n";
         TLatex* header = helperFuncs::getLatex();

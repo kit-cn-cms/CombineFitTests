@@ -123,6 +123,7 @@ class batchConfig:
                 sys.exit("something did not work with submitting the array job")
             
             if self.jobmode == "HTC":
+                print jobidstring
                 jobidstring=jobidstring.split(" ")[2]
             else:
                 jobidstring=jobidstring.split(".")[0]
@@ -158,6 +159,7 @@ class batchConfig:
             if jid.isdigit():
                 jobid=int(jid)
                 print "this job's ID is", jobid
+                return jobid
                 jobids.append(jobid)
                 continue
         
