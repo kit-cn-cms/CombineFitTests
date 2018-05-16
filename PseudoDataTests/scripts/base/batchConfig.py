@@ -122,7 +122,12 @@ class batchConfig:
         return command
     
     def setupRelease(self, oldJIDs, newJID):
-        releaseCode = "from batchConfig import *\n"
+        basedir = os.path.dirname(os.path.realpath(__file__))
+        releaseCode = "import sys\n"
+        releaseCode += 'basedir = "' + basedir + '"\n'
+        releaseCode += "if not basedir in sys.path:\n"
+        releaseCode += "\tsys.path.append(basedir)\n"
+        releaseCode += "from batchConfig import *\n"
         releaseCode += "import os\n"
         releaseCode += "q = batchConfig()\n"
         releaseCode += "q.do_qstat("+str(oldJIDs)+")\n"
