@@ -624,7 +624,8 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
         ymax = graph.GetYaxis().GetXmax()
     else:
         ymax = graph.GetBinContent(graph.GetMaximumBin())
-    graph.Write("nllscan")
+    graph.SetName("nllscan")
+    outfile.WriteObject(graph)
     if ytitle == '2#Delta NLL':
         print "creating TF1 in range [{0}, {1}]".format(xmin,xmax)
         print "y-axis range: [{0}, {1}]".format(ymin, ymax)
@@ -671,7 +672,8 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     bestfit.SetMarkerStyle(34)
     bestfit.SetMarkerSize(1.8)
     bestfit.Sort()
-    bestfit.Write("bestfit")
+    bestfit.SetName("bestfit")
+    outfile.WriteObject(bestfit)
     bestfit.Draw("P")
     c.Modified()
     leg.AddEntry(bestfit, "Best Fit Value", "p")
@@ -679,7 +681,8 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     leg.Draw("Same")
         
     save_output(canvas = c, graph = graph, name = filename)
-    c.Write("canvas")
+    c.SetName("canvas")
+    outfile.WriteObject(c)
     outfile.Close()
     
 def do2DScan(   limit, xVar, yVar, outputDirectory, suffix, 
