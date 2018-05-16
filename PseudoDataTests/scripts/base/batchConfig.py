@@ -136,20 +136,20 @@ class batchConfig:
         #time.sleep(5)
         #os.system("rm "+releasePath)
 
-    def submitArrayToBatch(self, scripts, arrayPath, jobid = None):
+    def submitArrayToBatch(self, scripts, arrayscriptpath, jobid = None):
         '''
         submits given scripts as array to batch system
         scripts: scripts to be submitted as array
-        arrayPath: path to generated array file
+        arrayscriptpath: path to generated array file
         jobid: newly created array job waits for the jobs given in jobid (as a list of ids) before executing
 
         returns jobid of array as list
         '''
         submitclock=TStopwatch()
         submitclock.Start()
-        arrayPath = os.path.abspath(arrayPath)
+        arrayscriptpath = os.path.abspath(arrayscriptpath)
 
-        logdir = os.path.dirname(arrayPath)+"/logs"
+        logdir = os.path.dirname(arrayscriptpath)+"/logs"
         print "will save logs in", logdir
         if os.path.exists(logdir):
             print "emptying directory", logdir
@@ -160,19 +160,19 @@ class batchConfig:
         nscripts=len(scripts)
         tasknumberstring='1-'+str(nscripts)
 
-        arrayPath = self.writeArrayCode(scripts, arrayPath)
+        arrayscriptpath = self.writeArrayCode(scripts, arrayscriptpath)
         
         # prepate submit
         if self.jobmode == "HTC":
             print 'writing code for condor_submit-script'
             hold = True if jobid else False
-            submitPath = self.writeSubmitCode(arrayPath, logdir, hold = hold, isArray = True, nscripts = nscripts)
+            submitPath = self.writeSubmitCode(arrayscriptpath, logdir, hold = hold, isArray = True, nscripts = nscripts)
             
             print 'submitting',submitPath
             command = self.subname + " -terse " + submitPath
             command = command.split()
         else:
-            print 'submitting',arrayPath
+            print 'submitting',arrayscriptpath
             command = self.construct_array_submit()
             if not command:            
                 print "could not generate array submit command"
@@ -182,7 +182,7 @@ class batchConfig:
             if jobid:
                 command.append("-hold_jid")
                 command.append(str(jobid))
-            command.append(arrayPath)
+            command.append(arrayscriptpath)
         
         # submitting
         print "command:", command
