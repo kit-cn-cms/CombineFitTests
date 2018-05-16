@@ -1,4 +1,5 @@
 import ROOT
+import os
 
 def getLatex(x,y,text):
     tests = ROOT.TLatex(x, y,text)
@@ -60,4 +61,45 @@ def check_wildcard(key, paramlist):
             if p == key:
                 return True
     return False
+
+def insert_values(cmds, keyword, toinsert, joinwith=","):
+    if keyword in cmds:
+        i = cmds.index(keyword)
+        if joinwith == "replace":
+            cmds[i+1] = toinsert
+        elif joinwith == "insert":
+            pass
+        else:
+            cmds[i+1] = joinwith.join([cmds[i+1],toinsert])
+    else:
+        cmds += [keyword, toinsert]
+
+def check_workspace(pathToDatacard):
+    workspacePath = ""
+    parts = pathToDatacard.split(".")
+    outputPath = ".".join(parts[:len(parts)-1]) + ".root"
+    if not os.path.exists(outputPath):
+        print "generating workspace for", pathToDatacard
+        
+        bashCmd = ["source {0} ;".format(pathToCMSSWsetup)]
+        bashCmd.append("text2workspace.py -m 125 " + pathToDatacard)
+        bashCmd.append("-o " + outputPath)
+        print bashCmd
+        subprocess.call([" ".join(bashCmd)], shell = True)
+   
+    workspacePath = outputPath
+   
+    if os.path.exists(workspacePath):
+        f = ROOT.TFile(workspacePath)
+        if not (f.IsOpen() and not f.IsZombie() and not f.TestBit(ROOT.TFile.kRecovered)):
+            workspacePath = ""
+        else:
+            test = f.Get("w")
+            if not isinstance(test, ROOT.RooWorkspace):
+                print "could not find workspace in", workspacePath
+                workspacePath = ""
+    else:
+        print "could not find", workspacePath
+        workspacePath = ""
+    return workspacePath
     

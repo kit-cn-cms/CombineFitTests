@@ -349,6 +349,7 @@ void PseudoExperiments::readRooRealVar(std::map<TString,TH1*>& hists, std::map<T
   // if(init) TIter it = result->floatParsInit().createIterator();
   // else TIter it = result->floatParsFinal().createIterator();
   while((param = (RooRealVar*)it.Next())){
+    if(!helperFuncs::compare_classname(param, "RooRealVar")) continue;
     //Double_t value = param->getVal();
     if(debug_) std::cout << "looking for parameter " << param->GetName() <<std::endl;
     std::map<TString, TH1*>::const_iterator iter = hists.find(param->GetName());
@@ -376,6 +377,7 @@ void PseudoExperiments::readRooRealVar(std::map<TString,std::vector<Double_t> >&
   RooRealVar* param = NULL;
 
   while((param = (RooRealVar*)it.Next())){
+    if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
     if(debug_) std::cout << "looking for parameter " << param->GetName() <<std::endl;
     histVecs[param->GetName()].push_back(param->getVal());
     hErrorVecs[param->GetName()].push_back(param->getError());
@@ -389,9 +391,12 @@ void PseudoExperiments::readRooRealVar(TH1* hist, const RooFitResult* result, co
   RooRealVar* param = NULL;
 
   param = (RooRealVar*)result->floatParsFinal().find( currentVarName.Data() );
-  if(param != NULL){
-    Double_t value = param->getVal();
-    hist->Fill(value);
+  if( (helperFuncs::compare_classname(param, "RooRealVar")) )
+  {
+    if(param != NULL){
+      Double_t value = param->getVal();
+      hist->Fill(value);
+    }
   }
 }
 
@@ -400,9 +405,12 @@ void PseudoExperiments::readRooRealVar(std::vector<Double_t>& histVec, const Roo
   RooRealVar* param = NULL;
 
   param = (RooRealVar*)result->floatParsFinal().find( currentVarName.Data() );
-  if(param != NULL){
-    Double_t value = param->getVal();
-    histVec.push_back(value);
+  if((helperFuncs::compare_classname(param, "RooRealVar")))
+  {
+    if(param != NULL){
+      Double_t value = param->getVal();
+      histVec.push_back(value);
+    }
   }
 }
 
@@ -785,19 +793,29 @@ bool PseudoExperiments::checkCovarianceMatrix(TFile* file){
 }
 
 void PseudoExperiments::initContainers(TFile* file, const RooFitResult* result, int nBins, Double_t min, Double_t max) {
-  TString varName = result->floatParsFinal().contentsString();
+  
   if(debug_) std::cout << result << std::endl;
   if(debug_) std::cout << "collecting variable names from RooFitResult " << result->GetName() << std::endl;
-  TString npName;
   if(nps_.empty())
   {
-    while( varName.Contains(",") ) {
-      npName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
-      
-      if(!(npName.Contains("prop_bin") && noBinByBin_) && !npName.BeginsWith("r")) nps_.push_back(npName);
-      varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
+    TIter it = result->floatParsFinal().createIterator();
+    TString name;
+    RooRealVar* param;
+    while(( param = (RooRealVar*)it.Next() )){
+        if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
+        name = param->GetName();
+        if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !(name.Contains("prop_bin") && noBinByBin_ )){
+            nps_.push_back(name);
+        }
     }
-    if(!(varName.Contains("prop_bin") && noBinByBin_) && !npName.BeginsWith("r")) nps_.push_back(varName);
+
+    // while( varName.Contains(",") ) {
+    //   npName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
+      
+    //   if(!(npName.Contains("prop_bin") && noBinByBin_) && !npName.BeginsWith("r")) nps_.push_back(npName);
+    //   varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
+    // }
+    // if(!(varName.Contains("prop_bin") && noBinByBin_) && !npName.BeginsWith("r")) nps_.push_back(varName);
   }
 
   createHistograms(valuesPrefit_,nps_,"prefit");
@@ -867,6 +885,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
         TString name;
         RooRealVar* param;
         while(( param = (RooRealVar*)it.Next() )){
+            if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
             name = param->GetName();
             if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !(name.Contains("prop_bin") && noBinByBin_ )){
                 pois_.push_back(name);
@@ -906,6 +925,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
         TString name;
         RooRealVar* param;
         while(( param = (RooRealVar*)it.Next() )){
+            if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
             name = param->GetName();
             if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !(name.Contains("prop_bin") && noBinByBin_ )){
                 pois_.push_back(name);
@@ -1041,21 +1061,17 @@ void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,T
   std::vector<TString> values;
   if(debug_) std::cout << "collecting correlations\n";
 
-  TString varName = result->floatParsFinal().contentsString();
   if(debug_) std::cout << result << std::endl;
   if(debug_) std::cout << "collecting variable names from RooFitResult " << result->GetName() << std::endl;
-  TString paramName;
-  while( varName.Contains(",") ) {
-    paramName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
-    if(debug_) std::cout << paramName << std::endl;
-    if(!(paramName.Contains("prop_bin") && noBinByBin_)) 
-    {
-      if(debug_)std::cout << "saving " << paramName << std::endl;
-      values.push_back(paramName);
-    }
-    varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
+
+  TIter it = result->floatParsFinal().createIterator();
+  TString name;
+  RooRealVar* param;
+  while(( param = (RooRealVar*)it.Next() )){
+      if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
+      name = param->GetName();
+      values.push_back(name);
   }
-  if(!(varName.Contains("prop_bin") && noBinByBin_)) values.push_back(varName);
   if(debug_)std::cout << "\ndone" << std::endl;
   if(debug_)std::cout << "current size of correlation container: " << correlations.size() << std::endl;
   if(correlations.empty()){
@@ -1078,26 +1094,33 @@ void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,s
   std::vector<TString> values;
   if(debug_) std::cout << "collecting correlations\n";
 
-  TString varName = result->floatParsFinal().contentsString();
   if(debug_) std::cout << result << std::endl;
   if(debug_) std::cout << "collecting variable names from RooFitResult " << result->GetName() << std::endl;
-  TString paramName;
-  while( varName.Contains(",") ) {
-    paramName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
-    if(debug_) std::cout << paramName << std::endl;
-    if(!(paramName.Contains("prop_bin") && noBinByBin_)) 
-    {
-      if(debug_)std::cout << "saving " << paramName << std::endl;
-      values.push_back(paramName);
-    }
-    varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
+  TIter it = result->floatParsFinal().createIterator();
+  TString name;
+  RooRealVar* param;
+  while(( param = (RooRealVar*)it.Next() )){
+      if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
+      name = param->GetName();
+      values.push_back(name);
   }
-  if(!(varName.Contains("prop_bin") && noBinByBin_)) values.push_back(varName);
+  // while( varName.Contains(",") ) {
+  //   paramName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
+  //   if(debug_) std::cout << paramName << std::endl;
+  //   if(!(paramName.Contains("prop_bin") && noBinByBin_)) 
+  //   {
+  //     if(debug_)std::cout << "saving " << paramName << std::endl;
+  //     values.push_back(paramName);
+  //   }
+  //   varName.Remove(varName.Last(','), varName.Length()-varName.Last(','));
+  // }
+  // if(!(varName.Contains("prop_bin") && noBinByBin_)) values.push_back(varName);
   if(debug_)std::cout << "\ndone" << std::endl;
   if(debug_)std::cout << "current size of correlation container: " << correlations.size() << std::endl;
 
   for(auto& np_i : values){
     for(auto& np_j : values){
+      std::cout << "getting correlation for " << np_i << "\t" << np_j << std::endl;
       correlations[np_i][np_j].push_back(result->correlation(np_i, np_j));
     }
   }

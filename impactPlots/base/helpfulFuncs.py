@@ -42,3 +42,10 @@ def setupPad(p):
 def lnn(beta,err):
     return pow(1.+err,beta)
     
+def insert_values(cmds, keyword, toinsert, joinwith=","):
+    if keyword in cmds:
+        print "keyword %s already exists! Inserting..." % keyword
+        i = cmds.index(keyword)
+        cmds[i+1] = joinwith.join([cmds[i+1],toinsert])
+    else:
+        cmds += [keyword, toinsert]

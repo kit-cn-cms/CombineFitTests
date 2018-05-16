@@ -474,7 +474,7 @@ void analyzeNPPulls(const PseudoExperiments& exp, const TString& outLabel, const
 
         std::cout << "\tsaving PostfitS\n";
 
-        vectorToSafe.push_back(exp.postfitSMean(np));
+        vectorToSafe.push_back(exp.postfitSMean(np) - exp.prefitMean(np));
         vectorToSafe.push_back(exp.postfitS(np)->GetMeanError());
         vectorToSafe.push_back(helperFuncs::getMedian(exp.postfitS(np)));
         vectorToSafe.push_back(exp.postfitSRMS(np));
@@ -486,7 +486,7 @@ void analyzeNPPulls(const PseudoExperiments& exp, const TString& outLabel, const
 
         std::cout << "\tsaving Prefit vals\n";
 
-        vectorToSafe.push_back(exp.prefitMean(np));
+        vectorToSafe.push_back(exp.prefitMean(np) - exp.prefitMean(np));
         vectorToSafe.push_back(exp.prefit(np)->GetMeanError());
         vectorToSafe.push_back(helperFuncs::getMedian(exp.prefit(np)));
         vectorToSafe.push_back(exp.prefitRMS(np));
@@ -924,7 +924,7 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
     std::cout << "saving experiments in directory " << outputPath << std::endl;
 
     comparePostfitValues(expSet,outputPath,true);
-    compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+    // compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
     TH2D* correlation;
     TString outputString;
     TString temp;
