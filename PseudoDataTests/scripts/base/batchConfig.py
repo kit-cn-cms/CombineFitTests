@@ -138,7 +138,7 @@ class batchConfig:
         nscripts=len(scripts)
         tasknumberstring='1-'+str(nscripts)
 
-        arrayPath = self.writeArrayCode(scripts, arrayPath)
+        arrayscriptpath = self.writeArrayCode(scripts, arrayscriptpath)
         
         # prepare submit
         if self.jobmode == "HTC":
