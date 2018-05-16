@@ -24,8 +24,28 @@ pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests
 
 #=======================================================================
 
+def add_basic_commands(cmd, mu, murange, suffix = ""):
+	fitrangeUp = murange
+	fitrangeDown = -1*murange
+	if mu is not None:
+		fitrangeUp += mu
+		fitrangeDown += mu
+	helpfulFuncs.insert_values(cmds = cmd, keyword = "-n", toinsert = suffix, joinwith = "_")
+	# cmd += "--cminDefaultMinimizerStrategy 0".split()
+	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerStrategy", toinsert = "0", joinwith = "insert")
+	# cmd += "--cminDefaultMinimizerTolerance 1e-3".split()
+	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerTolerance", toinsert = "1e-3", joinwith = "insert")
+	# cmd += ("--rMin {0} --rMax {1} -t -1 --expectSignal {2}".format(mu-murange, mu+murange, mu)).split()
+	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMin", toinsert = str(fitrangeDown), joinwith = "insert")
+	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMax", toinsert = str(fitrangeUp), joinwith = "insert")
+	if mu is not None:
+		helpfulFuncs.insert_values(cmds = cmd, keyword = "-t", toinsert = "-1", joinwith = "insert")
+		helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
+	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+
+
 def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
-			mu = 1, murange = 5., cmdbase = None):
+			mu = None, murange = 5., cmdbase = None):
 	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
 	script.append("  source " + pathToCMSSWsetup)
 	script.append("  if [ -d " + outfolder + " ]; then")
@@ -37,19 +57,8 @@ def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
 	if cmdbase:
 		cmd += cmdbase
 	if paramgroup:
-            cmd += '-w w --snapshotName MultiDimFit'.split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "-n", toinsert = "_prefit_" + suffix, joinwith = "_")
-	# cmd += "--cminDefaultMinimizerStrategy 0".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerStrategy", toinsert = "0", joinwith = "insert")
-	# cmd += "--cminDefaultMinimizerTolerance 1e-3".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerTolerance", toinsert = "1e-3", joinwith = "insert")
-	# cmd += ("--rMin {0} --rMax {1} -t -1 --expectSignal {2}".format(mu-murange, mu+murange, mu)).split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMin", toinsert = str(mu-murange), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMax", toinsert = str(mu+murange), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "-t", toinsert = "-1", joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
-
+		cmd += '-w w --snapshotName MultiDimFit'.split()
+	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = suffix)
 	if paramgroup:
 		helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeNuisanceGroups", toinsert = paramgroup, joinwith = ",")
 	# cmd += "--minos all".split()
@@ -61,7 +70,7 @@ def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
 	script.append('      echo "could not find multidimfit output!"')
 	script.append("    fi")
 	script.append("  else")
-	script.append('    echo "statOnly folder does not exist!"')
+	script.append('    echo "folder {0} does not exist!"'.format(outfolder))
 	script.append("  fi")
 	script.append("else")
 	script.append('  echo "Could not find CMSSW setup file!"')
@@ -90,7 +99,7 @@ def create_folders( foldername, combineInput, paramgroup, suffix,
     if os.path.exists(outfolder):
         shutil.rmtree(outfolder)
     os.makedirs(outfolder)
-    outfolder = os.path.join(foldername, outfolder)
+    # outfolder = os.path.join(foldername, outfolder)
             
     path = create_fit_cmd( 	mdfout = combineInput,
             paramgroup = paramgroup,
@@ -102,7 +111,7 @@ def create_folders( foldername, combineInput, paramgroup, suffix,
     if path:
         scripts.append(path)
 
-def submit_fit_cmds(ws, paramgroups = ["all"], mu = 1.0, cmdbase = None, murange = 5., suffix = ""):
+def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murange = 5., suffix = ""):
 	print "entering submit_fit_cmds"
 	if not os.path.exists(ws):
 		raise sys.exit("workspace file %s does not exist!" % ws)
@@ -122,16 +131,8 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = 1.0, cmdbase = None, murange
 	if cmdbase:
 		cmd += cmdbase
 
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "-n", toinsert = "_prefit_" + foldername, joinwith = "_")
-	# cmd += "--cminDefaultMinimizerStrategy 0".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerStrategy", toinsert = "0", joinwith = "insert")
-	# cmd += "--cminDefaultMinimizerTolerance 1e-3".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerTolerance", toinsert = "1e-3", joinwith = "insert")
-	# cmd += ("--rMin {0} --rMax {1} -t -1 --expectSignal {2}".format(mu-murange, mu+murange, mu)).split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMin", toinsert = str(mu-murange), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMax", toinsert = str(mu+murange), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "-t", toinsert = "-1", joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
+	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_prefit_" + foldername)
+
 	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
 	cmd.append(ws)
 
@@ -191,8 +192,7 @@ if __name__ == '__main__':
 	parser.add_option(	"-r", "--mu",
 						help = "signal strength for asimov toys",
 						dest = "mu",
-						type= "float",
-						default = 1.0)
+						type= "float")
 	parser.add_option(	"--murange",
 						help= "+/- range around injected value to be scanned",
 						type = "float",
