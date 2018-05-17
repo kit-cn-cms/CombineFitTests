@@ -22,21 +22,21 @@ class batchConfig:
             self.arraysubmit = False
             self.arraysubopts = None
 
-        elif "naf-cms" in hostname:
-            print "NAF HTCondor system detected!"
-            self.jobmode = "HTC"
-            self.subname = "condor_submit"
-            self.memory = "2000M"
-            self.arraysumbmit = True
-
-        else:
-            print "going to default - desy naf bird system"
+        elif "nafhh-cms" in hostname:
+            print "desy naf sge system detected!"
             self.jobmode = "SGE"
             self.subname = "qsub"
             self.subopts = "-l h=bird* -hard -l os=sld6 -l h_vmem=2000M -l s_vmem=2000M -cwd -S /bin/bash -V".split()
             if queue:
                 self.subopts += ("-q " + queue + ".q ").split()
             self.arraysubmit = True
+
+        else:
+            print "going to default - desy naf HTC system"
+            self.jobmode = "HTC"
+            self.subname = "condor_submit"
+            self.memory = "2000M"
+            self.arraysumbmit = True
 
     def writeSubmitCode(self, script, logdir, hold = False, isArray = False, nscripts = 0):
         '''
@@ -84,13 +84,13 @@ class batchConfig:
         return submitPath
 
 
-    def writeArrayCode(self, scripts, arrayPath):
+    def writeArrayCode(self, scripts, arrayscriptpath):
         '''
         write code for array script
         scripts: scripts to be executed by array script
-        arrayPath: filename of array script
+        arrayscriptpath: filename of array script
 
-        returns arrayPath (redundand but safer than no return)
+        returns arrayscriptpath (redundand but safer than no return)
         '''
         arrayCode="#!/bin/bash \n"
         arrayCode+="subtasklist=(\n"
@@ -108,12 +108,12 @@ class batchConfig:
             arrayCode+="echo \"${thescript}\n"
             arrayCode+="echo \"${thescriptbasename}\n"
             arrayCode+=". $thescript 1>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.o 2>>"+logdir+"/$JOB_ID.$SGE_TASK_ID.e\n"
-        arrayFile=open(arrayPath,"w")
+        arrayFile=open(arrayscriptpath,"w")
         arrayFile.write(arrayCode)
         arrayFile.close()
-        st = os.stat(arrayPath)
-        os.chmod(arrayPath, st.st_mode | stat.S_IEXEC)
-        return arrayPath
+        st = os.stat(arrayscriptpath)
+        os.chmod(arrayscriptpath, st.st_mode | stat.S_IEXEC)
+        return arrayscriptpath
 
     def construct_array_submit(self):
         command = None
@@ -121,26 +121,55 @@ class batchConfig:
         command += self.subopts
         return command
     
-    def setupRelease(self, oldJIDs, newJID):
+    def setupRelease(self, oldJIDs, newJIDs):
+        '''
+        writes and executes code to monitor running jobs. releases new jobs when old ones are finished
+        oldJIDs: list of jobs that need to be finished before new jobs are released from hold
+        newJIDs: list of jobs that wait on old jobs to be finished before being released from hold
+
+        returns ID of release job
+        '''
+        releasePath = os.getcwd()+"/release"
+        for ID in newJIDs:
+            releasePath += "_"+str(ID)
+        releasePath += ".sh"
+        print(releasePath)
         basedir = os.path.dirname(os.path.realpath(__file__))
-        releaseCode = "import sys\n"
-        releaseCode += 'basedir = "' + basedir + '"\n'
+        releaseCode = "#!/bin/bash\n"
+        releaseCode += "export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch\n"
+        releaseCode += "source $VO_CMS_SW_DIR/cmsset_default.sh\n"
+        releaseCode += "cd /nfs/dust/cms/user/kelmorab/combineCMSSW/CMSSW_8_1_0/src\n"
+        releaseCode += "eval `scram runtime -sh`\n"
+        releaseCode += "cd "+os.getcwd()+"\n"
+        releaseCode += "script=\"\n"
+        releaseCode += "import sys\n"
+        releaseCode += "basedir = '" + basedir + "'\n"
         releaseCode += "if not basedir in sys.path:\n"
         releaseCode += "\tsys.path.append(basedir)\n"
         releaseCode += "from batchConfig import *\n"
         releaseCode += "import os\n"
         releaseCode += "q = batchConfig()\n"
         releaseCode += "q.do_qstat("+str(oldJIDs)+")\n"
-        releaseCode += "os.system('condor_release "+str(newJID)+"')"
+        releaseCode += "os.system('condor_release -name bird-htc-sched02.desy.de"
+        for ID in newJIDs:
+            releaseCode += " "+str(ID)
+        releaseCode += "')\n"
+        releaseCode += "\"\n"
+        releaseCode += "python -c \"$script\"\n"
+        releaseCode += "rm -- \"$0\"\n"
         
-        releasePath = "release_"+str(newJID)+".py"
-        print(releasePath)
         with open(releasePath, "w") as releaseFile:
             releaseFile.write(releaseCode)
+        st = os.stat(releasePath)
+        os.chmod(releasePath, st.st_mode | stat.S_IEXEC)
+        releaseID = self.submitJobToBatch(releasePath)
+        os.system("rm "+releasePath[:-3]+".sub")
+        return releaseID
+        '''
         os.system("python "+releasePath+" > /dev/null && rm "+releasePath+" &")
         #time.sleep(5)
         #os.system("rm "+releasePath)
-
+        '''
     def submitArrayToBatch(self, scripts, arrayscriptpath, jobid = None):
         '''
         submits given scripts as array to batch system
@@ -205,7 +234,8 @@ class batchConfig:
         submittime=submitclock.RealTime()
         print "submitted job", jobidint, " in ", submittime
         if hold:
-            self.setupRelease(jobid, jobidint)
+            print("the scripts were submitted in hold state - creating release script")
+            self.setupRelease(jobid, [jobidint])
         return [jobidint]
     
     def submitJobToBatch(self, script, jobid = None):
@@ -218,12 +248,19 @@ class batchConfig:
         '''
         script = os.path.abspath(script)
         st = os.stat(script)
+
         dirname = os.path.dirname(script)
+        logdir = dirname +"/logs"
+        if os.path.exists(logdir):
+            print "emptying directory", logdir
+            shutil.rmtree(logdir)
+        os.makedirs(logdir)
+
         os.chmod(script, st.st_mode | stat.S_IEXEC)
         cmdlist = [self.subname]
         if self.jobmode == "HTC":
             hold = True if jobid else False
-            submitPath = self.writeSubmitCode(script, dirname+"/logs", hold = hold)
+            submitPath = self.writeSubmitCode(script,logdir, hold = hold)
             cmdlist.append("-terse")
             cmdlist.append(submitPath)
         else:
@@ -255,7 +292,8 @@ class batchConfig:
         print "this job's ID is", jobidint
         jobids.append(jobidint)
         if hold:
-            self.setupRelease(jobid, jobidint)
+            print("the scripts were submitted in hold state - creating and submitting release script")
+            self.setupRelease(jobid, [jobidint])
         return jobids
         
     def do_qstat(self, jobids):
