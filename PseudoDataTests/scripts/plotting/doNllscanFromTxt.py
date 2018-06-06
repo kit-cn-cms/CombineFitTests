@@ -27,10 +27,12 @@ def reset_directory(outputDirectory):
 
 def do_prefit(datacard, cmdlist = None):
     
-    cmd = "combine -M FitDiagnostics -m 125 --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 1e-5"
-    # if cmdlist:
-        # cmd += " "+ " ".join(cmdlist)
+    # cmd = "combine -M FitDiagnostics -m 125 --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 1e-5"
+    cmd = "combine -M FitDiagnostics -m 125"
+    if cmdlist:
+        cmd += " "+ " ".join(cmdlist)
     cmd += " " + datacard
+    print cmd
     subprocess.call([cmd], shell = True)
     if os.path.exists("fitDiagnostics.root"):
         infile = TFile("fitDiagnostics.root")
@@ -69,10 +71,10 @@ if os.path.exists(pathToTxt):
             cmd += ' -x {0}'.format(param)
             cmd += ' -a "--setParameterRanges {0}=-3,3"'.format(param)
             if r is not None:
-                cmd += ' -a "--setParameters r={0}"'.format(r)
+                cmd += ' -a "--setParameters r={0} --floatOtherPOIs 1"'.format(r)
             # cmd += " -n _" + os.path.basename(outputDirectory)
             if cmdList:
-                cmd += " " + " ".join(cmdList)
+                cmd += " -a \"" + " ".join(cmdList) + "\""
             print cmd
             subprocess.call([cmd], shell=True)
             os.chdir("../")

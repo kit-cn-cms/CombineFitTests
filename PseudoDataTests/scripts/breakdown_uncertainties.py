@@ -1,7 +1,6 @@
 import os
 import sys
 import glob
-import shutil
 import ROOT
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(True)
@@ -43,14 +42,37 @@ def add_basic_commands(cmd, mu, murange, suffix = ""):
 		helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
 	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
 
+def create_script(pathToCMSSWsetup, cmd, scriptname, outfolder = None, wsfile = None):
+	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
+	script.append("  source " + pathToCMSSWsetup)
+	if outfolder is not None:
+		script.append("  if [ -d " + outfolder + " ]; then")
+		script.append("    cd " + outfolder)
+
+	script.append("    if [ -f " + wsfile + " ]; then")
+
+	script.append('    cmdnominal="' + " ".join(cmd) + '"')
+	script.append('    echo "$cmdnominal"')
+	script.append('    eval "$cmdnominal"\n')
+
+	script.append("    else")
+	script.append('      echo "could not find input for combine here: ' + wsfile +'!"')
+	script.append("    fi")
+
+	if outfolder is not None:
+		script.append("  else")
+		script.append('    echo "folder {0} does not exist!"'.format(outfolder))
+		script.append("  fi")
+
+	script.append("else")
+	script.append('  echo "Could not find CMSSW setup file!"')
+	script.append("fi")
+
+	with open(scriptname, "w") as s:
+		s.write("\n".join(script))
 
 def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
 			mu = None, murange = 5., cmdbase = None):
-	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
-	script.append("  source " + pathToCMSSWsetup)
-	script.append("  if [ -d " + outfolder + " ]; then")
-	script.append("    cd " + outfolder)
-	script.append("    if [ -f " + mdfout + " ]; then")
 	# cmd = "combine -M FitDiagnostics".split()
 	cmd = "combine -M MultiDimFit".split()
 	cmd += "--algo grid --points 50 -m 125".split()
@@ -59,29 +81,19 @@ def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
 	if paramgroup:
 		cmd += '-w w --snapshotName MultiDimFit'.split()
 	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = suffix)
-	if paramgroup:
+	if paramgroup and paramgroup != "all":
 		helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeNuisanceGroups", toinsert = paramgroup, joinwith = ",")
+	elif paramgroup and paramgroup == "all":
+		helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeParameters", toinsert = "all", joinwith="replace")
+		helpfulFuncs.insert_values(cmds = cmd, keyword = "--fastScan", toinsert = "", joinwith = "insert")
 	# cmd += "--minos all".split()
 	cmd.append(mdfout)
-	script.append('      cmd="' + " ".join(cmd) + '"')
-	script.append('      echo "$cmd"')
-	script.append('      eval "$cmd"')
-	script.append("    else")
-	script.append('      echo "could not find multidimfit output!"')
-	script.append("    fi")
-	script.append("  else")
-	script.append('    echo "folder {0} does not exist!"'.format(outfolder))
-	script.append("  fi")
-	script.append("else")
-	script.append('  echo "Could not find CMSSW setup file!"')
-	script.append("fi")
+	cmd = [x for x in cmd if x != ""]
+
+	outscript = "script_"+paramgroup + ".sh"
 	
-	if paramgroup:
-	    outscript = "script_"+paramgroup + ".sh"
-	else:
-	    outscript = "script_fit_all.sh"
-	with open(outscript, "w") as out:
-		out.write("\n".join(script))
+	create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = cmd, scriptname = outscript, outfolder = outfolder, wsfile = mdfout)
+
 	if os.path.exists(outscript):
 		return outscript
 	else:
@@ -89,16 +101,10 @@ def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
 
 def create_folders( foldername, combineInput, paramgroup, suffix,
                     mu, scripts, cmdbase, murange):
-    if paramgroup:
-        outfolder = "group_" + paramgroup
-    else:
-        outfolder = "all_errors"
+    outfolder = "freeze_" + paramgroup
     
     suffix += outfolder
-    print "resetting folder", outfolder
-    if os.path.exists(outfolder):
-        shutil.rmtree(outfolder)
-    os.makedirs(outfolder)
+    helpfulFuncs.check_for_reset(outfolder)
     # outfolder = os.path.join(foldername, outfolder)
             
     path = create_fit_cmd( 	mdfout = combineInput,
@@ -119,35 +125,37 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 	foldername = ".".join(parts[:len(parts)-1])
 	if suffix:
 		foldername = suffix + "_" + foldername
-	print "creating", foldername
-	if not os.path.exists(foldername):
-		os.makedirs(foldername)
+	helpfulFuncs.check_for_reset(foldername)
 	os.chdir(foldername)
 	print os.getcwd()
-	scripts = []
-	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
-	script.append("  source " + pathToCMSSWsetup)
+
+	
+	#do nominal scan
+	cmd = "combine -M MultiDimFit --algo grid --points 50".split()
+	if cmdbase:
+		cmd += cmdbase
+	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_nominal_" + foldername)
+
+	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+	cmd.append(ws)
+	create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = cmd, scriptname = "nominal_scan.sh", wsfile = ws)
+	if os.path.exists("nominal_scan.sh"):
+		batch_fits.submitJobToBatch("nominal_scan.sh")
+	else:
+		sys.exit("could not create script for nominal scan! Aborting")
+
+	#do bestfit
 	cmd = "combine -M MultiDimFit --saveWorkspace --algo none".split()
 	if cmdbase:
 		cmd += cmdbase
-
-	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_prefit_" + foldername)
+	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_bestfit_" + foldername)
 
 	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
 	cmd.append(ws)
 
-	script.append('    cmd="' + " ".join(cmd) + '"')
-	script.append('    echo "$cmd"')
-	script.append('    eval "$cmd"')
 
-	script.append("else")
-	script.append('  echo "Could not find CMSSW setup file!"')
-	script.append("fi")
-
-	prefit_script = "script_prefit.sh"
-	with open(prefit_script, "w") as s:
-		s.write("\n".join(script))
-
+	prefit_script = "bestfit.sh"
+	create_script(pathToCMSSWsetup=pathToCMSSWsetup, cmd=cmd, scriptname = prefit_script, wsfile = ws)
 	if os.path.exists(prefit_script):
 		print "successfully created prefit script, submitting"
 		jobid = batch_fits.submitJobToBatch(prefit_script)
@@ -156,6 +164,7 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 		mdfout += cmd[cmd.index("-n")+1]
 		mdfout += ".MultiDimFit.mH120.root"
 		mdfout = os.path.abspath(mdfout)
+		#start scancs with frozen np groups
 		for group in paramgroups:
 			create_folders( foldername = foldername,
 							combineInput = mdfout,
@@ -163,10 +172,10 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 							suffix = foldername,
 							mu = mu, scripts = scripts,
 							cmdbase = cmdbase, murange = murange)
-
-		create_folders( foldername = foldername,
-						combineInput = ws,
-						paramgroup = "",
+		if not "all" in paramgroups:
+			create_folders( foldername = foldername,
+						combineInput = mdfout,
+						paramgroup = "all",
 						suffix = foldername,
 						mu = mu, scripts = scripts,
 						cmdbase = cmdbase, murange = murange)
@@ -240,6 +249,3 @@ if __name__ == '__main__':
 				if arrayid != -1:
 					print "all fits submitted to batch"
 				os.chdir(base)
-			
-			
-			

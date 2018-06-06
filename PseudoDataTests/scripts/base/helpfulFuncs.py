@@ -1,5 +1,6 @@
 import ROOT
 import os
+import shutil
 
 def getLatex(x,y,text):
     tests = ROOT.TLatex(x, y,text)
@@ -103,3 +104,16 @@ def check_workspace(pathToDatacard):
         workspacePath = ""
     return workspacePath
     
+def check_for_reset(folder):
+    
+    if os.path.exists(folder):
+        print "resetting folder", folder
+        shutil.rmtree(folder)
+    os.makedirs(folder)
+
+def treat_special_chars(string):
+    string = string.replace("#", "")
+    string = string.replace(" ", "_")
+    string = string.replace("{", "")
+    string = string.replace("}", "")
+    return string

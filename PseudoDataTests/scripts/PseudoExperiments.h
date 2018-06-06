@@ -312,7 +312,7 @@ void printTime(TStopwatch& watch, TString text){
 PseudoExperiments::PseudoExperiments(const TString& label, const Double_t injectedMu, const bool noBinByBin)
 : debug_(false),
 fitBmustConverge_(true),
-fitSBmustConverge_(true),
+fitSBmustConverge_(false),
 accurateCovariance_(true),
 noBinByBin_(noBinByBin),
 label_(label), injectedMu_(injectedMu), color_(kGray){
@@ -1102,7 +1102,7 @@ void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,s
   while(( param = (RooRealVar*)it.Next() )){
       if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
       name = param->GetName();
-      values.push_back(name);
+      if(!(name.Contains("prop_bin") && noBinByBin_)) values.push_back(name);
   }
   // while( varName.Contains(",") ) {
   //   paramName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));

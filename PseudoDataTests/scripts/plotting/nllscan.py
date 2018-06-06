@@ -511,12 +511,7 @@ def save_output(canvas, graph, name):
     canvas.SaveAs(name + "_canvas.root")
     # graph.SaveAs(name + ".root")
 
-def treat_special_chars(string):
-    string = string.replace("#", "")
-    string = string.replace(" ", "_")
-    string = string.replace("{", "")
-    string = string.replace("}", "")
-    return string
+
 
 def fill_graph(graph, xVals, yVals, zVals = None):
     if isinstance(graph, ROOT.TGraph) or isinstance(graph, ROOT.TGraph2D):
@@ -563,7 +558,7 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     if ytitle == "deltaNLL":
         ytitle = '2#Delta NLL'
     filename = "nllscan_{0}_{1}{2}".format(xtitle,ytitle, suffix)
-    filename = treat_special_chars(string = filename)
+    filename = helperfuncs.treat_special_chars(string = filename)
     filename = outputDirectory + "/" + filename
     if bonly:
         filename += "_bonly"
@@ -625,7 +620,7 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     else:
         ymax = graph.GetBinContent(graph.GetMaximumBin())
     graph.SetName("nllscan")
-    outfile.WriteObject(graph)
+    outfile.WriteObject(graph, graph.GetName())
     if ytitle == '2#Delta NLL':
         print "creating TF1 in range [{0}, {1}]".format(xmin,xmax)
         print "y-axis range: [{0}, {1}]".format(ymin, ymax)
@@ -673,7 +668,7 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     bestfit.SetMarkerSize(1.8)
     bestfit.Sort()
     bestfit.SetName("bestfit")
-    outfile.WriteObject(bestfit)
+    outfile.WriteObject(bestfit, bestfit.GetName())
     bestfit.Draw("P")
     c.Modified()
     leg.AddEntry(bestfit, "Best Fit Value", "p")
@@ -682,7 +677,7 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
         
     save_output(canvas = c, graph = graph, name = filename)
     c.SetName("canvas")
-    outfile.WriteObject(c)
+    outfile.WriteObject(c, c.GetName())
     outfile.Close()
     
 def do2DScan(   limit, xVar, yVar, outputDirectory, suffix, 
@@ -695,7 +690,7 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
     if ytitle == None:
         ytitle = yVar
     filename = ("nllscan_2D_{0}_{1}{2}").format(xtitle,ytitle, suffix)
-    filename = treat_special_chars(string = filename)
+    filename = helperfuncs.treat_special_chars(string = filename)
     filename = outputDirectory + "/" + filename
     outfile = ROOT.TFile(filename+".root", "RECREATE")
     xVals = []
