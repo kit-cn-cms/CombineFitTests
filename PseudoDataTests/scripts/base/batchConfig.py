@@ -1,5 +1,4 @@
-from ROOT import TStopwatch,PyConfig
-PyConfig.IgnoreCommandLineOptions = True
+from ROOT import TStopwatch
 import os
 import sys
 import subprocess
@@ -157,10 +156,10 @@ class batchConfig:
 
         logdir = os.path.dirname(arrayscriptpath)+"/logs"
         print "will save logs in", logdir
-        if not os.path.exists(logdir):
-            # print "emptying directory", logdir
-            os.makedirs(logdir)
-            # shutil.rmtree(logdir)
+        if os.path.exists(logdir):
+            print "emptying directory", logdir
+            shutil.rmtree(logdir)
+        os.makedirs(logdir)
         
         # write array script
         nscripts=len(scripts)
