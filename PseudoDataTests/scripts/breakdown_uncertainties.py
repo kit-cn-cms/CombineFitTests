@@ -40,7 +40,7 @@ def add_basic_commands(cmd, mu, murange, suffix = ""):
 	if mu is not None:
 		helpfulFuncs.insert_values(cmds = cmd, keyword = "-t", toinsert = "-1", joinwith = "insert")
 		helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+	
 
 def create_script(pathToCMSSWsetup, cmd, scriptname, outfolder = None, wsfile = None):
 	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
@@ -51,9 +51,10 @@ def create_script(pathToCMSSWsetup, cmd, scriptname, outfolder = None, wsfile = 
 
 	script.append("    if [ -f " + wsfile + " ]; then")
 
-	script.append('    cmdnominal="' + " ".join(cmd) + '"')
-	script.append('    echo "$cmdnominal"')
-	script.append('    eval "$cmdnominal"\n')
+	for c in cmd:
+		script.append('    cmdnominal="' + " ".join(c) + '"')
+		script.append('    echo "$cmdnominal"')
+		script.append('    eval "$cmdnominal"\n')
 
 	script.append("    else")
 	script.append('      echo "could not find input for combine here: ' + wsfile +'!"')
@@ -71,41 +72,83 @@ def create_script(pathToCMSSWsetup, cmd, scriptname, outfolder = None, wsfile = 
 	with open(scriptname, "w") as s:
 		s.write("\n".join(script))
 
+def finish_cmds(cmd, mu, murange, suffix, paramgroup, pois = None):
+	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = suffix)
+	
+	if paramgroup and paramgroup != "all":
+		helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeNuisanceGroups", toinsert = paramgroup, joinwith = ",")
+	elif paramgroup and paramgroup == "all":
+		helpfulFuncs.insert_values(cmds = cmd, keyword = "-S", toinsert = "0", joinwith="insert")
+		
+		if pois and len(pois) > 0:
+			helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeParameters", toinsert = ",".join(pois), joinwith=",")
+
+	cmd = [x for x in cmd if x != ""]
+
 def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
-			mu = None, murange = 5., cmdbase = None):
-	# cmd = "combine -M FitDiagnostics".split()
+			mu = None, murange = 5., cmdbase = None, pois = None):
+	all_cmds = []
 	cmd = "combine -M MultiDimFit".split()
+	cmd.append(mdfout)
 	cmd += "--algo grid --points 50 -m 125".split()
 	if cmdbase:
 		cmd += cmdbase
 	if paramgroup:
 		cmd += '-w w --snapshotName MultiDimFit'.split()
-	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = suffix)
-	if paramgroup and paramgroup != "all":
-		helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeNuisanceGroups", toinsert = paramgroup, joinwith = ",")
-	elif paramgroup and paramgroup == "all":
-		helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeParameters", toinsert = "all", joinwith="replace")
+
+	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+
+	if paramgroup and paramgroup == "all":
 		helpfulFuncs.insert_values(cmds = cmd, keyword = "--fastScan", toinsert = "", joinwith = "insert")
+
+	finish_cmds(cmd=cmd,mu=mu,murange=murange,suffix="_"+suffix,paramgroup=paramgroup,pois=pois)
+	
+	
+	all_cmds.append(cmd)
+
+	cmd = "combine -M FitDiagnostics".split()
+	cmd += mdfout.split()
+	if cmdbase:
+		cmd += cmdbase
+	if paramgroup:
+		cmd += '-w w --snapshotName MultiDimFit'.split()
 	# cmd += "--minos all".split()
-	cmd.append(mdfout)
-	cmd = [x for x in cmd if x != ""]
+	temp = paramgroup
+	
+	finish_cmds(cmd = cmd,mu=mu,murange=murange,suffix= "_"+suffix,paramgroup=temp,pois=pois)
+	all_cmds.append(cmd)
 
 	outscript = "script_"+paramgroup + ".sh"
 	
-	create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = cmd, scriptname = outscript, outfolder = outfolder, wsfile = mdfout)
+	create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = all_cmds, scriptname = outscript, outfolder = outfolder, wsfile = mdfout)
 
 	if os.path.exists(outscript):
 		return outscript
-	else:
-		return ""
+	
+	return ""
+
+def loadOtherPOIs(workspace):
+	print "loading POIs from workspace in", workspace
+	infile = ROOT.TFile(workspace)
+	w = infile.Get("w")
+	npois = 1
+	if isinstance(w, ROOT.RooWorkspace):
+		mc = w.obj("ModelConfig")
+		if isinstance(mc, ROOT.RooStats.ModelConfig):
+			return mc.GetParametersOfInterest().contentsString().split(",")
 
 def create_folders( foldername, combineInput, paramgroup, suffix,
-                    mu, scripts, cmdbase, murange):
-    outfolder = "freeze_" + paramgroup
+                    mu, scripts, cmdbase, murange, pois = None):
+    outfolder = "breakdown_" + paramgroup
     
-    suffix += outfolder
+    suffix += "_"+outfolder
     helpfulFuncs.check_for_reset(outfolder)
     # outfolder = os.path.join(foldername, outfolder)
+
+    # pois = loadOtherPOIs(workspace)
+    # pois = [x for x in pois if x != "r"]
+    # if len(pois) > 0:
+	   #  helpfulFuncs.insert_values(cmds = cmdbase, keyword = "--freezeParameters", toinsert = ",".join(pois), joinwith=",")
             
     path = create_fit_cmd( 	mdfout = combineInput,
             paramgroup = paramgroup,
@@ -113,11 +156,12 @@ def create_folders( foldername, combineInput, paramgroup, suffix,
             mu = mu,
             outfolder = outfolder,
             cmdbase = cmdbase,
-            murange = murange)		
+            murange = murange,
+            pois = pois)		
     if path:
         scripts.append(path)
 
-def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murange = 5., suffix = ""):
+def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murange = 5., suffix = "", pois = None):
 	print "entering submit_fit_cmds"
 	if not os.path.exists(ws):
 		raise sys.exit("workspace file %s does not exist!" % ws)
@@ -138,7 +182,7 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 
 	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
 	cmd.append(ws)
-	create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = cmd, scriptname = "nominal_scan.sh", wsfile = ws)
+	create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = [cmd], scriptname = "nominal_scan.sh", wsfile = ws)
 	if os.path.exists("nominal_scan.sh"):
 		batch_fits.submitJobToBatch("nominal_scan.sh")
 	else:
@@ -155,7 +199,7 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 
 
 	prefit_script = "bestfit.sh"
-	create_script(pathToCMSSWsetup=pathToCMSSWsetup, cmd=cmd, scriptname = prefit_script, wsfile = ws)
+	create_script(pathToCMSSWsetup=pathToCMSSWsetup, cmd=[cmd], scriptname = prefit_script, wsfile = ws)
 	if os.path.exists(prefit_script):
 		print "successfully created prefit script, submitting"
 		jobid = batch_fits.submitJobToBatch(prefit_script)
@@ -171,14 +215,16 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 							paramgroup = group,
 							suffix = foldername,
 							mu = mu, scripts = scripts,
-							cmdbase = cmdbase, murange = murange)
+							cmdbase = cmdbase, murange = murange,
+							pois = pois)
 		if not "all" in paramgroups:
 			create_folders( foldername = foldername,
 						combineInput = mdfout,
 						paramgroup = "all",
 						suffix = foldername,
 						mu = mu, scripts = scripts,
-						cmdbase = cmdbase, murange = murange)
+						cmdbase = cmdbase, murange = murange,
+						pois = pois)
 
         if(len(scripts) > 0):
         	print "submitting {0} jobs".format(len(scripts))
@@ -241,11 +287,15 @@ if __name__ == '__main__':
 			if os.path.exists(d):
 				print "checking %s for workspace" % d
 				d = helpfulFuncs.check_workspace(d)
+				pois = loadOtherPOIs(d)
+				pois = [x for x in pois if x != "r"]
 				arrayid = submit_fit_cmds(	ws = d,
 											paramgroups = paramgroups,
 											mu = mu,
+											murange= murange,
 											cmdbase = combineoptions,
-											suffix = options.suffix)
+											suffix = options.suffix,
+											pois = pois)
 				if arrayid != -1:
 					print "all fits submitted to batch"
 				os.chdir(base)
