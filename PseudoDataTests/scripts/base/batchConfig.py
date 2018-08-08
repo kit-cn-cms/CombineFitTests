@@ -233,10 +233,12 @@ class batchConfig:
             sys.exit("something went wrong with calling condor_submit command, submission of jobs was not succesfull")
         submittime=submitclock.RealTime()
         print "submitted job", jobidint, " in ", submittime
+        jobIDs = [jobidint]
         if hold:
             print("the scripts were submitted in hold state - creating release script")
-            self.setupRelease(jobid, [jobidint])
-        return [jobidint]
+            releaseID = self.setupRelease(jobid, jobIDs)
+            jobIDs += [releaseID]
+        return jobIDs
     
     def submitJobToBatch(self, script, jobid = None):
         '''
@@ -293,7 +295,8 @@ class batchConfig:
         jobids.append(jobidint)
         if hold:
             print("the scripts were submitted in hold state - creating and submitting release script")
-            self.setupRelease(jobid, [jobidint])
+            releaseID = self.setupRelease(jobid, [jobidint])
+            jobids += [releaseID]
         return jobids
         
     def do_qstat(self, jobids):
