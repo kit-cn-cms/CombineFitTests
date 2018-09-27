@@ -70,6 +70,7 @@ def check_for_resubmit(folder):
 		initFitFile = initFitList[0]
 		infile = TFile(initFitFile)
 		if not (infile.IsOpen() and not infile.IsZombie() and not infile.TestBit(TFile.kRecovered)):
+		    print "init file is broken! Starting fresh submit!"
 		    redoInitFit = True
 		else:
 		    print "init file is working"
@@ -80,12 +81,12 @@ def check_for_resubmit(folder):
 	    if redoInitFit:
 		cmd = lines[1]
 		print cmd
-		subprocess.call([cmd], shell = True)
+		#subprocess.call([cmd], shell = True)
 	    
 	    if not len(scriptList) == len(rootfiles) or redoInitFit:
 		    cmd = lines[-1]
 		    print cmd
-		    subprocess.call([cmd], shell = True)
+		    #subprocess.call([cmd], shell = True)
 	    else:
 		scripts = []
 		for path in rootfiles:

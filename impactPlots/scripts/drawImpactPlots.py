@@ -30,7 +30,7 @@ if os.path.exists(datacardDir):
 		
 		if os.path.exists(impactName +".json"):
 		    cmd = "plotImpacts.py -i " + impactName +".json"
-		    cmd += " -o " + impactName + " --transparent"
+		    cmd += " -o " + impactName + " --transparent -t /nfs/dust/cms/user/skudella/CombineFitTests/impactPlots/scripts/rename.json --cms-label 'private work'"
 		    print cmd
 		    subprocess.call([cmd], shell=True)
 		else:
