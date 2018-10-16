@@ -6,7 +6,7 @@ import json
 import datetime
 import shutil
 sys.path.append(os.path.join(os.path.dirname(sys.path[0]),'base'))
-import helpfulFuncs
+
 
 wildcard 	= sys.argv[1]
 additionalCmds 	= None
@@ -56,17 +56,16 @@ def create_impacts(outputPath, datacard, impactList):
 		print "doing initial fit"
 		taskname = os.path.basename(datacard).replace(".root", "")
 		
-		cmd = "combineTool.py -M Impacts -m 125 --doInitialFit --robustFit 1 -d " + datacard
+		cmd = "combineTool.py -M Impacts -m 125 --doInitialFit --robustFit 1 --rMin -10 --rMax 10 -d " + datacard
 		additionalCmd = ""
 		if additionalCmds:
 		    additionalCmd = " ".join(additionalCmds)
 		    additionalCmd = additionalCmd.replace("  ", " ")
 		    
 		cmd += " " + additionalCmd
+		cmd += " -n " + taskname
 		cmd = cmd.replace("  ", " ")
-		cmdlist = cmd.split()
-		helpfulFuncs.insert_values(cmds = cmdlist, keyword = "-n", toinsert = str(taskname), joinwith = "_")
-		cmd = " ".join(cmdlist)
+		
 		print cmd
 		outfile.write("initial fit:\n" + cmd + "\n")
 		subprocess.call([cmd], shell = True)
@@ -75,16 +74,15 @@ def create_impacts(outputPath, datacard, impactList):
 		taskname = os.path.basename(datacard).replace(".root", "")
 		
 		cmd = "combineTool.py -M Impacts -m 125 --robustFit 1 --doFits"
-		cmd += " -d " + datacard
+		cmd += " --rMin -10 --rMax 10 -d " + datacard
 		cmd += " " + additionalCmd
 		cmd += " --job-mode {0}".format(config.jobmode)
 		# cmd += " --sub-opts='{0}'".format(" ".join(config.subopts))
-		cmd += " --task-name {0}".format(taskname)
-
+		cmd += " --task-name {0} -n {0}".format(taskname)
+		
+		# cmd += " --split-points " + nPoints
+		
 		cmd.replace("  ", " ")
-		cmdlist = cmd.split()
-		helpfulFuncs.insert_values(cmds = cmdlist, keyword = "-n", toinsert = str(taskname), joinwith = "_")
-		cmd = " ".join(cmdlist)
 		print cmd
 		outfile.write("nuisance parameter fits:\n" + cmd + "\n")
 		outfile.close()
@@ -130,10 +128,9 @@ parts = wildcard.split(".")
 workingtitle = ".".join(parts[:len(parts)-1])
 if "/" in workingtitle:
 	workingtitle = os.path.basename(workingtitle)
-jsonname = helpfulFuncs.treat_special_chars(workingtitle)
+jsonname = workingtitle.replace("*", "X")
 jsonname += "-impact_submit_{:%Y-%b-%d_%H-%M-%S}.json".format(datetime.datetime.now())
-
 print "opening file", jsonname
 with open(jsonname, "w") as f:
-	json.dump(dic, f, sort_keys=True, indent=4,
+	json.dump(dic, f, sort_keys=True,
                       separators=(',', ': '))
