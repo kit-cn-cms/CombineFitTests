@@ -29,17 +29,18 @@ def add_basic_commands(cmd, mu, murange, suffix = ""):
 	if mu is not None:
 		fitrangeUp += mu
 		fitrangeDown += mu
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "-n", toinsert = suffix, joinwith = "_")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "-n", toinsert = suffix, joinwith = "_")
 	# cmd += "--cminDefaultMinimizerStrategy 0".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerStrategy", toinsert = "0", joinwith = "insert")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerStrategy", toinsert = "0", joinwith = "insert")
 	# cmd += "--cminDefaultMinimizerTolerance 1e-3".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerTolerance", toinsert = "1e-3", joinwith = "insert")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerTolerance", toinsert = "1e-3", joinwith = "insert")
 	# cmd += ("--rMin {0} --rMax {1} -t -1 --expectSignal {2}".format(mu-murange, mu+murange, mu)).split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMin", toinsert = str(fitrangeDown), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMax", toinsert = str(fitrangeUp), joinwith = "insert")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMin", toinsert = str(fitrangeDown), joinwith = "insert")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMax", toinsert = str(fitrangeUp), joinwith = "insert")
+	
 	if mu is not None:
-		helpfulFuncs.insert_values(cmds = cmd, keyword = "-t", toinsert = "-1", joinwith = "insert")
-		helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "-t", toinsert = "-1", joinwith = "insert")
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
 	
 
 def create_script(pathToCMSSWsetup, cmd, scriptname, outfolder = None, wsfile = None):
@@ -76,12 +77,12 @@ def finish_cmds(cmd, mu, murange, suffix, paramgroup, pois = None):
 	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = suffix)
 	
 	if paramgroup and paramgroup != "all":
-		helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeNuisanceGroups", toinsert = paramgroup, joinwith = ",")
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeNuisanceGroups", toinsert = paramgroup, joinwith = ",")
 	elif paramgroup and paramgroup == "all":
-		helpfulFuncs.insert_values(cmds = cmd, keyword = "-S", toinsert = "0", joinwith="insert")
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "-S", toinsert = "0", joinwith="insert")
 		
-		if pois and len(pois) > 0:
-			helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeParameters", toinsert = ",".join(pois), joinwith=",")
+		# if pois and len(pois) > 0:
+		# 	helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeParameters", toinsert = ",".join(pois), joinwith=",")
 
 	cmd = [x for x in cmd if x != ""]
 
@@ -91,15 +92,16 @@ def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
 	cmd = "combine -M MultiDimFit".split()
 	cmd.append(mdfout)
 	cmd += "--algo grid --points 50 -m 125".split()
+	cmd = helpfulFuncs.insert_values(cmds= cmd, keyword = "--floatOtherPOIs", toinsert = str(1), joinwith = "insert")
 	if cmdbase:
 		cmd += cmdbase
 	if paramgroup:
 		cmd += '-w w --snapshotName MultiDimFit'.split()
 
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
 
 	if paramgroup and paramgroup == "all":
-		helpfulFuncs.insert_values(cmds = cmd, keyword = "--fastScan", toinsert = "", joinwith = "insert")
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--fastScan", toinsert = "", joinwith = "insert")
 
 	finish_cmds(cmd=cmd,mu=mu,murange=murange,suffix="_"+suffix,paramgroup=paramgroup,pois=pois)
 	
@@ -112,7 +114,7 @@ def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
 		cmd += cmdbase
 	if paramgroup:
 		cmd += '-w w --snapshotName MultiDimFit'.split()
-	# cmd += "--minos all".split()
+	cmd += "--minos all".split()
 	temp = paramgroup
 	
 	finish_cmds(cmd = cmd,mu=mu,murange=murange,suffix= "_"+suffix,paramgroup=temp,pois=pois)
@@ -169,7 +171,7 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 	foldername = ".".join(parts[:len(parts)-1])
 	if suffix:
 		foldername = suffix + "_" + foldername
-	helpfulFuncs.check_for_reset(foldername)
+	# helpfulFuncs.check_for_reset(foldername)
 	os.chdir(foldername)
 	print os.getcwd()
 
@@ -180,11 +182,12 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 		cmd += cmdbase
 	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_nominal_" + foldername)
 
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
 	cmd.append(ws)
-	create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = [cmd], scriptname = "nominal_scan.sh", wsfile = ws)
+	# create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = [cmd], scriptname = "nominal_scan.sh", wsfile = ws)
 	if os.path.exists("nominal_scan.sh"):
-		batch_fits.submitJobToBatch("nominal_scan.sh")
+		# batch_fits.submitJobToBatch("nominal_scan.sh")
+		pass
 	else:
 		sys.exit("could not create script for nominal scan! Aborting")
 
@@ -194,7 +197,7 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 		cmd += cmdbase
 	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_bestfit_" + foldername)
 
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
 	cmd.append(ws)
 
 
@@ -217,14 +220,14 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 							mu = mu, scripts = scripts,
 							cmdbase = cmdbase, murange = murange,
 							pois = pois)
-		if not "all" in paramgroups:
-			create_folders( foldername = foldername,
-						combineInput = mdfout,
-						paramgroup = "all",
-						suffix = foldername,
-						mu = mu, scripts = scripts,
-						cmdbase = cmdbase, murange = murange,
-						pois = pois)
+		# if not "all" in paramgroups:
+		# 	create_folders( foldername = foldername,
+		# 				combineInput = mdfout,
+		# 				paramgroup = "all",
+		# 				suffix = foldername,
+		# 				mu = mu, scripts = scripts,
+		# 				cmdbase = cmdbase, murange = murange,
+		# 				pois = pois)
 
         if(len(scripts) > 0):
         	print "submitting {0} jobs".format(len(scripts))
