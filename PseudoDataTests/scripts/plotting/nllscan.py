@@ -128,6 +128,7 @@ def make_script(low, up, datacard, nPoints, unconstrained, params, xVar,
                                         additionalCmds = currentCmds)
     
     lines = ["#!/bin/bash"]
+    lines.append("ulimit -s unlimited")
     lines.append("pathToCMSSW="+pathToCMSSWsetup)
     lines.append('if [ -f "$pathToCMSSW" ]; then')
     lines.append('  source "$pathToCMSSW"')
@@ -193,6 +194,7 @@ def do_fits():
     os.chdir(base)
     
     lines = ["#!/bin/bash"]
+    lines.append("ulimit -s unlimited")
     lines.append("pathToCMSSW="+pathToCMSSWsetup)
     lines.append('if [ -f "$pathToCMSSW" ]; then')
     lines.append('  source "$pathToCMSSW"')
@@ -201,6 +203,13 @@ def do_fits():
     indeces = [i for i,x in enumerate(cmds) if (x == "-a" or x =="--addCommand" or x == "--setXtitle" or x == "--setYtitle")]
     for index in indeces:
         cmds[index+1] = '"{0}"'.format(cmds[index+1])
+    index = None
+    if "-o" in cmds:
+        index = cmds.index("-o")
+    elif "--outputDirectory" in cmds:
+        index = cmds.index("--outputDirectory")
+    if index != None:
+        cmds = cmds[:index] + cmds[index+2:]
     cmds.append("--directlyDrawFrom")
     # cmds.append(",".join(results))
     cmds.append('"{0}/higgsCombine*.MultiDimFit.*.root"'.format(foldername))
@@ -394,6 +403,8 @@ def create_lines_from_RooFitResult(var, pathToErrors, xmin, xmax, ymin,ymax, bon
             fit = f.Get("fit_b")
         else:
             fit = f.Get("fit_s")
+        if fit == None:
+            fit = f.Get("fit_mdf")
         if isinstance(fit, ROOT.RooFitResult):
             results = fit.floatParsFinal().find(var)
             if isinstance(results, ROOT.RooRealVar):
@@ -660,18 +671,20 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
                     
                     leg.AddEntry(line, label, "l")
                 line.Draw("Same")
-                
-    bestfit = ROOT.TGraph(1)
-    bestfit.SetPoint(0, xbest, ybest)
+    if xbest != None and ybest != None:     
+        bestfit = ROOT.TGraph(1)
+        bestfit.SetPoint(0, xbest, ybest)
 
-    bestfit.SetMarkerStyle(34)
-    bestfit.SetMarkerSize(1.8)
-    bestfit.Sort()
-    bestfit.SetName("bestfit")
-    outfile.WriteObject(bestfit, bestfit.GetName())
-    bestfit.Draw("P")
-    c.Modified()
-    leg.AddEntry(bestfit, "Best Fit Value", "p")
+        bestfit.SetMarkerStyle(34)
+        bestfit.SetMarkerSize(1.8)
+        bestfit.Sort()
+        bestfit.SetName("bestfit")
+        outfile.WriteObject(bestfit, bestfit.GetName())
+        bestfit.Draw("P")
+        c.Modified()
+        leg.AddEntry(bestfit, "Best Fit Value", "p")
+    else:
+        print "could not find bestfit point!"
     
     leg.Draw("Same")
         

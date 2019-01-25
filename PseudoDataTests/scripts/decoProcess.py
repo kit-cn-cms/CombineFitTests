@@ -10,9 +10,9 @@ infiless=sys.argv[1:]
 # toRemove="ttH_hcc ttH_htt  ttH_hgg       ttH_hgluglu     ttH_hww         ttH_hzz         ttH_hzg".split()
 # toRemove+="ttbarZ          diboson ttbarW          singlet           wjets                      zjets".split()
 # toRemove=["QCD"]
-toRemove="ttbarPlusB ttbarPlus2B".split()
-setVariable = ["ttbarPlusBBbar"]
-# setVariable = []
+toRemove="diboson".split()
+# setVariable = ["ttbarPlusBBbar"]
+setVariable = []
 for infiles in infiless:
     for inf in glob.glob(infiles):
         inf = os.path.abspath(inf)
@@ -26,6 +26,7 @@ for infiles in infiless:
                 inlist = infl.read().splitlines()
                 infprocs=[]
                 for line in inlist:
+                    if len(line) == 0: continue
                     if line.startswith("#"): continue
                     if "process " in line and infprocs==[]:
                         print "found process line"
@@ -38,6 +39,7 @@ for infiles in infiless:
                         print infprocs
                 
                 for line in inlist:
+                    if len(line) == 0: continue
                     if line.startswith("#"): continue
                     # sl=line.replace("\n","").replace("\t","").replace("  "," ").split(" ")
                     sl = line.split()

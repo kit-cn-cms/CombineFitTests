@@ -11,8 +11,17 @@
 #include "TLine.h"
 #include "TFile.h"
 #include "TObjArray.h"
+#include "TObjString.h"
+
+#include "TList.h"
+#include "TIterator.h"
+#include "TRegexp.h"
+#include "TDirectory.h"
+#include "TSystem.h"
+
 #include "RooFitResult.h"
 #include "RooRealVar.h"
+#include "TLatex.h"
 #include <TMath.h>
 #include <vector>
 
@@ -321,19 +330,86 @@ namespace helperFuncs{
           //hist->SetBins(nBins, xmin, xmax);
       }
   }
-  TLatex* getLatex(const TString text = "CMS private work", const double x=0.12, const double y=0.91 ){
+  void getLatex(const TCanvas& can, const TString& text = "CMS private work"){
     std::cout << "creating header\n";
-    TLatex* tests = new TLatex(x, y,text);
+    TLatex* tests = new TLatex();
+
     tests->SetTextFont(42);
     tests->SetTextSize(0.04);
     tests->SetNDC();
-    return tests;
+
+    double r = can.GetRightMargin();
+    double l = can.GetLeftMargin();
+    double t = can.GetTopMargin();
+    double b = can.GetBottomMargin();
+    double relPosX    = 0.045;
+    double relPosY    = 0.4;
+
+    double x = l + relPosX*(1.-l-r);
+    // double y = 1-t;//- relPosY*(1-t-b);
+    double y = 1;
+
+    std::cout << "x = " << x << std::endl;
+    std::cout << "y = " << y << std::endl;
+
+    tests->DrawLatex(x, y, text);
+    delete tests;
+    
   }
 
-bool compare_classname(const RooRealVar* param, const TString& classname)
-{
-  if(classname.EqualTo(param->ClassName())) return true;
-  return false;
-}
+  bool compare_classname(const RooRealVar* param, const TString& classname)
+  {
+    if(classname.EqualTo(param->ClassName())) return true;
+    return false;
+  }
+
+  TList* interpretWildcards(const TString& input)
+  {
+  // wildcarding used in name
+    std::cout << "loading files with '" << input.Data() << "'\n";
+
+    TString basename(input);
+    Int_t slashpos = basename.Last('/');
+    TString directory;
+    if (slashpos>=0) 
+    {
+      directory = basename(0,slashpos); // Copy the directory name
+      basename.Remove(0,slashpos+1);      // and remove it from basename
+    } 
+    else 
+    {
+      directory = gSystem->UnixPathName(gSystem->WorkingDirectory());
+    }
+    std::cout << "directory in 'interpretWildcards': " << directory.Data() << std::endl;
+    const char *file;
+    const char *epath = gSystem->ExpandPathName(directory.Data());
+    std::cout << "epath: " << epath << std::endl;
+    void *dir = gSystem->OpenDirectory(epath);
+    std::cout << dir << std::endl;
+    TList* l = new TList();
+    TString tmp;
+    if (dir) 
+    {
+      //create a TList to store the file names (not yet sorted)
+      std::cout << "interpreting wildcard" << std::endl;
+      TRegexp re(basename,kTRUE);
+      while ((file = gSystem->GetDirEntry(dir))) 
+      {
+        if (!strcmp(file,".") || !strcmp(file,"..")) continue;
+        TString s = file;
+        if ( (basename!=file) && s.Index(re) == kNPOS) continue;
+        std::cout << file << std::endl;
+        tmp.Form("%s/%s", epath, file);
+        std::cout << "saving path: " << tmp.Data() << std::endl;
+        l->Add(new TObjString(tmp.Data()));
+        if(l->Last()) std::cout << l->Last()->GetName() << std::endl;
+      }
+      gSystem->FreeDirectory(dir);
+      //sort the files in alphanumeric order
+      l->Sort();
+    }
+    delete [] epath;
+    return l;
+  }
 }
 #endif

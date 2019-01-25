@@ -44,11 +44,10 @@ void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const
         correlationPlot->Draw("coltz");
         correlationPlot->Write();
         can.Write(outputName);
-        TLatex* header = helperFuncs::getLatex();
-        header->Draw("Same");
+        helperFuncs::getLatex(can);
         std::cout << "creating " << outputName << ".pdf\n";
         can.SaveAs(outputName+".pdf");
-        delete header;
+        
         output->Close();
     }
     else{
@@ -88,8 +87,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
     dummy.GetXaxis()->SetTitle(hists.front()->GetXaxis()->GetTitle());
     dummy.GetYaxis()->SetRangeUser(ymin, ymax);
     dummy.Draw();
-    TLatex* header = helperFuncs::getLatex();
-    header->Draw("SAME");
+    helperFuncs::getLatex(*can);
     TH1D* h = NULL;
     TString name;
     if(hists.front() != NULL) 
@@ -185,7 +183,7 @@ void compareDistributions(const std::vector<TH1*>& hists,
     can->SaveAs(outLabel+".pdf");
     std::cout << "printing distribution as " << outLabel << ".root\n";
     can->Write();
-    delete header;
+    
     std::cout << "deleting temporary objects\n";
     if( hNorm ) delete hNorm;
     if(leg != NULL) delete leg;
@@ -258,8 +256,7 @@ void compareMeanValues(TH1* hFittedValues,
 
         legend->AddEntry(hFittedValues, "mean values+mean error", "lp");
         hInitValues->Draw("HIST");
-        TLatex* header = helperFuncs::getLatex();
-        header->Draw("SAME");
+        helperFuncs::getLatex(*can);
         std::cout << "drawing " << hFittedValues->GetName() << std::endl;
         //for (int i=1; i<=hFittedValues->GetEntries(); i++) std::cout << "\tValue in bin " << i << " = " << hFittedValues->GetBinContent(i) << std::endl;
         hFittedValues->Draw("PE1same");
@@ -273,7 +270,7 @@ void compareMeanValues(TH1* hFittedValues,
         std::cout << "Printing Mean Value plot as " << outLabel << ".pdf\n";
         can->SaveAs(outLabel+".pdf");
         can->SaveAs(outLabel+".root");
-        delete header;
+        
         if(can != NULL) delete can;
     }
 }
@@ -834,7 +831,7 @@ void loadPseudoExperiments(TString pathToPseudoExperiments, TString containsSign
     helper.Form("%snominal S=%.1f",suffix.Data(), nominalMu);
     expSet.push_back( PseudoExperiments(helper,nominalMu) );
     expSet.back().addExperiments(pathToPseudoExperiments, sourceFile);
-
+    std::cout << "Done with loading!\n";
     if((expSet.back().pois().empty()) ){
         std::cout << "Could not load any POIs for experiment " << expSet.back()() << " from directory " << pathToPseudoExperiments.Data() << ", deleting current experiment set...\n";
         expSet.pop_back();
@@ -865,13 +862,14 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   // if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
   // std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
   TSystemDirectory dir(pathname.Data(), pathname.Data());
-  if(pathname.EndsWith(".root")){
+  if(pathname.EndsWith(".root") || pathname.EndsWith(".txt")){
       std::cout << "will use " << pathname << " as input\n";
       // TString filename = pathname(pathname.Last('/')+1, pathname.Length() - pathname.Last('/'));
       
       loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
       ncolor++;
       pathname.Remove(pathname.Last('/'), pathname.Length()-pathname.Last('/'));
+      // pathname = ".";
   }
   else
   {
@@ -919,12 +917,13 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
       if(outputPath.Contains(".")) outputPath.ReplaceAll(".", "p");
       outputPath.Prepend(pathname + "/");
       outputPath.Append("_"+outputSuffix);
+
       
     pathname += "/";
     std::cout << "saving experiments in directory " << outputPath << std::endl;
 
     comparePostfitValues(expSet,outputPath,true);
-    // compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+    compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
     TH2D* correlation;
     TString outputString;
     TString temp;

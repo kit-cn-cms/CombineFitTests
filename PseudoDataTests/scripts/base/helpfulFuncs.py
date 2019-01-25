@@ -74,6 +74,7 @@ def insert_values(cmds, keyword, toinsert, joinwith=","):
             cmds[i+1] = joinwith.join([cmds[i+1],toinsert])
     else:
         cmds += [keyword, toinsert]
+    return cmds
 
 def check_workspace(pathToDatacard):
     workspacePath = ""

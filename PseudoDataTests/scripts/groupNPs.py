@@ -46,7 +46,7 @@ def save_val(dic, group, val):
 
 groupDict = {
 
-"bgn" : ['bgnorm_*'],
+"bgn" : ['*bgnorm_*'],
 "syst" : "CMS* QCD* bgnorm* lumi* pdf*".split(),
 "thy" : "QCD* bgnorm* *HDAMP* *UE* *ISR* *pdf* *scaleMu* *FSR*".split(),
 "btag" : ["*btag*"],

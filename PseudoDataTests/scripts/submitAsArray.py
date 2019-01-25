@@ -8,9 +8,9 @@ config = batchConfig()
 
 scripts	= sys.argv[1:]
 
-basepath = ""
-if len(scripts)>0:
-    basepath = os.path.dirname(os.path.abspath(scripts[0]))
-else:
+basepath = os.getcwd()
+if len(scripts)==0:
     sys.exit("received no input!")
+
+scripts = [os.path.abspath(x) for x in scripts if os.path.exists(x)]
 config.submitArrayToBatch(scripts, basepath+"/arrayJobs.sh")

@@ -61,8 +61,13 @@ class batchConfig:
         submitCode+="initialdir = "+os.getcwd()+"\n"
         submitCode+="notification = Never\n"
         submitCode+="priority = 0\n"
-        submitCode+="request_memory = "+self.memory+"\n"
+        # submitCode+="request_memory = "+self.memory+"\n"
+        submitCode += "+RequestRuntime = 86400\n" #24 hours
+        submitCode += "RequestMemory = 2500\n"
+        submitCode += "RequestDisk = 2000000\n"
+        submitCode += "run_as_owner = true\n"
         #submitCode+="request_dist = 5800M\n"
+        # submitCode += 'max_materialize = 1000'
         if hold:
             submitCode+="hold = True\n"
 
@@ -74,6 +79,7 @@ class batchConfig:
             for taskID in range(nscripts):
                 submitCode+="\"SGE_TASK_ID="+str(taskID)+"\"\n"
             submitCode+=")"
+
         else:
             submitCode+="error = "+logdir+"/"+submitScript+".$(Cluster).err\n"
             submitCode+="output = "+logdir+"/"+submitScript+".$(Cluster).out\n"
@@ -86,7 +92,7 @@ class batchConfig:
         return submitPath
 
 
-    def writeArrayCode(self, scripts, arrayPath):
+    def writeArrayCode(self, scripts, arrayPath, logdir):
         '''
         write code for array script
         scripts: scripts to be executed by array script
@@ -169,7 +175,7 @@ class batchConfig:
         nscripts=len(scripts)
         tasknumberstring='1-'+str(nscripts)
 
-        arrayscriptpath = self.writeArrayCode(scripts, arrayscriptpath)
+        arrayscriptpath = self.writeArrayCode(scripts = scripts, arrayPath = arrayscriptpath, logdir = logdir)
         
         # prepate submit
         if self.jobmode == "HTC":
