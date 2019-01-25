@@ -1,7 +1,6 @@
 import os
 import sys
 import glob
-import shutil
 import ROOT
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(True)
@@ -24,73 +23,134 @@ pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests
 
 #=======================================================================
 
-def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
-			mu = 1, murange = 5., cmdbase = None):
+def add_basic_commands(cmd, mu, murange, suffix = ""):
+	fitrangeUp = murange
+	fitrangeDown = -1*murange
+	if mu is not None:
+		fitrangeUp += mu
+		fitrangeDown += mu
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "-n", toinsert = suffix, joinwith = "_")
+	# cmd += "--cminDefaultMinimizerStrategy 0".split()
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerStrategy", toinsert = "0", joinwith = "insert")
+	# cmd += "--cminDefaultMinimizerTolerance 1e-3".split()
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerTolerance", toinsert = "1e-3", joinwith = "insert")
+	# cmd += ("--rMin {0} --rMax {1} -t -1 --expectSignal {2}".format(mu-murange, mu+murange, mu)).split()
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMin", toinsert = str(fitrangeDown), joinwith = "insert")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMax", toinsert = str(fitrangeUp), joinwith = "insert")
+	
+	if mu is not None:
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "-t", toinsert = "-1", joinwith = "insert")
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
+	
+
+def create_script(pathToCMSSWsetup, cmd, scriptname, outfolder = None, wsfile = None):
 	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
 	script.append("  source " + pathToCMSSWsetup)
-	script.append("  if [ -d " + outfolder + " ]; then")
-	script.append("    cd " + outfolder)
-	script.append("    if [ -f " + mdfout + " ]; then")
-	# cmd = "combine -M FitDiagnostics".split()
-	cmd = "combine -M MultiDimFit".split()
-	cmd += "--algo grid --points 50 -m 125".split()
-	if cmdbase:
-		cmd += cmdbase
-	if paramgroup:
-            cmd += '-w w --snapshotName MultiDimFit'.split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "-n", toinsert = "_prefit_" + suffix, joinwith = "_")
-	# cmd += "--cminDefaultMinimizerStrategy 0".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerStrategy", toinsert = "0", joinwith = "insert")
-	# cmd += "--cminDefaultMinimizerTolerance 1e-3".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerTolerance", toinsert = "1e-3", joinwith = "insert")
-	# cmd += ("--rMin {0} --rMax {1} -t -1 --expectSignal {2}".format(mu-murange, mu+murange, mu)).split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMin", toinsert = str(mu-murange), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMax", toinsert = str(mu+murange), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "-t", toinsert = "-1", joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+	if outfolder is not None:
+		script.append("  if [ -d " + outfolder + " ]; then")
+		script.append("    cd " + outfolder)
 
-	if paramgroup:
-		helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeNuisanceGroups", toinsert = paramgroup, joinwith = ",")
-	# cmd += "--minos all".split()
-	cmd.append(mdfout)
-	script.append('      cmd="' + " ".join(cmd) + '"')
-	script.append('      echo "$cmd"')
-	script.append('      eval "$cmd"')
+	script.append("    if [ -f " + wsfile + " ]; then")
+
+	for c in cmd:
+		script.append('    cmdnominal="' + " ".join(c) + '"')
+		script.append('    echo "$cmdnominal"')
+		script.append('    eval "$cmdnominal"\n')
+
 	script.append("    else")
-	script.append('      echo "could not find multidimfit output!"')
+	script.append('      echo "could not find input for combine here: ' + wsfile +'!"')
 	script.append("    fi")
-	script.append("  else")
-	script.append('    echo "statOnly folder does not exist!"')
-	script.append("  fi")
+
+	if outfolder is not None:
+		script.append("  else")
+		script.append('    echo "folder {0} does not exist!"'.format(outfolder))
+		script.append("  fi")
+
 	script.append("else")
 	script.append('  echo "Could not find CMSSW setup file!"')
 	script.append("fi")
+
+	with open(scriptname, "w") as s:
+		s.write("\n".join(script))
+
+def finish_cmds(cmd, mu, murange, suffix, paramgroup, pois = None):
+	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = suffix)
 	
+	if paramgroup and paramgroup != "all":
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeNuisanceGroups", toinsert = paramgroup, joinwith = ",")
+	elif paramgroup and paramgroup == "all":
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "-S", toinsert = "0", joinwith="insert")
+		
+		# if pois and len(pois) > 0:
+		# 	helpfulFuncs.insert_values(cmds = cmd, keyword = "--freezeParameters", toinsert = ",".join(pois), joinwith=",")
+
+	cmd = [x for x in cmd if x != ""]
+
+def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
+			mu = None, murange = 5., cmdbase = None, pois = None):
+	all_cmds = []
+	cmd = "combine -M MultiDimFit".split()
+	cmd.append(mdfout)
+	cmd += "--algo grid --points 50 -m 125".split()
+	cmd = helpfulFuncs.insert_values(cmds= cmd, keyword = "--floatOtherPOIs", toinsert = str(1), joinwith = "insert")
+	if cmdbase:
+		cmd += cmdbase
 	if paramgroup:
-	    outscript = "script_"+paramgroup + ".sh"
-	else:
-	    outscript = "script_fit_all.sh"
-	with open(outscript, "w") as out:
-		out.write("\n".join(script))
+		cmd += '-w w --snapshotName MultiDimFit'.split()
+
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+
+	if paramgroup and paramgroup == "all":
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--fastScan", toinsert = "", joinwith = "insert")
+
+	finish_cmds(cmd=cmd,mu=mu,murange=murange,suffix="_"+suffix,paramgroup=paramgroup,pois=pois)
+	
+	
+	all_cmds.append(cmd)
+
+	cmd = "combine -M FitDiagnostics".split()
+	cmd += mdfout.split()
+	if cmdbase:
+		cmd += cmdbase
+	if paramgroup:
+		cmd += '-w w --snapshotName MultiDimFit'.split()
+	cmd += "--minos all".split()
+	temp = paramgroup
+	
+	finish_cmds(cmd = cmd,mu=mu,murange=murange,suffix= "_"+suffix,paramgroup=temp,pois=pois)
+	all_cmds.append(cmd)
+
+	outscript = "script_"+paramgroup + ".sh"
+	
+	create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = all_cmds, scriptname = outscript, outfolder = outfolder, wsfile = mdfout)
+
 	if os.path.exists(outscript):
 		return outscript
-	else:
-		return ""
+	
+	return ""
+
+def loadOtherPOIs(workspace):
+	print "loading POIs from workspace in", workspace
+	infile = ROOT.TFile(workspace)
+	w = infile.Get("w")
+	npois = 1
+	if isinstance(w, ROOT.RooWorkspace):
+		mc = w.obj("ModelConfig")
+		if isinstance(mc, ROOT.RooStats.ModelConfig):
+			return mc.GetParametersOfInterest().contentsString().split(",")
 
 def create_folders( foldername, combineInput, paramgroup, suffix,
-                    mu, scripts, cmdbase, murange):
-    if paramgroup:
-        outfolder = "group_" + paramgroup
-    else:
-        outfolder = "all_errors"
+                    mu, scripts, cmdbase, murange, pois = None):
+    outfolder = "breakdown_" + paramgroup
     
-    suffix += outfolder
-    print "resetting folder", outfolder
-    if os.path.exists(outfolder):
-        shutil.rmtree(outfolder)
-    os.makedirs(outfolder)
-    outfolder = os.path.join(foldername, outfolder)
+    suffix += "_"+outfolder
+    helpfulFuncs.check_for_reset(outfolder)
+    # outfolder = os.path.join(foldername, outfolder)
+
+    # pois = loadOtherPOIs(workspace)
+    # pois = [x for x in pois if x != "r"]
+    # if len(pois) > 0:
+	   #  helpfulFuncs.insert_values(cmds = cmdbase, keyword = "--freezeParameters", toinsert = ",".join(pois), joinwith=",")
             
     path = create_fit_cmd( 	mdfout = combineInput,
             paramgroup = paramgroup,
@@ -98,11 +158,12 @@ def create_folders( foldername, combineInput, paramgroup, suffix,
             mu = mu,
             outfolder = outfolder,
             cmdbase = cmdbase,
-            murange = murange)		
+            murange = murange,
+            pois = pois)		
     if path:
         scripts.append(path)
 
-def submit_fit_cmds(ws, paramgroups = ["all"], mu = 1.0, cmdbase = None, murange = 5., suffix = ""):
+def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murange = 5., suffix = "", pois = None):
 	print "entering submit_fit_cmds"
 	if not os.path.exists(ws):
 		raise sys.exit("workspace file %s does not exist!" % ws)
@@ -110,43 +171,38 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = 1.0, cmdbase = None, murange
 	foldername = ".".join(parts[:len(parts)-1])
 	if suffix:
 		foldername = suffix + "_" + foldername
-	print "creating", foldername
-	if not os.path.exists(foldername):
-		os.makedirs(foldername)
+	# helpfulFuncs.check_for_reset(foldername)
 	os.chdir(foldername)
 	print os.getcwd()
-	scripts = []
-	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
-	script.append("  source " + pathToCMSSWsetup)
+
+	
+	#do nominal scan
+	cmd = "combine -M MultiDimFit --algo grid --points 50".split()
+	if cmdbase:
+		cmd += cmdbase
+	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_nominal_" + foldername)
+
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+	cmd.append(ws)
+	# create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = [cmd], scriptname = "nominal_scan.sh", wsfile = ws)
+	if os.path.exists("nominal_scan.sh"):
+		# batch_fits.submitJobToBatch("nominal_scan.sh")
+		pass
+	else:
+		sys.exit("could not create script for nominal scan! Aborting")
+
+	#do bestfit
 	cmd = "combine -M MultiDimFit --saveWorkspace --algo none".split()
 	if cmdbase:
 		cmd += cmdbase
+	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_bestfit_" + foldername)
 
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "-n", toinsert = "_prefit_" + foldername, joinwith = "_")
-	# cmd += "--cminDefaultMinimizerStrategy 0".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerStrategy", toinsert = "0", joinwith = "insert")
-	# cmd += "--cminDefaultMinimizerTolerance 1e-3".split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--cminDefaultMinimizerTolerance", toinsert = "1e-3", joinwith = "insert")
-	# cmd += ("--rMin {0} --rMax {1} -t -1 --expectSignal {2}".format(mu-murange, mu+murange, mu)).split()
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMin", toinsert = str(mu-murange), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--rMax", toinsert = str(mu+murange), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "-t", toinsert = "-1", joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--expectSignal", toinsert = str(mu), joinwith = "insert")
-	helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
 	cmd.append(ws)
 
-	script.append('    cmd="' + " ".join(cmd) + '"')
-	script.append('    echo "$cmd"')
-	script.append('    eval "$cmd"')
 
-	script.append("else")
-	script.append('  echo "Could not find CMSSW setup file!"')
-	script.append("fi")
-
-	prefit_script = "script_prefit.sh"
-	with open(prefit_script, "w") as s:
-		s.write("\n".join(script))
-
+	prefit_script = "bestfit.sh"
+	create_script(pathToCMSSWsetup=pathToCMSSWsetup, cmd=[cmd], scriptname = prefit_script, wsfile = ws)
 	if os.path.exists(prefit_script):
 		print "successfully created prefit script, submitting"
 		jobid = batch_fits.submitJobToBatch(prefit_script)
@@ -155,20 +211,23 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = 1.0, cmdbase = None, murange
 		mdfout += cmd[cmd.index("-n")+1]
 		mdfout += ".MultiDimFit.mH120.root"
 		mdfout = os.path.abspath(mdfout)
+		#start scancs with frozen np groups
 		for group in paramgroups:
 			create_folders( foldername = foldername,
 							combineInput = mdfout,
 							paramgroup = group,
 							suffix = foldername,
 							mu = mu, scripts = scripts,
-							cmdbase = cmdbase, murange = murange)
-
-		create_folders( foldername = foldername,
-						combineInput = ws,
-						paramgroup = "",
-						suffix = foldername,
-						mu = mu, scripts = scripts,
-						cmdbase = cmdbase, murange = murange)
+							cmdbase = cmdbase, murange = murange,
+							pois = pois)
+		# if not "all" in paramgroups:
+		# 	create_folders( foldername = foldername,
+		# 				combineInput = mdfout,
+		# 				paramgroup = "all",
+		# 				suffix = foldername,
+		# 				mu = mu, scripts = scripts,
+		# 				cmdbase = cmdbase, murange = murange,
+		# 				pois = pois)
 
         if(len(scripts) > 0):
         	print "submitting {0} jobs".format(len(scripts))
@@ -191,8 +250,7 @@ if __name__ == '__main__':
 	parser.add_option(	"-r", "--mu",
 						help = "signal strength for asimov toys",
 						dest = "mu",
-						type= "float",
-						default = 1.0)
+						type= "float")
 	parser.add_option(	"--murange",
 						help= "+/- range around injected value to be scanned",
 						type = "float",
@@ -232,14 +290,15 @@ if __name__ == '__main__':
 			if os.path.exists(d):
 				print "checking %s for workspace" % d
 				d = helpfulFuncs.check_workspace(d)
+				pois = loadOtherPOIs(d)
+				pois = [x for x in pois if x != "r"]
 				arrayid = submit_fit_cmds(	ws = d,
 											paramgroups = paramgroups,
 											mu = mu,
+											murange= murange,
 											cmdbase = combineoptions,
-											suffix = options.suffix)
+											suffix = options.suffix,
+											pois = pois)
 				if arrayid != -1:
 					print "all fits submitted to batch"
 				os.chdir(base)
-			
-			
-			

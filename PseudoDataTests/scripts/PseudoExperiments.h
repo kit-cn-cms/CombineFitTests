@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <fstream>
 
 #include "TSystemFile.h"
 #include "TSystemDirectory.h"
@@ -291,7 +292,7 @@ private:
   bool readShapeFolder(TFile* infile, const TString& folderName, std::vector<ShapeContainer*>& shapeVec);
   void readShapeTree(TTree* tree, std::vector<ShapeContainer*>& shapeVec);
   
-  void convertToHisto(std::map<TString, std::map<TString,std::vector<double> > >& vecs, std::map<TString, std::map<TString,TH1*> >& histos, const TString title = "") const;
+  void convertToHisto(std::map<TString, std::map<TString,std::vector<double> > >& vecs, std::map<TString, std::map<TString,TH1*> >& histos, const TString title) const;
   
   TH1* getHist(const std::map<TString,TH1*>& hists, const TString& key) const;
   TH1* getClone(const TH1* h) const;
@@ -312,8 +313,8 @@ void printTime(TStopwatch& watch, TString text){
 PseudoExperiments::PseudoExperiments(const TString& label, const Double_t injectedMu, const bool noBinByBin)
 : debug_(false),
 fitBmustConverge_(true),
-fitSBmustConverge_(true),
-accurateCovariance_(true),
+fitSBmustConverge_(false),
+accurateCovariance_(false),
 noBinByBin_(noBinByBin),
 label_(label), injectedMu_(injectedMu), color_(kGray){
   if( debug_ ) std::cout << "DEBUG " << this << ": constructor" << std::endl;
@@ -582,10 +583,10 @@ bool PseudoExperiments::readParamFolder(TFile* infile, const TString& folderName
         if(saveNps) 
         {
             std::cout << "saving nuisance parameter " << treeName << std::endl;
-            if(!(treeName.Contains("prop_bin") && noBinByBin_) && !(treeName.BeginsWith("r"))) nps_.push_back(treeName);
+            if(!((treeName.Contains("prop_bin") || treeName.Contains("_Bin")) && noBinByBin_) && !(treeName.BeginsWith("r"))) nps_.push_back(treeName);
         }
         else{
-            if( std::find( nps_.begin(), nps_.end(), treeName) == nps_.end() && !(treeName.Contains("prop_bin") && noBinByBin_) ){
+            if( std::find( nps_.begin(), nps_.end(), treeName) == nps_.end() && !((treeName.Contains("prop_bin") || treeName.Contains("_Bin")) && noBinByBin_) ){
                 pois_.push_back(treeName);
             }
         }
@@ -667,11 +668,41 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
   */
   
   if(sourceDir.EndsWith(".root")){
-    std::cout << "loading all experiment data from " << sourceDir.Data() << std::endl;
-    if(!addExperimentFromTree(sourceDir)){
+    TList* filelist;
+    filelist = helperFuncs::interpretWildcards(sourceDir);
+    TIter it(filelist);
+    TObjString* obj;
+    TString file;
+    while((obj = (TObjString*)it()))
+    {
+      file = obj->GetName();
+      std::cout << "loading all experiment data from " << file.Data() << std::endl;
+      if(!addExperimentFromTree(file))
+      {
         std::cout << "failed to find TTree with values, will try to load directly from RooFitResult next\n";
-        addExperimentFromRoofit(sourceDir);
+        addExperimentFromRoofit(file);
       }
+    }
+    for(auto* p : *filelist) delete p;
+    delete filelist;
+  }
+  else if(sourceDir.EndsWith(".txt")){
+    std::cout << "reading files from " << sourceDir << std::endl;
+    ifstream input;
+    input.open(sourceDir.Data());
+    if( input.is_open()){
+      std::string infile;
+      while(std::getline(input, infile)){
+        // input >> infile;
+        std::cout << "loading all experiment data from " << infile << std::endl;
+        // if(!addExperimentFromTree(infile))
+        // {
+        //   std::cout << "failed to find TTree with values, will try to load directly from RooFitResult next\n";
+          addExperimentFromRoofit(infile);
+        // }
+      }
+    }
+    // exit(0);
   }
   else
   {
@@ -804,7 +835,7 @@ void PseudoExperiments::initContainers(TFile* file, const RooFitResult* result, 
     while(( param = (RooRealVar*)it.Next() )){
         if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
         name = param->GetName();
-        if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !(name.Contains("prop_bin") && noBinByBin_ )){
+        if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !((name.Contains("prop_bin") || name.Contains("_Bin")) && noBinByBin_)){
             nps_.push_back(name);
         }
     }
@@ -887,7 +918,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
         while(( param = (RooRealVar*)it.Next() )){
             if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
             name = param->GetName();
-            if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !(name.Contains("prop_bin") && noBinByBin_ )){
+            if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !((name.Contains("prop_bin") || name.Contains("_Bin")) && noBinByBin_)){
                 pois_.push_back(name);
             }
         }
@@ -927,7 +958,7 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
         while(( param = (RooRealVar*)it.Next() )){
             if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
             name = param->GetName();
-            if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !(name.Contains("prop_bin") && noBinByBin_ )){
+            if( std::find(nps_.begin(), nps_.end(), name) == nps_.end() && !((name.Contains("prop_bin") || name.Contains("_Bin")) && noBinByBin_)){
                 pois_.push_back(name);
             }
         }
@@ -1102,7 +1133,7 @@ void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,s
   while(( param = (RooRealVar*)it.Next() )){
       if(!(helperFuncs::compare_classname(param, "RooRealVar"))) continue;
       name = param->GetName();
-      values.push_back(name);
+      if(!((name.Contains("prop_bin") || name.Contains("_Bin")) && noBinByBin_)) values.push_back(name);
   }
   // while( varName.Contains(",") ) {
   //   paramName = varName(varName.Last(',')+1, varName.Length() - varName.Last(','));
@@ -1120,7 +1151,7 @@ void PseudoExperiments::collectCorrelations(std::map<TString, std::map<TString,s
 
   for(auto& np_i : values){
     for(auto& np_j : values){
-      std::cout << "getting correlation for " << np_i << "\t" << np_j << std::endl;
+      if(debug_) std::cout << "getting correlation for " << np_i << "\t" << np_j << std::endl;
       correlations[np_i][np_j].push_back(result->correlation(np_i, np_j));
     }
   }

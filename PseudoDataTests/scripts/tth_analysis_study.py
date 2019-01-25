@@ -77,6 +77,9 @@ action="append",
 dest="POIs",
 help="add an additional POI to the fit.\nSyntax: (PROCESSNAME):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE]\n In order to map multiple process to one POI, use\n(PROCESSNAME1|PROCESSNAME2|...):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE].\nUses combine physics model 'multiSignalModel'. DANGER! This requires an additional datacard of the form 'path/to/original/datacard_POINAME1_POINAME2_....txt'"
 )
+group_globalOptions.add_option("--additionalWS",
+    dest = "additionalWS",
+    help = "Fit this datacard/workspace to the same toy as the one specified in '-d'")
 group_globalOptions.add_option("--addToyCommand",
 dest="additionalToyCmds",
 help = "add combine command for toy generation (-M GenerateOnly)(can be used multiple times)",
@@ -220,6 +223,7 @@ additionalFitCmds = options.additionalFitCmds
 resetFolders = not options.folderReset
 skipRootGen = options.skipRootGen
 doWorkspaces = options.doWorkspaces
+additionalWS = options.additionalWS
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
@@ -286,10 +290,11 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     print "will use this command for toy generation:\n", generateToysCmd
     #create combine MaxLikelihoodFit command
 
-    mlfitCmd = "combine -M MaxLikelihoodFit "
-    mlfitCmd += "-m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 "
+    mlfitCmd = "combine -M FitDiagnostics "
+    mlfitCmd += "-m 125 "
+    # mlfitCmd += "--cminFallbackAlgo Minuit2,migrad,0:1e-2 "
     mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
-    mlfitCmd += "--cminDefaultMinimizerTolerance 1e-5 "
+    mlfitCmd += "--cminDefaultMinimizerTolerance 1e-2 "
     if not murange == 0:
         mlfitCmd += "--rMin=$rMin --rMax=$rMax "
     mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile "
@@ -794,7 +799,7 @@ def check_workspace(pathToDatacard):
         workspacePath = ""
     return workspacePath
         
-def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath, pathToDatacard):
+def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath, pathToDatacard, additionalWS = None):
     print "outputPath in generateToysAndFit:", outputPath
     if not os.path.exists("temp"):
         os.makedirs("temp")
@@ -838,7 +843,10 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
 
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
-        pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
+        if not additionalWS:
+            pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
+        else:
+            pathToMSworkspace = check_workspace(additionalWS)
         print ""
         print "checking if all datacards are workspaces"
         
@@ -946,6 +954,7 @@ if os.path.exists(pathToDatacard):
                         processScalingDic = scalingDic, 
                         pathToScaledDatacard = pathToScaledDatacard, 
                         outputPath = outputDirectory,
-                        pathToDatacard = pathToDatacard)
+                        pathToDatacard = pathToDatacard,
+                        additionalWS = additionalWS)
 else:
     print "Incorrect paths to input datacard. Please make sure path to datacard is correct!"

@@ -1,4 +1,6 @@
-from ROOT import TStopwatch
+from ROOT import TStopwatch, PyConfig, gROOT
+PyConfig.IgnoreCommandLineOptions = True
+gROOT.SetBatch(True)
 import os
 import sys
 import subprocess
@@ -28,6 +30,7 @@ class batchConfig:
             self.subname = "condor_submit"
             self.memory = "2000M"
             self.arraysumbmit = True
+
         else:
             print "going to default - desy naf bird system"
             self.jobmode = "SGE"
@@ -37,11 +40,12 @@ class batchConfig:
                 self.subopts += ("-q " + queue + ".q ").split()
             self.arraysubmit = True
 
-    def writeSubmitCode(self, script, logdir, isArray = False, nscripts = 0):
+    def writeSubmitCode(self, script, logdir, hold = False, isArray = False, nscripts = 0):
         '''
         write the code for condor_submit file
         script: path to .sh-script that should be executed
         logdir: path to directory of logs
+        hold: boolean, if True initates the sript in hold mode, can be released manually or inbuild submitXXXtoBatch functions
         isArray: set True if script is an array script
         nscripts: number of scripts in the array script. Only needed if isArray=True
         
@@ -57,9 +61,16 @@ class batchConfig:
         submitCode+="initialdir = "+os.getcwd()+"\n"
         submitCode+="notification = Never\n"
         submitCode+="priority = 0\n"
-        submitCode+="request_memory = "+self.memory+"\n"
+        # submitCode+="request_memory = "+self.memory+"\n"
+        submitCode += "+RequestRuntime = 86400\n" #24 hours
+        submitCode += "RequestMemory = 2500\n"
+        submitCode += "RequestDisk = 2000000\n"
+        submitCode += "run_as_owner = true\n"
         #submitCode+="request_dist = 5800M\n"
-        
+        # submitCode += 'max_materialize = 1000'
+        if hold:
+            submitCode+="hold = True\n"
+
         if isArray:
             submitCode+="error = "+logdir+"/"+submitScript+".$(Cluster)_$(ProcId).err\n"
             submitCode+="output = "+logdir+"/"+submitScript+".$(Cluster)_$(ProcId).out\n"
@@ -68,6 +79,7 @@ class batchConfig:
             for taskID in range(nscripts):
                 submitCode+="\"SGE_TASK_ID="+str(taskID)+"\"\n"
             submitCode+=")"
+
         else:
             submitCode+="error = "+logdir+"/"+submitScript+".$(Cluster).err\n"
             submitCode+="output = "+logdir+"/"+submitScript+".$(Cluster).out\n"
@@ -80,8 +92,14 @@ class batchConfig:
         return submitPath
 
 
-    def writeArrayCode(self, scripts, arrayPath):
+    def writeArrayCode(self, scripts, arrayPath, logdir):
+        '''
+        write code for array script
+        scripts: scripts to be executed by array script
+        arrayPath: filename of array script
 
+        returns arrayPath (redundand but safer than no return)
+        '''
         arrayCode="#!/bin/bash \n"
         arrayCode+="subtasklist=(\n"
         for scr in scripts:
@@ -111,39 +129,59 @@ class batchConfig:
         command += self.subopts
         return command
     
-    
+    def setupRelease(self, oldJIDs, newJID):
+        basedir = os.path.dirname(os.path.realpath(__file__))
+        releaseCode = "import sys\n"
+        releaseCode += 'basedir = "' + basedir + '"\n'
+        releaseCode += "if not basedir in sys.path:\n"
+        releaseCode += "\tsys.path.append(basedir)\n"
+        releaseCode += "from batchConfig import *\n"
+        releaseCode += "import os\n"
+        releaseCode += "q = batchConfig()\n"
+        releaseCode += "q.do_qstat("+str(oldJIDs)+")\n"
+        releaseCode += "os.system('condor_release "+str(newJID)+"')"
+        
+        releasePath = "release_"+str(newJID)+".py"
+        print(releasePath)
+        with open(releasePath, "w") as releaseFile:
+            releaseFile.write(releaseCode)
+        os.system("python "+releasePath+" > /dev/null && rm "+releasePath+" &")
+        #time.sleep(5)
+        #os.system("rm "+releasePath)
+
     def submitArrayToBatch(self, scripts, arrayscriptpath, jobid = None):
-        """
-        generate bash array with scripts from list of scripts and submit it to bird system. Function will create a folder to save log files
-        
-        Keyword arguments:
-        
-        scripts         -- list of scripts to be submitted
-        arrayscriptpath -- path to safe script array in
-        jobid           -- hold this job until job with jobid is done
-        """
+        '''
+        submits given scripts as array to batch system
+        scripts: scripts to be submitted as array
+        arrayscriptpath: path to generated array file
+        jobid: newly created array job waits for the jobs given in jobid (as a list of ids) before executing
+
+        returns jobid of array as list
+        '''
         submitclock=TStopwatch()
         submitclock.Start()
         arrayscriptpath = os.path.abspath(arrayscriptpath)
 
         logdir = os.path.dirname(arrayscriptpath)+"/logs"
         print "will save logs in", logdir
-        if os.path.exists(logdir):
-            print "emptying directory", logdir
-            shutil.rmtree(logdir)
-        os.makedirs(logdir)
+        # if os.path.exists(logdir):
+        #     print "emptying directory", logdir
+        #     shutil.rmtree(logdir)
+        # os.makedirs(logdir)
+        if not os.path.exists(logdir):
+            os.makedirs(logdir)
         
         # write array script
-
         nscripts=len(scripts)
         tasknumberstring='1-'+str(nscripts)
 
-        arrayscriptpath = self.writeArrayCode(scripts, arrayscriptpath)
+        arrayscriptpath = self.writeArrayCode(scripts = scripts, arrayPath = arrayscriptpath, logdir = logdir)
         
-        # prepare submit
+        # prepate submit
         if self.jobmode == "HTC":
             print 'writing code for condor_submit-script'
-            submitPath = self.writeSubmitCode(arrayscriptpath, logdir, isArray = True, nscripts = nscripts)
+            hold = True if jobid else False
+            submitPath = self.writeSubmitCode(arrayscriptpath, logdir, hold = hold, isArray = True, nscripts = nscripts)
             
             print 'submitting',submitPath
             command = self.subname + " -terse " + submitPath
@@ -176,17 +214,26 @@ class batchConfig:
             sys.exit("something went wrong with calling condor_submit command, submission of jobs was not succesfull")
         submittime=submitclock.RealTime()
         print "submitted job", jobidint, " in ", submittime
+        if hold:
+            self.setupRelease(jobid, jobidint)
         return [jobidint]
     
     def submitJobToBatch(self, script, jobid = None):
+        '''
+        submits a single job to batch system
+        script: script to be submitted
+        jobid: new job  waits for the jobs given in jobid (as a list of ids) before executing
+
+        returns jobid of submitted job as list
+        '''
         script = os.path.abspath(script)
         st = os.stat(script)
         dirname = os.path.dirname(script)
         os.chmod(script, st.st_mode | stat.S_IEXEC)
         cmdlist = [self.subname]
         if self.jobmode == "HTC":
-            print(script)
-            submitPath = self.writeSubmitCode(script, dirname+"/logs")
+            hold = True if jobid else False
+            submitPath = self.writeSubmitCode(script, dirname+"/logs", hold = hold)
             cmdlist.append("-terse")
             cmdlist.append(submitPath)
         else:
@@ -203,27 +250,34 @@ class batchConfig:
         a = subprocess.Popen(cmdlist, stdout=subprocess.PIPE,stderr=subprocess.STDOUT,stdin=subprocess.PIPE)
         output = a.communicate()[0]
         #print output
-
         if self.jobmode == "HTC":
             try:
-                jobid = int(output.split(".")[0])
+                jobidint = int(output.split(".")[0])
             except:
                 sys.exit("something went wrong with calling condor_submit command, submission of jobs was not succesfull")
         else:
             jobidstring = output.split()
             for jid in jobidstring:
                 if jid.isdigit():
-                    jobid=int(jid)
+                    jobidint=int(jid)
                     continue
 
-        print "this job's ID is", jobid
-        jobids.append(jobid)
+        print "this job's ID is", jobidint
+        jobids.append(jobidint)
+        if hold:
+            self.setupRelease(jobid, jobidint)
         return jobids
         
     def do_qstat(self, jobids):
+        '''
+        monitoring of job status
+        jobids: which jobs to be monitored
+
+        returns nothing, only stops if no more jobs are running/idling/held
+        '''
         allfinished=False
         while not allfinished:
-            time.sleep(5)
+            time.sleep(10)
             statname = ['condor_q'] if self.jobmode == "HTC" else ['qstat']
             if self.jobmode == "HTC":
                 statname += jobids
@@ -239,7 +293,8 @@ class batchConfig:
                         states = joblist.split(",")
                         jobs_running = int(states[3].split()[0])
                         jobs_idle =  int(states[2].split()[0])
-                        nrunning = jobs_running + jobs_idle
+                        jobs_held = int(states[4].split()[0])
+                        nrunning = jobs_running + jobs_idle + jobs_held
             else:
                 for line in lines:
                     words=line.split()

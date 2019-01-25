@@ -19,7 +19,7 @@ print(base)
 print("-"*50 + "\ntesting submitJobToBatch\n")
 scripts = [base + "/scripts/test1_job.sh", base + "/scripts/test2_job.sh"]
 jobid1 = batch.submitJobToBatch(scripts[0])
-jobid2 = batch.submitJobToBatch(scripts[1])
+jobid2 = batch.submitJobToBatch(scripts[1], jobid1)
 
 print jobid1+jobid2
 batch.do_qstat(jobid1+jobid2)
@@ -30,6 +30,7 @@ print("done with submitJobToBatch")
 print("-"*50 + "\ntesting submitArrayToBatch\n")
 scripts = [base + "/scripts/test1_array.sh", base + "/scripts/test2_array.sh"]
 jobid = batch.submitArrayToBatch(scripts = scripts, arrayPath = "scripts/arrayJob.sh")
+jobid2 = batch.submitArrayToBatch(scripts = scripts, arrayPath = "scripts/arrayJob2.sh", jobid = jobid)
 
-batch.do_qstat(jobid)
+batch.do_qstat(jobid+ jobid2)
 print("done with submitArrayToBatch")

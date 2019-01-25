@@ -7,18 +7,20 @@ cd $CMSSW_BASE
 eval `scram runtime -sh`
 cd -
 
+BASEDIR=$(dirname "$0")
+SCRIPT="$BASEDIR/plotResults.C"
 if test "$#" -eq 4; then
-  echo "plotResults.C(\""$1"\",\""$2"\", \""$3"\", \""$4"\")"
-  root -l -b -q "plotResults.C(\""$1"\",\""$2"\", \""$3"\", \""$4"\")"
+  echo "$SCRIPT(\""$1"\",\""$2"\", \""$3"\", \""$4"\")"
+  root -l -b -q "$SCRIPT+(\""$1"\",\""$2"\", \""$3"\", \""$4"\")"
 else
 if test "$#" -eq 3; then
-  echo "plotResults.C(\""$1"\",\""$2"\", "$3")"
+  echo "$SCRIPT(\""$1"\",\""$2"\", "$3")"
 
-  root -l -b -q "plotResults.C+(\""$1"\",\""$2"\", \""$3"\")"
+  root -l -b -q "$SCRIPT+(\""$1"\",\""$2"\", \""$3"\")"
 else
 
-  echo "plotResults.C(\""$1"\",\""$2"\")"
+  echo "$SCRIPT(\""$1"\",\""$2"\")"
 
-  root -l -b -q "plotResults.C+(\""$1"\",\""$2"\")"
+  root -l -b -q "$SCRIPT+(\""$1"\",\""$2"\")"
 fi
 fi
