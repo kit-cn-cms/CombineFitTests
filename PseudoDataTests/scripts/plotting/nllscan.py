@@ -14,7 +14,7 @@ helperpath = os.path.join(basedir, "../base")
 if not helperpath in sys.path:
     sys.path.append(helperpath)
 import batchConfig
-batch = batchConfig.batchConfig(queue = "short")
+batch = batchConfig.batchConfig()
 helperpath += "/helpfulFuncs.py"
 if os.path.exists(helperpath):
     helperfuncs = imp.load_source('helpfulFuncs', helperpath)
@@ -89,7 +89,7 @@ def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
         multidimfitcmd.append("--saveSpecifiedNuis " + xVar)
     if not yVar == "deltaNLL" and not yVar == "r" and not yVar in params:
         multidimfitcmd.append("--saveSpecifiedNuis " + yVar)
-    if "r" in [xVar, yVar] and not "r" in params:
+    if "r" in [xVar, yVar] and not "r" in params and not any("--floatOtherPOIs 1" in x for x in multidimfitcmd):
         multidimfitcmd.append("--floatOtherPOIs 1")
     if bonly:
         print "will perform background-only fit"
@@ -147,10 +147,7 @@ def make_script(low, up, datacard, nPoints, unconstrained, params, xVar,
 
 def do_fits():
     foldername = "fit_parts"
-    if os.path.exists(foldername):
-        print "resetting folder for scripts"
-        shutil.rmtree(foldername)
-    os.makedirs(foldername)
+    helperfuncs.check_for_reset(foldername)
     base = os.getcwd()
     os.chdir(foldername)
     scripts = []
@@ -186,6 +183,7 @@ def do_fits():
         if os.path.exists(script):
             scripts.append(script)
     if len(scripts) != 0:
+        # batch.runtime = 
         arrayid = batch.submitArrayToBatch( scripts = scripts, 
                                         arrayscriptpath = "arrayJob.sh")
     else:
@@ -228,10 +226,11 @@ def do_fits():
     with open(mergescript,"w") as out:
         out.write("\n".join(lines))
     if os.path.exists(mergescript):
+        logdir = os.path.join(os.path.dirname(mergescript),)
         mergeid = batch.submitJobToBatch(script = mergescript, jobid = arrayid)
         sys.exit("Everything submitted! Jobids: {0} {1}".format(arrayid, mergeid))
     else:
-        sys.exit("Could not write script to merge files!")
+        sys.exit("Could not write script to merge files!") 
 
 def get_cl_value(cl, npois = None):
     """
@@ -244,10 +243,11 @@ def get_cl_value(cl, npois = None):
     cl      -   coverage probability string (e.g. 68%)
     """
     if not npois:
-        #open workspace to get # of fitted POIs (#POIs) from ModelConfig
+        npois = 1
+        #open workspace to get ModelConfig
+
         infile = ROOT.TFile(fitresFile)
         w = infile.Get("w")
-        npois = 1
         if isinstance(w, ROOT.RooWorkspace):
             mc = w.obj("ModelConfig")
             if isinstance(mc, ROOT.RooStats.ModelConfig):
@@ -412,6 +412,8 @@ def create_lines_from_RooFitResult(var, pathToErrors, xmin, xmax, ymin,ymax, bon
                 x_down = results.getVal() + results.getErrorLo()
                 x_up = results.getVal() + results.getErrorHi()
                 vals = [x_down, x_up]
+                print results.getErrorLo(), "\t", results.getErrorHi()
+                print vals
                 lines = []
                 line_hor = create_straight_line(val = get_cl_value(cl = clname, npois = 1),
                                                                 minVal = xmin,
@@ -801,6 +803,16 @@ def intact_root_file(infilepath):
     if f.IsOpen() and not f.IsZombie() and not f.TestBit(ROOT.TFile.kRecovered):
         return True
     return False
+
+def check_parameters_in_workspace(workspacepath, paramlist):
+    infile = ROOT.TFile(workspacepath)
+    w = infile.Get("w")
+    if isinstance(w, ROOT.RooWorkspace):
+        pars = w.allVars().contentsString().split(",")
+        print pars
+        if not all(x in pars for x in paramlist):
+            sys.exit("ERROR: Not all parameters to scan exist in the given workspace in '%s'!" % workspacepath)
+
 #=======================================================================
 
 if __name__ == '__main__':
@@ -822,7 +834,11 @@ if __name__ == '__main__':
     parser.add_option("--scanUnconstrained", dest = "unconstrained", action = "store_true", default = False, help = "Drop constraints for scaned parameters")
     parser.add_option("--doWorkspaces", dest = "doWorkspaces", action = "store_true", default = False, help = "Force creation of workspaces even if they exist already (default = false)")
     parser.add_option("-p", "--paramsToScan", metavar = "par1,par2,...", dest = "paramsToScan", help = "scan these parameters. Default is scanning x (and y if '--scan2D'). Can be used multiple times", action = "append")
-    parser.add_option("--runLocally", help = "do not perform fits on batch system (default = false)", dest = "runLocally", action = "store_true", default = False)
+    parser.add_option(  "--runLocally", "-r",
+                         help = "do not perform fits on batch system (default = false)", 
+                         dest = "runLocally", 
+                         action = "store_true", 
+                         default = False)
     parser.add_option(  "-g", "--granularity",
                         help = "set granularity for cl crossing scan in 1D NLL scan (default = 1e-3)",
                         type = "float",
@@ -922,6 +938,9 @@ if __name__ == '__main__':
         if yVar != "deltaNLL" and scan2D:
             params.append(yVar) 
     
+    check_parameters_in_workspace(workspacepath = datacard, 
+                                    paramlist = params)
+
     suffix = options.suffix
     outputDirectory = os.path.abspath(options.outputDirectory)
     if not os.path.exists(outputDirectory):
