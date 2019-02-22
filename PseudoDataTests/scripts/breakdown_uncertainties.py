@@ -18,8 +18,28 @@ batch_fits = batchConfig()
 import helpfulFuncs
 # batch_collect = batchConfig()
 
-pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
+pathToCMSSWsetup = '/nfs/dust/cms/user/pkeicher/setup_combine_cmssw.sh'
 
+# shell_template = """#!/bin/sh
+# ulimit -s unlimited
+# set -e
+# targetdir="%(TARGETDIR)s"
+# cmd="%(CMD)s"
+# cmsswsource="%(CMSSW_SOURCE)s"
+# if [[ -f $cmsswsource ]]; then
+#   source $cmsswsource
+#   if [[ -d $targetdir ]]; then
+#     cd $targetdir
+#     echo $cmd
+#     eval $cmd
+#     cd -
+#   else
+#     echo "could not change into directory $targetdir"
+#   fi
+# else
+#   echo "could not find $cmsswsource"
+# fi
+# """
 
 #=======================================================================
 
@@ -44,7 +64,8 @@ def add_basic_commands(cmd, mu, murange, suffix = ""):
 	
 
 def create_script(pathToCMSSWsetup, cmd, scriptname, outfolder = None, wsfile = None):
-	script = ["if [ -f " + pathToCMSSWsetup + " ]; then"]
+	script = ["ulimit -s unlimited"]
+	script.append("if [ -f " + pathToCMSSWsetup + " ]; then")
 	script.append("  source " + pathToCMSSWsetup)
 	if outfolder is not None:
 		script.append("  if [ -d " + outfolder + " ]; then")
@@ -87,26 +108,27 @@ def finish_cmds(cmd, mu, murange, suffix, paramgroup, pois = None):
 	cmd = [x for x in cmd if x != ""]
 
 def create_fit_cmd(	mdfout, paramgroup, outfolder, suffix,
-			mu = None, murange = 5., cmdbase = None, pois = None):
+			mu = None, murange = 5., cmdbase = None, pois = None, fast = False):
 	all_cmds = []
-	cmd = "combine -M MultiDimFit".split()
-	cmd.append(mdfout)
-	cmd += "--algo grid --points 50 -m 125".split()
-	cmd = helpfulFuncs.insert_values(cmds= cmd, keyword = "--floatOtherPOIs", toinsert = str(1), joinwith = "insert")
-	if cmdbase:
-		cmd += cmdbase
-	if paramgroup:
-		cmd += '-w w --snapshotName MultiDimFit'.split()
+	if not fast:
+		cmd = "combine -M MultiDimFit".split()
+		cmd.append(mdfout)
+		cmd += "--algo grid --points 50 -m 125".split()
+		cmd = helpfulFuncs.insert_values(cmds= cmd, keyword = "--floatOtherPOIs", toinsert = str(1), joinwith = "insert")
+		if cmdbase:
+			cmd += cmdbase
+		if paramgroup:
+			cmd += '-w w --snapshotName MultiDimFit'.split()
 
-	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
 
-	if paramgroup and paramgroup == "all":
-		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--fastScan", toinsert = "", joinwith = "insert")
+		if paramgroup and paramgroup == "all":
+			cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--fastScan", toinsert = "", joinwith = "insert")
 
-	finish_cmds(cmd=cmd,mu=mu,murange=murange,suffix="_"+suffix,paramgroup=paramgroup,pois=pois)
-	
-	
-	all_cmds.append(cmd)
+		finish_cmds(cmd=cmd,mu=mu,murange=murange,suffix="_"+suffix,paramgroup=paramgroup,pois=pois)
+		
+		
+		all_cmds.append(cmd)
 
 	cmd = "combine -M FitDiagnostics".split()
 	cmd += mdfout.split()
@@ -140,7 +162,7 @@ def loadOtherPOIs(workspace):
 			return mc.GetParametersOfInterest().contentsString().split(",")
 
 def create_folders( foldername, combineInput, paramgroup, suffix,
-                    mu, scripts, cmdbase, murange, pois = None):
+                    mu, scripts, cmdbase, murange, pois = None, fast = False):
     outfolder = "breakdown_" + paramgroup
     
     suffix += "_"+outfolder
@@ -159,11 +181,12 @@ def create_folders( foldername, combineInput, paramgroup, suffix,
             outfolder = outfolder,
             cmdbase = cmdbase,
             murange = murange,
-            pois = pois)		
+            pois = pois,
+            fast = fast)		
     if path:
         scripts.append(path)
 
-def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murange = 5., suffix = "", pois = None):
+def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murange = 5., suffix = "", pois = None, fast = False):
 	print "entering submit_fit_cmds"
 	if not os.path.exists(ws):
 		raise sys.exit("workspace file %s does not exist!" % ws)
@@ -177,19 +200,20 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 
 	
 	#do nominal scan
-	cmd = "combine -M MultiDimFit --algo grid --points 50".split()
-	if cmdbase:
-		cmd += cmdbase
-	add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_nominal_" + foldername)
+	if not fast:
+		cmd = "combine -M MultiDimFit --algo grid --points 50".split()
+		if cmdbase:
+			cmd += cmdbase
+		add_basic_commands(cmd = cmd, mu = mu, murange = murange, suffix = "_nominal_" + foldername)
 
-	cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
-	cmd.append(ws)
-	# create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = [cmd], scriptname = "nominal_scan.sh", wsfile = ws)
-	if os.path.exists("nominal_scan.sh"):
-		# batch_fits.submitJobToBatch("nominal_scan.sh")
-		pass
-	else:
-		sys.exit("could not create script for nominal scan! Aborting")
+		cmd = helpfulFuncs.insert_values(cmds = cmd, keyword = "--saveFitResult", toinsert = "", joinwith = "insert")
+		cmd.append(ws)
+		create_script(pathToCMSSWsetup = pathToCMSSWsetup, cmd = [cmd], scriptname = "nominal_scan.sh", wsfile = ws)
+		if os.path.exists("nominal_scan.sh"):
+			batch_fits.submitJobToBatch("nominal_scan.sh")
+			# pass
+		else:
+			sys.exit("could not create script for nominal scan! Aborting")
 
 	#do bestfit
 	cmd = "combine -M MultiDimFit --saveWorkspace --algo none".split()
@@ -219,7 +243,8 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 							suffix = foldername,
 							mu = mu, scripts = scripts,
 							cmdbase = cmdbase, murange = murange,
-							pois = pois)
+							pois = pois, fast = fast
+							)
 		# if not "all" in paramgroups:
 		# 	create_folders( foldername = foldername,
 		# 				combineInput = mdfout,
@@ -227,7 +252,7 @@ def submit_fit_cmds(ws, paramgroups = ["all"], mu = None, cmdbase = None, murang
 		# 				suffix = foldername,
 		# 				mu = mu, scripts = scripts,
 		# 				cmdbase = cmdbase, murange = murange,
-		# 				pois = pois)
+		# 				pois = pois, fast = fast)
 
         if(len(scripts) > 0):
         	print "submitting {0} jobs".format(len(scripts))
@@ -264,6 +289,12 @@ if __name__ == '__main__':
 	parser.add_option(	"-s", "--suffix",
 						help = "add this suffix to output files",
 						dest = "suffix")
+	parser.add_option(	"-f", "--fast",
+						help = "skip NLL scans, just perform fits",
+						dest = "fast",
+						action = "store_true",
+						default = False
+					)
 
 	(options, args) = parser.parse_args()
 	mu = options.mu
@@ -298,7 +329,8 @@ if __name__ == '__main__':
 											murange= murange,
 											cmdbase = combineoptions,
 											suffix = options.suffix,
-											pois = pois)
+											pois = pois,
+											fast = options.fast)
 				if arrayid != -1:
 					print "all fits submitted to batch"
 				os.chdir(base)
