@@ -21,7 +21,7 @@ if not basefolder in sys.path:
     sys.path.append(basefolder)
 
 from batchConfig import *
-batch = batchConfig(queue="long")
+batch = batchConfig()
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
 pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
@@ -317,6 +317,7 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
             significance_cmd += cmd + " "
 
     print "will use this command for fit:\n", mlfitCmd
+    print "will use this command for significance:\n", significance_cmd
 
     mswExists = pathToMSworkspace is not None and not pathToMSworkspace == ""
     shellscript = []
