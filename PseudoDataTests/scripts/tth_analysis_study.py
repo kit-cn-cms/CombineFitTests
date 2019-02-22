@@ -303,9 +303,18 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     mlfitCmd += "--minos all "
     # mlfitCmd += "--minos none "
     # mlfitCmd += "--robustFit 1 "
+    significance_cmd = "combine -M Significance "
+    significance_cmd += "-m 125 "
+    significance_cmd += "-t $numberOfToysPerExperiment --toysFile $toyFile "
+    significance_cmd += "--signalForSignificance 0 "
+    significance_cmd += "--cminDefaultMinimizerStrategy 0 "
+    significance_cmd += "--cminDefaultMinimizerTolerance 1e-2 "
+    if not murange == 0:
+        significance_cmd += "--rMin=$rMin --rMax=$rMax "
     if additionalFitCmds is not None:
         for cmd in additionalFitCmds:
             mlfitCmd += cmd + " "
+            significance_cmd += cmd + " "
 
     print "will use this command for fit:\n", mlfitCmd
 
@@ -363,8 +372,12 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     shellscript.append('\t\t\t\techo "$combineCmd"')
     shellscript.append('\t\t\t\teval $combineCmd\n')
 
-    shellscript.append('\t\t\t\tif ! [[ -f "mlfit.root" ]]; then')
-    shellscript.append('\t\t\t\t\techo "could not produce mlfit.root file!"')
+    shellscript.append('\t\t\t\tcombineCmd="' + significance_cmd + '$targetDatacard"')
+    shellscript.append('\t\t\t\techo "$combineCmd"')
+    shellscript.append('\t\t\t\teval $combineCmd\n')
+
+    shellscript.append('\t\t\t\tif ! [[ -f "fitDiagnostics.root" ]]; then')
+    shellscript.append('\t\t\t\t\techo "could not produce fitDiagnostics.root file!"')
     shellscript.append('\t\t\t\tfi')
 
     if mswExists:
@@ -375,13 +388,17 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
         shellscript.append('\t\t\t\t\techo "$combineCmd"')
         shellscript.append('\t\t\t\t\teval $combineCmd\n')
 
-        shellscript.append('\t\t\t\t\tif ! [[ -f "mlfit_MS_mlfit.root" ]]; then')
-        shellscript.append('\t\t\t\t\t\techo "could not produce mlfit_MS_mlfit.root file!"')
+        shellscript.append('\t\t\t\tcombineCmd="' + significance_cmd + '-n _MS_mlfit $pathToMSworkspace"')
+        shellscript.append('\t\t\t\techo "$combineCmd"')
+        shellscript.append('\t\t\t\teval $combineCmd\n')
+
+        shellscript.append('\t\t\t\t\tif ! [[ -f "fitDiagnostics_MS_mlfit.root" ]]; then')
+        shellscript.append('\t\t\t\t\t\techo "could not produce fitDiagnostics_MS_mlfit.root file!"')
         shellscript.append('\t\t\t\t\tfi')
 
         shellscript.append('\t\t\t\tfi\n')
 
-    shellscript.append('\t\t\t\tfor f in higgsCombine*MaxLikelihoodFit*.root; do')
+    shellscript.append('\t\t\t\tfor f in higgsCombine*FitDiagnostics*.root; do')
     shellscript.append('\t\t\t\t\tif [[ -f "$f" ]]; then')
     shellscript.append('\t\t\t\t\t\trm "$f"')
     shellscript.append('\t\t\t\t\tfi\n')
