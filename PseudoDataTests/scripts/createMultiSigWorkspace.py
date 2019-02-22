@@ -1,17 +1,19 @@
 import os
 import sys
 import glob
+from subprocess import call
 
 datacards = sys.argv[1:]
-cmdbase = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose "
+cmdbase = "text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO verbose -m 125 "
 
 for datacard in datacards:
     for d in glob.glob(datacard):
         newlines = []
         categories = {  "DL" : [],
-                        "SL" : []
+                        "SL" : [],
+                        "FH" : []
                         }
-        with open(d, "r+") as infile:
+        with open(d, "r") as infile:
             lines = infile.read().splitlines()
             
             for line in lines:
@@ -20,12 +22,15 @@ for datacard in datacards:
                     # print "check pair:\n", pair
                     if "DL" in pair[1] or "dl" in pair[1]:
                         categories["DL"].append(pair[0])
-                    else:
+                    elif "FH" in pair[1] or "fh" in pair[1]:
+                        categories["FH"].append(pair[0])
+                    elif "SL" in pair[1] or "sl" in pair[1]:
                         categories["SL"].append(pair[0])
-        
+        print categories
         seperated_mus = cmdbase
         bunchcmd = cmdbase
         for c in categories:
+            if len(categories[c])== 0: continue
             bunchcmd += "--PO \'map=("
             prefix = ""
             for n, channel in enumerate(categories[c]):
@@ -34,7 +39,7 @@ for datacard in datacards:
                     prefix = "|"
                 seperated_mus += "--PO \'map=(" + channel + ")/(ttH_*):r_"+ channel + "[1,-10,10]\' "
             
-            bunchcmd += ")/(ttH*):r_"+ c + "[1,-10,10]\' "
+            bunchcmd += ")/(ttH_*):r_"+ c + "[1,-10,10]\' "
         parts = d.split(".")
         workspace = ".".join(parts[:len(parts)-1])
         
@@ -48,3 +53,4 @@ for datacard in datacards:
         
         print "command to create workspace with signal strength for respective input root file:\n"
         print bunchcmd
+        call([bunchcmd], shell= True)
