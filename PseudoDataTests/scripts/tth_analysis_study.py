@@ -293,8 +293,8 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     mlfitCmd = "combine -M FitDiagnostics "
     mlfitCmd += "-m 125 "
     # mlfitCmd += "--cminFallbackAlgo Minuit2,migrad,0:1e-2 "
-    mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
-    mlfitCmd += "--cminDefaultMinimizerTolerance 1e-2 "
+    #mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
+    #mlfitCmd += "--cminDefaultMinimizerTolerance 1e-2 "
     if not murange == 0:
         mlfitCmd += "--rMin=$rMin --rMax=$rMax "
     mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile "
@@ -307,8 +307,8 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     significance_cmd += "-m 125 "
     significance_cmd += "-t $numberOfToysPerExperiment --toysFile $toyFile "
     significance_cmd += "--signalForSignificance 0 "
-    significance_cmd += "--cminDefaultMinimizerStrategy 0 "
-    significance_cmd += "--cminDefaultMinimizerTolerance 1e-2 "
+    #significance_cmd += "--cminDefaultMinimizerStrategy 0 "
+    #significance_cmd += "--cminDefaultMinimizerTolerance 1e-2 "
     if not murange == 0:
         significance_cmd += "--rMin=$rMin --rMax=$rMax "
     if additionalFitCmds is not None:
