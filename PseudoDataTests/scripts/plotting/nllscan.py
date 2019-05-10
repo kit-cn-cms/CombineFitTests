@@ -789,7 +789,7 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
     outfile.Close()
 
 def merge_files(filelist):
-    cmd = "hadd -f merged_combine_output.root " + " ".join(filelist)
+    cmd = "hadd -f merged_combine_output"+suffix+".root " + " ".join(filelist)
     print cmd
     subprocess.call([cmd], shell = True)
     if os.path.exists("merged_combine_output.root"):
