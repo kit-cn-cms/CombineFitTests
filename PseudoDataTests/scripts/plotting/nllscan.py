@@ -146,7 +146,7 @@ def make_script(low, up, datacard, nPoints, unconstrained, params, xVar,
     return result, script
 
 def do_fits():
-    foldername = "fit_parts"
+    foldername = "fit_parts"+suffix
     if os.path.exists(foldername):
         print "resetting folder for scripts"
         shutil.rmtree(foldername)
@@ -212,7 +212,7 @@ def do_fits():
         cmds = cmds[:index] + cmds[index+2:]
     cmds.append("--directlyDrawFrom")
     # cmds.append(",".join(results))
-    cmds.append('"{0}/higgsCombine*.MultiDimFit.*.root"'.format(foldername))
+    cmds.append('"{0}/higgsCombine*{1}*.MultiDimFit.*.root"'.format(foldername, suffix))
     cmds.append("--runLocally")
     cmd = " ".join(cmds)
     lines.append("  cmd='{0}'".format(cmd))
@@ -223,7 +223,7 @@ def do_fits():
     lines.append('  echo "could not find CMSSW source path!"')
     lines.append('fi')
     
-    mergescript = "merge_files.sh"
+    mergescript = "merge_files"+suffix+".sh"
     
     with open(mergescript,"w") as out:
         out.write("\n".join(lines))
@@ -789,11 +789,11 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
     outfile.Close()
 
 def merge_files(filelist):
-    cmd = "hadd -f merged_combine_output.root " + " ".join(filelist)
+    cmd = "hadd -f merged_combine_output"+suffix+".root " + " ".join(filelist)
     print cmd
     subprocess.call([cmd], shell = True)
-    if os.path.exists("merged_combine_output.root"):
-        return os.path.abspath("merged_combine_output.root")
+    if os.path.exists("merged_combine_output"+suffix+".root"):
+        return os.path.abspath("merged_combine_output"+suffix+".root")
     else:
         sys.exit("Could not produce merged combine output file!")
 def intact_root_file(infilepath):
@@ -944,8 +944,8 @@ if __name__ == '__main__':
         if "*" in directDrawPath or "?" in directDrawPath:
             filelist = glob.glob(directDrawPath)
             if len(filelist) == 1:
-                subprocess.call(["cp {0} ./merged_combine_output.root".format(filelist[-1])], shell= True)
-                fitresFile = "merged_combine_output.root"
+                subprocess.call(["cp {0} ./merged_combine_output"+suffix+".root".format(filelist[-1])], shell= True)
+                fitresFile = "merged_combine_output"+suffix+".root"
             else:
                 fitresFile = merge_files(filelist = filelist)
         elif "," in directDrawPath:
