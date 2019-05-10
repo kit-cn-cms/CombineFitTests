@@ -792,8 +792,8 @@ def merge_files(filelist):
     cmd = "hadd -f merged_combine_output"+suffix+".root " + " ".join(filelist)
     print cmd
     subprocess.call([cmd], shell = True)
-    if os.path.exists("merged_combine_output.root"):
-        return os.path.abspath("merged_combine_output.root")
+    if os.path.exists("merged_combine_output"+suffix+".root"):
+        return os.path.abspath("merged_combine_output"+suffix+".root")
     else:
         sys.exit("Could not produce merged combine output file!")
 def intact_root_file(infilepath):
@@ -944,8 +944,8 @@ if __name__ == '__main__':
         if "*" in directDrawPath or "?" in directDrawPath:
             filelist = glob.glob(directDrawPath)
             if len(filelist) == 1:
-                subprocess.call(["cp {0} ./merged_combine_output.root".format(filelist[-1])], shell= True)
-                fitresFile = "merged_combine_output.root"
+                subprocess.call(["cp {0} ./merged_combine_output"+suffix+".root".format(filelist[-1])], shell= True)
+                fitresFile = "merged_combine_output"+suffix+".root"
             else:
                 fitresFile = merge_files(filelist = filelist)
         elif "," in directDrawPath:
