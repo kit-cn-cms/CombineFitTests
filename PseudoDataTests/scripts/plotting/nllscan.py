@@ -146,7 +146,7 @@ def make_script(low, up, datacard, nPoints, unconstrained, params, xVar,
     return result, script
 
 def do_fits():
-    foldername = "fit_parts"
+    foldername = "fit_parts"+suffix
     if os.path.exists(foldername):
         print "resetting folder for scripts"
         shutil.rmtree(foldername)
@@ -212,7 +212,7 @@ def do_fits():
         cmds = cmds[:index] + cmds[index+2:]
     cmds.append("--directlyDrawFrom")
     # cmds.append(",".join(results))
-    cmds.append('"{0}/higgsCombine*.MultiDimFit.*.root"'.format(foldername))
+    cmds.append('"{0}/higgsCombine*{1}*.MultiDimFit.*.root"'.format(foldername, suffix))
     cmds.append("--runLocally")
     cmd = " ".join(cmds)
     lines.append("  cmd='{0}'".format(cmd))
@@ -223,7 +223,7 @@ def do_fits():
     lines.append('  echo "could not find CMSSW source path!"')
     lines.append('fi')
     
-    mergescript = "merge_files.sh"
+    mergescript = "merge_files"+suffix+".sh"
     
     with open(mergescript,"w") as out:
         out.write("\n".join(lines))
