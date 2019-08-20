@@ -56,15 +56,15 @@ def do_1D_scan(param, datacard, cmdList, suffix = None):
         cmd += ('-n %s' % suffix).split()
     if cmdList:
         cmd += (" -a \"" + " ".join(cmdList) + "\"").split()
-    # checkstring = "--setParameterRanges " + param
-    # if not any(checkstring in x for x in cmd):
-    #     cmd += (' -a "--setParameterRanges {0}=-2,2"'.format(param)).split()
+    checkstring = "--setParameterRanges " + param
+    if not any(checkstring in x for x in cmd):
+        cmd += (' -a "--setParameterRanges {0}=-2,2"'.format(param)).split()
     if r is not None:
         cmd += (' -a "--setParameters r={0}"'.format(r)).split()
     # cmd += " -n _" + os.path.basename(outputDirectory)
     cmd += '-a "--floatOtherPOIs 1"'.split()
-    cmd += "--nPointsPerJob 10".split()
-    cmd += "--points 500".split()
+    cmd += "--nPointsPerJob 2".split()
+    cmd += "--points 400".split()
     
     print " ".join(cmd)
     subprocess.call([" ".join(cmd)], shell=True)
@@ -81,15 +81,15 @@ def do_impact_scan(param, datacard, cmdList, suffix = None):
         cmd += ('-n %s' % suffix).split()
     if cmdList:
         cmd += (" -a \"" + " ".join(cmdList) + "\"").split()
-    # checkstring = "--setParameterRanges " + param
-    # if not any(checkstring in x for x in cmd):
-    #     cmd += (' -a "--setParameterRanges {0}=-2,2"'.format(param)).split()
+    checkstring = "--setParameterRanges " + param
+    if not any(checkstring in x for x in cmd):
+        cmd += (' -a "--setParameterRanges {0}=-2,2"'.format(param)).split()
     if r is not None:
         cmd += (' -a "--setParameters r={0}"'.format(r)).split()
     # cmd += " -n _" + os.path.basename(outputDirectory)
     cmd += '-a "--floatOtherPOIs 1"'.split()
-    cmd += "--nPointsPerJob 10".split()
-    cmd += "--points 500".split()
+    cmd += "--nPointsPerJob 2".split()
+    cmd += "--points 400".split()
     
     print " ".join(cmd)
     subprocess.call([" ".join(cmd)], shell=True)
