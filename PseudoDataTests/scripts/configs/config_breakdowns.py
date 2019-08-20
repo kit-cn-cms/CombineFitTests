@@ -13,12 +13,17 @@ if not basedir in syspath:
 clearnames = {
 	"all"					: "Stat",
 	"thy"				: "Theory",
-	"bgn"					: "  add. t#bar{t}+HF XS",
+	"bgn"					: "  Background normalisation",
 	"exp"					: "Exp",
 	"syst"			: "Systematic",
 	"btag"				: "  B tagging",
 	"jes"				: "  JES",
-	"ps"				: "  PS"
+	"ps"				: "  PS",
+	"QCD"				: "QCD",
+	"autoMCStats"		: "MC uncertainty",
+	"sig_thy"			: "Theory for Signal",
+	"tthf_bgn"			: "  add. t#bar{t}+HF XS",
+	"tthf_model"		: "  add. t#bar{t}+HF XS + PS",
 }
 
 groupcolors = {
@@ -34,6 +39,11 @@ groupcolors = {
 	# "  Luminosity"			: ROOT.kCyan + 1,
 	"Systematic"					: 4,
 	"  PS"					: ROOT.kCyan + 1,
+	"QCD"					: ROOT.kSpring,
+	"MC uncertainty"		: ROOT.kOrange-2,
+	"Theory for Signal"		: ROOT.kRed+4,
+	"  Background normalisation" : ROOT.kViolet-4,
+	"  add. t#bar{t}+HF XS + PS": ROOT.kSpring +3,
 }
 
 groupmarkers = {
@@ -46,6 +56,12 @@ groupmarkers = {
 "  PS"          :   2,
 "  B tagging"           :   3,
 "  JES"                 :   5,
+"QCD"					:	5,
+"MC uncertainty"		:	5,
+"Theory for Signal"		:	5,
+"  Background normalisation": 5,
+"  add. t#bar{t}+HF XS + PS" : 5
+
 }
 
 def translate_names(breakdownname, filterstring):
