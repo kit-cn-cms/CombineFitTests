@@ -231,7 +231,7 @@ private:
   Double_t injectedMu_;
   int color_;
 
-  static constexpr int nBins_ = 4000;
+  static constexpr int nBins_ = 180;
   static constexpr Double_t min_ = -10;
   static constexpr Double_t max_ = 10;
 
