@@ -347,7 +347,8 @@ void delete_hist_vector(std::vector<TH1*>& vec){
     vec.clear();
 }
 void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const std::vector<PseudoExperiments>& exps, const TString& outLabel, const bool& ignoreBinByBinNPs = true){
-    std::vector<TString> labels;
+    std::vector<TString> labels_bonly;
+    std::vector<TString> labels_sPlusB;
     std::vector<TH1*> histsPrefit;
     std::vector<TH1*> histsPostfitB;
     std::vector<TH1*> histsPostfitBerrorHi;
@@ -358,7 +359,8 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
 
     for( auto& np: listOfParameters ) {
 
-        labels.clear();
+        labels_bonly.clear();
+        labels_sPlusB.clear();
 
         std::cout << "processing np " << np << " to the list\n";
 
@@ -372,9 +374,10 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
         for(size_t iE = 0; iE < exps.size(); ++iE) {
             const int bin = iE+1;
             const PseudoExperiments& exp = exps.at(iE);
+            std::cout << "analyzing experiment #"<< iE << "(label = '" << exp() <<"')\n";
             
             std::cout << exp.postfitB(np) << std::endl;
-            loadHistogram(exp.postfitB(np), hCompareNPMeansList[0], hCompareNPMediansList[0], histsPostfitB, bin, exp(), labels, exp.color());
+            loadHistogram(exp.postfitB(np), hCompareNPMeansList[0], hCompareNPMediansList[0], histsPostfitB, bin, exp(), labels_bonly, exp.color());
             
             if(exp.postfitBerrorHiDist(np)){
                 histsPostfitBerrorHi.push_back(exp.postfitBerrorHiDist(np));
@@ -386,7 +389,7 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
             }
             
             std::cout << "\tsaving PostfitS\n";
-            loadHistogram(exp.postfitS(np), hCompareNPMeansList[1], hCompareNPMediansList[1], histsPostfitS, bin, exp(), labels, exp.color());
+            loadHistogram(exp.postfitS(np), hCompareNPMeansList[1], hCompareNPMediansList[1], histsPostfitS, bin, exp(), labels_sPlusB, exp.color());
             if(exp.postfitSerrorHiDist(np)){
                 histsPostfitSerrorHi.push_back(exp.postfitSerrorHiDist(np));
                 
@@ -401,7 +404,7 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
 
             if(exp.prefit(np) != NULL){
                 
-                helperFuncs::setupHistogramBin(hPrefit, bin, labels.back(), exp.prefitMean(np), exp.prefitRMS(np));
+                helperFuncs::setupHistogramBin(hPrefit, bin, exp(), exp.prefitMean(np), exp.prefitRMS(np));
 
                 histsPrefit.push_back( exp.prefit(np) );
                 // helperFuncs::norm( histsPrefit.back() );
@@ -410,20 +413,28 @@ void analyzeNPDistributions(const std::vector<TString>& listOfParameters, const 
             }
 
         }
-        compareDistributions(histsPrefit,labels,outLabel+np+"_Prefit");
-        compareDistributions(histsPostfitB,labels,outLabel+np+"_PostfitB");
+        std::cout << "DONE WITH LOADING! LABELS:\n";
+        for (auto& l : labels_sPlusB) std::cout << "\t" << l << std::endl;
+        compareDistributions(histsPrefit,labels_sPlusB,outLabel+np+"_Prefit");
+        compareDistributions(histsPostfitB,labels_bonly,outLabel+np+"_PostfitB");
         std::cout << "comparing PostfitB errors high\n";
-        compareDistributions(histsPostfitBerrorHi, labels, outLabel + np + "_PostFitBerrorHigh");
+        compareDistributions(histsPostfitBerrorHi, labels_bonly, outLabel + np + "_PostFitBerrorHigh");
         std::cout << "comparing PostfitB errors low\n";
-        compareDistributions(histsPostfitBerrorLo, labels, outLabel + np + "_PostFitBerrorLow");
-        compareDistributions(histsPostfitS,labels,outLabel+np+"_PostfitS");
+        compareDistributions(histsPostfitBerrorLo, labels_bonly, outLabel + np + "_PostFitBerrorLow");
+        compareDistributions(histsPostfitS,labels_sPlusB,outLabel+np+"_PostfitS");
         std::cout << "comparing PostfitS errors high\n";
-        compareDistributions(histsPostfitSerrorHi, labels, outLabel + np + "_PostFitSerrorHigh");
+        compareDistributions(histsPostfitSerrorHi, labels_sPlusB, outLabel + np + "_PostFitSerrorHigh");
         std::cout << "comparing PostfitS errors low\n";
-        compareDistributions(histsPostfitSerrorLo, labels, outLabel + np + "_PostFitSerrorLow");
+        compareDistributions(histsPostfitSerrorLo, labels_sPlusB, outLabel + np + "_PostFitSerrorLow");
 
         // plot np means
-        for(int i=0; i<2; i++) if(hCompareNPMeansList[i] != NULL) compareMeanValues(hCompareNPMeansList[i],hPrefit,labels,outLabel+hCompareNPMeansList[i]->GetName(), hCompareNPMediansList[i]);
+        // for(int i=0; i<2; i++) 
+        // {
+        //     if(hCompareNPMeansList[i] != NULL) 
+        //     {
+        //         compareMeanValues(hCompareNPMeansList[i],hPrefit,labels,outLabel+hCompareNPMeansList[i]->GetName(), hCompareNPMediansList[i]);
+        //     }
+        // }
 
         for(int i=0; i<2; i++){
             if(hCompareNPMeansList[i] != NULL)delete hCompareNPMeansList[i];
@@ -505,6 +516,7 @@ void comparePostfitValues(const std::vector<PseudoExperiments>& exps,
                                const bool& ignoreBinByBinNPs)
 {
     std::vector<TString> listOfNPs = getParameterList(exps, ignoreBinByBinNPs, true);
+    // std::vector<TString> listOfNPs{"r"};
     analyzeNPDistributions(listOfNPs, exps, outLabel,ignoreBinByBinNPs);
     for(auto& exp : exps){
         analyzeNPPulls(exp, outLabel, ignoreBinByBinNPs);
@@ -857,7 +869,13 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   if(pathname.EndsWith("/")) pathname.Chop();
 
   int ncolor=0;
-  Color_t colors[5] = {kBlue, kRed, kBlack, kGreen, kOrange};
+  std::vector<Color_t> colors{kBlue, 
+                        kRed, 
+                        kBlack, 
+                        kGreen, 
+                        kOrange,
+                        kSpring+2
+                        };
 
   // if(!pathToShapeExpectationRootfile.Contains("/")) pathToShapeExpectationRootfile.Form("%s/temp/%s", pathname.Data(), pathToShapeExpectationRootfile.Data());
   // std::cout << "getting expectation from " << pathToShapeExpectationRootfile << std::endl;
@@ -866,7 +884,7 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
       std::cout << "will use " << pathname << " as input\n";
       // TString filename = pathname(pathname.Last('/')+1, pathname.Length() - pathname.Last('/'));
       
-      loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+      loadPseudoExperiments(pathname, pathname, expSet, colors.at(ncolor), injectedMu);
       ncolor++;
       pathname.Remove(pathname.Last('/'), pathname.Length()-pathname.Last('/'));
       // pathname = ".";
@@ -875,31 +893,39 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
   {
       
       if(pathname.Contains("PseudoExperiment")){
-        loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "", "mlfit.root");
+        loadPseudoExperiments(pathname, pathname, expSet, colors.at(ncolor), injectedMu, "", "mlfit.root");
         ncolor++;
-        // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "extended model ", "fitDiagnostics_MS_mlfit.root");
+        // loadPseudoExperiments(pathname, pathname, expSet, colors.at(ncolor), injectedMu, "extended model ", "fitDiagnostics_MS_mlfit.root");
         // ncolor++;
       }
       else{
         TList *folders = dir.GetListOfFiles();
-        //if folders are found, go through each one an look for the fitDiagnosticsFile
+        //if folders are found, go through each one and look for the fitDiagnosticsFile
         if (folders) {
           TSystemFile *folder;
           TString folderName;
           TIter next(folders);
           while ((folder=(TSystemFile*)next())) {
             folderName = folder->GetName();
-            if(ncolor > 4) ncolor = 0;
+            if(ncolor > colors.size()) ncolor = 0;
             if (folder->IsDirectory() && folderName.Contains("sig")) {
-              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor]);
+              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), -999, "old model ");
               ncolor++;
-              // loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors[ncolor], injectedMu, "extended model ", "fitDiagnostics_MS_mlfit.root");
-              // ncolor++;
+              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "extra tt2B 1D ", "fitDiagnostics_MS_mlfit0.root");
+              ncolor++;
+              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "extra tt2B mu_ttb_bb ", "fitDiagnostics_MS_mlfit1.root");
+              ncolor++;
+              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "extra tt2B mu_tthf ", "fitDiagnostics_MS_mlfit2.root");
+              ncolor++;
+              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "ttHF 1D ", "fitDiagnostics_MS_mlfit3.root");
+              ncolor++;
+              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "ttHF mu_tthf ", "fitDiagnostics_MS_mlfit4.root");
+              ncolor++;
             }
             if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
-              loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu);
+              loadPseudoExperiments(pathname, pathname, expSet, colors.at(ncolor), injectedMu);
               ncolor++;
-              // loadPseudoExperiments(pathname, pathname, expSet, colors[ncolor], injectedMu, "extended model ", "fitDiagnostics_MS_mlfit.root");
+              // loadPseudoExperiments(pathname, pathname, expSet, colors.at(ncolor), injectedMu, "extended model ", "fitDiagnostics_MS_mlfit.root");
               // ncolor++;
               break;
             }
@@ -923,7 +949,7 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
     std::cout << "saving experiments in directory " << outputPath << std::endl;
 
     comparePostfitValues(expSet,outputPath,true);
-    compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
+    // compareShapes(expSet, outputPath, pathToShapeExpectationRootfile);
     TH2D* correlation;
     TString outputString;
     TString temp;
@@ -943,15 +969,15 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
           std::cout << "\tmedian = " << helperFuncs::getMedian(exp.postfitS(poi)) << std::endl;
           
       }
-      std::cout << "\tprinting correlation for Bonly fit\n";
-      correlation = exp.getCorrelationPlotPostfitB();
-      printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitB_" + exp());
-      if(correlation) delete correlation;
-      // exp.printPostfitBcorrelations(outputPath+"PostfitB_");
-      std::cout << "\tprinting correlation for S+B fit\n";
-      correlation = exp.getCorrelationPlotPostfitS();
-      printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitS_" + exp());
-      if(correlation) delete correlation;
+    //   std::cout << "\tprinting correlation for Bonly fit\n";
+    //   correlation = exp.getCorrelationPlotPostfitB();
+    //   printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitB_" + exp());
+    //   if(correlation) delete correlation;
+    //   // exp.printPostfitBcorrelations(outputPath+"PostfitB_");
+    //   std::cout << "\tprinting correlation for S+B fit\n";
+    //   correlation = exp.getCorrelationPlotPostfitS();
+    //   printCorrelationPlots(correlation, outputPath, "correlationPlot_PostfitS_" + exp());
+    //   if(correlation) delete correlation;
       // exp.printPostfitScorrelations(outputPath+"PostfitS_");
       
       TString tablename = "POIs_" + exp();
