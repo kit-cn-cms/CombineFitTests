@@ -24,7 +24,7 @@ from batchConfig import *
 batch = batchConfig()
 
 workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
-pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
+pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/setup_combine_cmssw.sh"
 
 usage = "usage: %prog [options] path/to/datacard"
 parser = OptionParser(usage = usage)
@@ -78,8 +78,9 @@ dest="POIs",
 help="add an additional POI to the fit.\nSyntax: (PROCESSNAME):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE]\n In order to map multiple process to one POI, use\n(PROCESSNAME1|PROCESSNAME2|...):POINAME[INIT_VAL, LOWER_RANGE, UPPER_RANGE].\nUses combine physics model 'multiSignalModel'. DANGER! This requires an additional datacard of the form 'path/to/original/datacard_POINAME1_POINAME2_....txt'"
 )
 group_globalOptions.add_option("--additionalWS",
-    dest = "additionalWS",
-    help = "Fit this datacard/workspace to the same toy as the one specified in '-d'")
+    dest = "additionalWSs",
+    action = "append",
+    help = "Fit this datacard/workspace to the same toy as the one specified in '-d'. Can be used multiple times")
 group_globalOptions.add_option("--addToyCommand",
 dest="additionalToyCmds",
 help = "add combine command for toy generation (-M GenerateOnly)(can be used multiple times)",
@@ -87,8 +88,14 @@ action="append",
 )
 group_globalOptions.add_option("--addFitCommand",
 dest="additionalFitCmds",
-help = "add combine command for fit (-M MaxLikelihoodFit)(can be used multiple times)",
+help = "add combine command for fit (-M FitDiagnostics)(can be used multiple times)",
 action="append",
+)
+group_globalOptions.add_option("--runlocally",
+dest = "runlocally",
+action = "store_true",
+default = False,
+help = "run commands locally"                               
 )
 group_globalOptions.add_option("--skipRootGen",
 help = "skip the generation of the scaled input root files to run faster (default = false)",
@@ -223,7 +230,11 @@ additionalFitCmds = options.additionalFitCmds
 resetFolders = not options.folderReset
 skipRootGen = options.skipRootGen
 doWorkspaces = options.doWorkspaces
-additionalWS = options.additionalWS
+additionalWSs = options.additionalWSs
+runlocally = options.runlocally
+
+additionalWSs = [os.path.abspath(x) for x in additionalWSs]
+    
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters
 
@@ -259,15 +270,15 @@ if listOfProcessesString and scaleFuncList:
 #----------------------------------------------------------------------------------------------------------------------------------------------
 
 def generateShellScript(targetDatacard, toyDatacard, numberOfToysPerExperiment,
-pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
+pathsToMSworkspaces, additionalToyCmds, additionalFitCmds, murange):
     """
     generate bash script to generate toys and perform maximum likelihood fits.
 
     Command for toy generation:
     combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard
 
-    Command for MaxLikelihoodFit (both for simple fit and multi signal model):
-    combine -M MaxLikelihoodFit -m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
+    Command for FitDiagnostcs (both for simple fit and multi signal model):
+    combine -M FitDiagnostics -m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
 
     Keyword arguments:
 
@@ -282,7 +293,8 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     generateToysCmd = "combine -M GenerateOnly -m 125 "
     generateToysCmd += "--saveToys -t $numberOfToysPerExperiment "
     generateToysCmd += "-n _$((numberOfToysPerExperiment))toys_sig$signalStrength "
-    generateToysCmd += "--expectSignal $signalStrength -s $((randomseed)) "
+    generateToysCmd += "--expectSignal $signalStrength " 
+    generateToysCmd += "-s $((randomseed)) "
     if additionalToyCmds is not None:
         for cmd in additionalToyCmds:
             generateToysCmd += cmd + " "
@@ -293,33 +305,33 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     mlfitCmd = "combine -M FitDiagnostics "
     mlfitCmd += "-m 125 "
     # mlfitCmd += "--cminFallbackAlgo Minuit2,migrad,0:1e-2 "
-    mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
-    mlfitCmd += "--cminDefaultMinimizerTolerance 1e-2 "
+    #mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
+    #mlfitCmd += "--cminDefaultMinimizerTolerance 1e-2 "
     if not murange == 0:
         mlfitCmd += "--rMin=$rMin --rMax=$rMax "
     mlfitCmd += "-t $numberOfToysPerExperiment --toysFile $toyFile "
     #time consuming commands
     # mlfitCmd += "--saveNormalizations --saveShapes "
-    mlfitCmd += "--minos all "
+    #mlfitCmd += "--minos all "
     # mlfitCmd += "--minos none "
     # mlfitCmd += "--robustFit 1 "
-    significance_cmd = "combine -M Significance "
-    significance_cmd += "-m 125 "
-    significance_cmd += "-t $numberOfToysPerExperiment --toysFile $toyFile "
-    significance_cmd += "--signalForSignificance 0 "
-    significance_cmd += "--cminDefaultMinimizerStrategy 0 "
-    significance_cmd += "--cminDefaultMinimizerTolerance 1e-2 "
-    if not murange == 0:
-        significance_cmd += "--rMin=$rMin --rMax=$rMax "
+    # significance_cmd = "combine -M Significance "
+    # significance_cmd += "-m 125 "
+    # significance_cmd += "-t $numberOfToysPerExperiment --toysFile $toyFile "
+    # significance_cmd += "--signalForSignificance 0 "
+    #significance_cmd += "--cminDefaultMinimizerStrategy 0 "
+    #significance_cmd += "--cminDefaultMinimizerTolerance 1e-2 "
+    # if not murange == 0:
+    #     significance_cmd += "--rMin=$rMin --rMax=$rMax "
     if additionalFitCmds is not None:
         for cmd in additionalFitCmds:
             mlfitCmd += cmd + " "
-            significance_cmd += cmd + " "
+            # significance_cmd += cmd + " "
 
     print "will use this command for fit:\n", mlfitCmd
-    print "will use this command for significance:\n", significance_cmd
+    # print "will use this command for significance:\n", significance_cmd
 
-    mswExists = pathToMSworkspace is not None and not pathToMSworkspace == ""
+    # mswExists = pathToMSworkspace is not None and not pathToMSworkspace == ""
     shellscript = []
     shellscript.append('#!/bin/bash')
     shellscript.append('ulimit -s unlimited')
@@ -329,8 +341,8 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     shellscript.append('\teval "source $pathToCMSSWsetup"')
     shellscript.append('\ttargetDatacard='+targetDatacard)
     shellscript.append('\ttoyDatacard='+toyDatacard)
-    if mswExists:
-        shellscript.append('\tpathToMSworkspace=' + pathToMSworkspace)
+    for i, addWS in enumerate(pathsToMSworkspaces):
+        shellscript.append('\tpathToMSworkspace{}={}'.format(i, addWS))
 
     shellscript.append('\tsignalStrength=$1')
     shellscript.append('\trandomseed=$2')
@@ -347,8 +359,10 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     shellscript.append('\techo "#Toys/Experiment = $numberOfToysPerExperiment"')
     shellscript.append('\techo "mu = $signalStrength"')
     shellscript.append('\techo "randomseed = $randomseed"')
-    if mswExists:
-        shellscript.append('\techo "pathToMSworkspace = $pathToMSworkspace"')
+    for i in range(len(pathsToMSworkspaces)):
+        shellscript.append('\techo "pathToMSworkspace{num} = $pathToMSworkspace{num}"'.format(
+                                                                                            num = i)
+                                                                                            )
     shellscript.append('\techo "outputPath = $outputPath"\n')
 
     shellscript.append('\techo "changing directory to $outputPath"')
@@ -373,28 +387,28 @@ pathToMSworkspace, additionalToyCmds, additionalFitCmds, murange):
     shellscript.append('\t\t\t\techo "$combineCmd"')
     shellscript.append('\t\t\t\teval $combineCmd\n')
 
-    shellscript.append('\t\t\t\tcombineCmd="' + significance_cmd + '$targetDatacard"')
-    shellscript.append('\t\t\t\techo "$combineCmd"')
-    shellscript.append('\t\t\t\teval $combineCmd\n')
+    # shellscript.append('\t\t\t\tcombineCmd="' + significance_cmd + '$targetDatacard"')
+    # shellscript.append('\t\t\t\techo "$combineCmd"')
+    # shellscript.append('\t\t\t\teval $combineCmd\n')
 
     shellscript.append('\t\t\t\tif ! [[ -f "fitDiagnostics.root" ]]; then')
     shellscript.append('\t\t\t\t\techo "could not produce fitDiagnostics.root file!"')
     shellscript.append('\t\t\t\tfi')
 
-    if mswExists:
-        shellscript.append('\t\t\t\tif [[ -f $pathToMSworkspace ]]; then')
+    for i in range(len(pathsToMSworkspaces)):
+        shellscript.append('\t\t\t\tif [[ -f $pathToMSworkspace{} ]]; then'.format(i))
         shellscript.append('\t\t\t\t\techo "starting multiSignal analysis"')
 
-        shellscript.append('\t\t\t\t\tcombineCmd="' + mlfitCmd + '-n _MS_mlfit $pathToMSworkspace"')
+        shellscript.append('\t\t\t\t\tcombineCmd="' + mlfitCmd + '-n _MS_mlfit{num} $pathToMSworkspace{num}"'.format(num = i))
         shellscript.append('\t\t\t\t\techo "$combineCmd"')
         shellscript.append('\t\t\t\t\teval $combineCmd\n')
 
-        shellscript.append('\t\t\t\tcombineCmd="' + significance_cmd + '-n _MS_mlfit $pathToMSworkspace"')
-        shellscript.append('\t\t\t\techo "$combineCmd"')
-        shellscript.append('\t\t\t\teval $combineCmd\n')
+        # shellscript.append('\t\t\t\tcombineCmd="' + significance_cmd + '-n _MS_signi{} $pathToMSworkspace{}"'.format(i))
+        # shellscript.append('\t\t\t\techo "$combineCmd"')
+        # shellscript.append('\t\t\t\teval $combineCmd\n')
 
-        shellscript.append('\t\t\t\t\tif ! [[ -f "fitDiagnostics_MS_mlfit.root" ]]; then')
-        shellscript.append('\t\t\t\t\t\techo "could not produce fitDiagnostics_MS_mlfit.root file!"')
+        shellscript.append('\t\t\t\t\tif ! [[ -f "fitDiagnostics_MS_mlfit{}.root" ]]; then'.format(i))
+        shellscript.append('\t\t\t\t\t\techo "could not produce fitDiagnostics_MS_mlfit{}.root file!"'.format(i))
         shellscript.append('\t\t\t\t\tfi')
 
         shellscript.append('\t\t\t\tfi\n')
@@ -453,7 +467,7 @@ def generateFolderGeneratorScript(generatorScriptPath, toyMode):
     shellscript.append('fi')
     return shellscript
 
-def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathToMSworkspace, listOfMus, murange):
+def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys, numberOfToysPerJob, toyMode, pathsToMSworkspaces, listOfMus, murange):
 
     generatorScript = os.path.abspath(outputDirectory + "/temp/generateToysAndFits.sh")
     folderGeneratorScript = os.path.abspath(outputDirectory + "/temp/generateFolders.sh")
@@ -463,7 +477,7 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
         targetDatacard = pathToDatacard,
         toyDatacard = datacardToUse,
         numberOfToysPerExperiment = toyMode,
-        pathToMSworkspace = pathToMSworkspace,
+        pathsToMSworkspaces = pathsToMSworkspaces,
         additionalFitCmds = additionalFitCmds,
         additionalToyCmds = additionalToyCmds,
         murange = murange ) ) )
@@ -513,7 +527,14 @@ def submitArrayJob(pathToDatacard, datacardToUse, outputDirectory, numberOfToys,
                 print command
 
             # return submitArrayToNAF(commands, outputDirectory+"temp/arrayJobs.sh")
-            return batch.submitArrayToBatch(commands, outputDirectory+"temp/arrayJobs.sh")
+            if runlocally:
+                for cmd in commands:
+                    tmp = " ".join(["source", cmd[1:-1]])
+                    print tmp
+                    subprocess.call([tmp], shell = True)
+                return True
+            else:
+                return batch.submitArrayToBatch(commands, outputDirectory+"temp/arrayJobs.sh")
         else:
             print "Could not write folder generator!"
     else:
@@ -817,7 +838,7 @@ def check_workspace(pathToDatacard):
         workspacePath = ""
     return workspacePath
         
-def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath, pathToDatacard, additionalWS = None):
+def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, outputPath, pathToDatacard, additionalWSs = None):
     print "outputPath in generateToysAndFit:", outputPath
     if not os.path.exists("temp"):
         os.makedirs("temp")
@@ -861,11 +882,6 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
 
     if os.path.exists(datacardToUse):
         print "creating toy data from datacard", datacardToUse
-        if not additionalWS:
-            pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
-        else:
-            pathToMSworkspace = check_workspace(additionalWS)
-        print ""
         print "checking if all datacards are workspaces"
         
         temp = check_workspace(pathToDatacard)
@@ -874,6 +890,17 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
         temp = check_workspace(datacardToUse)
         if temp:
             datacardToUse = temp
+        pathsToMSworkspaces = []
+        if not additionalWSs is None and isinstance(additionalWSs, list):
+            for additionalWS in additionalWSs:
+                print "checking additional workspace here: ", additionalWS
+                pathToMSworkspace = ""
+                if not additionalWS:
+                    pathToMSworkspace = checkForMSworkspace(pathToDatacard, POImap)
+                else:
+                    pathToMSworkspace = check_workspace(additionalWS)
+                if not(pathToMSworkspace == "" or pathToMSworkspace is None):
+                    pathsToMSworkspaces.append(pathToMSworkspace)
         
         
         jobids = submitArrayJob(pathToDatacard = pathToDatacard, 
@@ -882,7 +909,7 @@ def generateToysAndFit(inputRootFile, processScalingDic, pathToScaledDatacard, o
                                 numberOfToys = numberOfToys, 
                                 numberOfToysPerJob = numberOfToysPerJob,
                                 toyMode = toyMode,
-                                pathToMSworkspace = pathToMSworkspace,
+                                pathsToMSworkspaces = pathsToMSworkspaces,
                                 listOfMus = listOfMus,
                                 murange = murange)
 
@@ -973,6 +1000,6 @@ if os.path.exists(pathToDatacard):
                         pathToScaledDatacard = pathToScaledDatacard, 
                         outputPath = outputDirectory,
                         pathToDatacard = pathToDatacard,
-                        additionalWS = additionalWS)
+                        additionalWSs = additionalWSs)
 else:
     print "Incorrect paths to input datacard. Please make sure path to datacard is correct!"
