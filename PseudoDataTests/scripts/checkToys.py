@@ -18,15 +18,15 @@ def loadVariable(rootfile, takeTree=False):
             return val, error
         # #ROOT.gDirectory.cd('PyROOT:/')
         
-        if fit_s.status() == 0 and fit_s.covQual() == 3:
-            #print "loading values"
-            var = fit_s.floatParsFinal().find("r")
-            val = var.getVal()
-            error = var.getError()
-        else:
+        if not (fit_s.status() == 0 and fit_s.covQual() == 3):
             print "something went wrong in the fit, file", rootfile.GetName()
             print "\tfit status =", fit_s.status()
             print "\tcovQual() =", fit_s.covQual()
+
+            #print "loading values"
+        var = fit_s.floatParsFinal().find("r")
+        val = var.getVal()
+        error = var.getError()
         fit_s.Delete()
         # pass
     else:
@@ -404,10 +404,11 @@ def print2dDictionary(data_obs_dic, pdfOutputPath, labelbase = ";"):
     outputdic = {pdfOutputPath + "pdfs" : ".pdf",
                     pdfOutputPath + "pngs": ".png"}
     
-    for foldername in outputdic:
+    for i, foldername in enumerate(outputdic):
         for cat in data_obs_dic:
             outfolder = pdfOutputPath + "/" + cat
-            check_for_reset(outfolder)
+            # if i == 0:
+            #     check_for_reset(outfolder)
             if cat == "total_integral":
                     uid = ROOT.TUUID()
                     histname = "scatterplot_total_integral_"+uid.AsString()
