@@ -71,9 +71,9 @@ namespace drawPullPlots{
         std::cout << "bonly marker style: " << graphs.back()->GetMarkerStyle() << std::endl;
         std::cout << "drew postfitB\n";
         graphs.push_back(get_graph(sbfit, -0.2*binwidth));
-        // std::cout << "saved postfitSB TGraph\n";
-        // addToCanvas(graphs.back(), legend, "S+B fit Means + Mean Fitted Error", "PEsame", "postfitSBmeans_fittedError");
-        // std::cout << "drew postfitSB\n";
+        std::cout << "saved postfitSB TGraph\n";
+        addToCanvas(graphs.back(), legend, "S+B fit Means + Mean Fitted Error", "PEsame", "postfitSBmeans_fittedError");
+        std::cout << "drew postfitSB\n";
   }
   
   void drawPullPlots(const std::vector<TString>& listOfNPs,
@@ -287,10 +287,10 @@ namespace drawPullPlots{
                 addToCanvas(hPostfitBmeansWithFitErrors, legend, "B-only fit Means + Fitted Error", "PEsame", "postfitBmeans_fittedError");
                 std::cout << "drew postfit b\n";
                 
-                // addToCanvas(hPostfitSBmeans, legend, "S+B fit Means + Mean Error", "PE1same", "postfitSBmeans");
+                addToCanvas(hPostfitSBmeans, legend, "S+B fit Means + Mean Error", "PE1same", "postfitSBmeans");
                 // addToCanvas(hPostfitSBmedians, legend, "S+B fit Medians + RMS", "PE1same", "postfitSBmedians");
                 
-                // addToCanvas(hPostfitSBmeansWithFitErrors, legend, "S+B fit Means + Fitted Error", "PEsame", "postfitSBmeans_fittedError");
+                addToCanvas(hPostfitSBmeansWithFitErrors, legend, "S+B fit Means + Fitted Error", "PEsame", "postfitSBmeans_fittedError");
         }
         else{
                 if(hPostfitBmeansWithFitErrors != NULL || hPostfitSBmeansWithFitErrors != NULL){
