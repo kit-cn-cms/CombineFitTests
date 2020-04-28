@@ -57,9 +57,7 @@ def check_workspace(pathToDatacard):
 
 def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
                         yVar, bonly, suffix, additionalCmds = None):
-    
-
-#______________combine stuff_____________________________________
+    """#______________combine stuff______________________________"""
 
 
     fitresFile = "higgsCombine"
@@ -86,9 +84,9 @@ def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
     else:
         multidimfitcmd += ["-P " + str(x) for x in params]
     if not xVar in params and not xVar == "r":
-        multidimfitcmd.append("--saveSpecifiedNuis " + xVar)
+        multidimfitcmd.append("--trackParameters " + xVar)
     if not yVar == "deltaNLL" and not yVar == "r" and not yVar in params:
-        multidimfitcmd.append("--saveSpecifiedNuis " + yVar)
+        multidimfitcmd.append("--trackParameters " + yVar)
     if "r" in [xVar, yVar] and not "r" in params and not any("--floatOtherPOIs 1" in x for x in multidimfitcmd):
         multidimfitcmd.append("--floatOtherPOIs 1")
     if bonly:
@@ -560,6 +558,62 @@ def set_titles(graph, xtitle, ytitle, ztitle = None):
         print "WARNING! Could not set axis titles!"
     graph.SetTitle("Scan of {0} over {1}".format(ytitle, xtitle))
 
+def find_parameter(bl, var):
+    if var in bl:
+        return var
+    var = "trackedParam_" + var
+    if var in bl:
+        return var
+    msg = "Could not find variable {} in TTree!".format(var)
+    msg += " Are you sure you saved it?"
+    raise KeyError(msg)
+
+def load_values(limit, xVar, yVar, nllcutoff, dim = 1):
+    xVals = []
+    yVals = []
+    nllvals = []
+    listxbest = []
+    listybest = []
+    xbest = None
+    ybest = None
+    nllbest = None
+    branchlist = [x.GetName() for x in limit.GetListOfBranches()]
+    xVar = find_parameter(bl = branchlist, var = xVar)
+    yVar = find_parameter(bl = branchlist, var = yVar)
+    for i, e in enumerate(limit):
+        x = eval("e." + xVar)
+        y = eval("e." + yVar)
+        nll = e.deltaNLL
+        print "current values: {0}, {1}".format(x, y)
+
+        if nll <= nllcutoff:
+            print "\tsaving values {0}, {1}".format(x, y)
+            xVals.append(x)
+            yVals.append(y)
+            nllvals.append(2*nll)
+
+        if nllbest is None or nll < nllbest:
+            xbest = xVals[-1]
+            ybest = yVals[-1]
+            nllbest = 2*nll
+    
+    # if len(listxbest) == 0:
+    #     xbest = None
+    # else:
+    #     xbest = fsum(listxbest)/len(listxbest)
+    # if len(listybest) == 0:
+    #     ybest = None
+    # else:
+    #     ybest = fsum(listybest)/len(listybest)
+    print "found best fit point at (x, y) = ({0}, {1})".format(xbest, ybest)
+    bestvalues = [xbest, ybest]
+    if dim == 1:
+        return xVals, yVals, bestvalues
+    elif dim == 2:
+        return xVals, yVals, nllvals, bestvalues
+    else:
+        raise ValueError("Scans are defined for dimensions 1 and 2!")
+
 def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
                 xtitle = None, ytitle = None, pathToErrors = None,
                 doProfile = False, bonly = False, nllcutoff = 10):
@@ -578,39 +632,10 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     if bonly:
         filename += "_bonly"
     outfile = ROOT.TFile(filename + ".root", "RECREATE")
-    xVals = []
-    yVals = []
-    nllvals = []
-    listxbest = []
-    listybest = []
-    xbest = None
-    ybest = None
-    nllbest = None
-    for i, e in enumerate(limit):
-        x = eval("e." + xVar)
-        y = eval("e." + yVar)
-        nll = 2*e.deltaNLL
-        print "current values: {0}, {1}".format(x, y)
-
-        if nll <= nllcutoff:
-            print "\tsaving values {0}, {1}".format(x, y)
-            xVals.append(x)
-            yVals.append(y)
-
-        if nllbest is None or nll < nllbest:
-            xbest = xVals[-1]
-            ybest = yVals[-1]
-            nllbest = nll
-    
-    # if len(listxbest) == 0:
-    #     xbest = None
-    # else:
-    #     xbest = fsum(listxbest)/len(listxbest)
-    # if len(listybest) == 0:
-    #     ybest = None
-    # else:
-    #     ybest = fsum(listybest)/len(listybest)
-    print "found best fit point at (x, y) = ({0}, {1})".format(xbest, ybest)
+    xVals, yVals, bestvalues = load_values(limit = limit, xVar = xVar, 
+                                            yVar = yVar, nllcutoff = nllcutoff)
+    xbest = bestvalues[0]
+    ybest = bestvalues[1]
     # if not ybest is None and ybest != 0 and yVar == "deltaNLL":
     #     print "rebasing y values to ", ybest
     #     yVals = [y - ybest for y in yVals]
@@ -717,7 +742,7 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
         ytitle = yVar
     filename = ("nllscan_2D_{0}_{1}{2}").format(xtitle,ytitle, suffix)
     filename = helperfuncs.treat_special_chars(string = filename)
-    filename = outputDirectory + "/" + filename
+    filename = os.path.join(outputDirectory, filename)
     outfile = ROOT.TFile(filename+".root", "RECREATE")
     xVals = []
     yVals = []
