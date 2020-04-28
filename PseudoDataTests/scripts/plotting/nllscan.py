@@ -21,7 +21,7 @@ if os.path.exists(helperpath):
 else:
     sys.exit("Could not load helperfuncs from %s" % helperpath)
 ROOT.gROOT.SetBatch(True)
-pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts/setupCMSSW_8_1_0.txt"
+pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/setup_combine_cmssw_new.sh"
 
 
 #======================================================================
@@ -232,7 +232,7 @@ def do_fits():
     else:
         sys.exit("Could not write script to merge files!") 
 
-def get_cl_value(cl, npois = None):
+def get_cl_value(cl, npois = None, ybest = None):
     """
     Find confidence level value \Delta\chi^2/2*\Delta\ln L for
     specific coverage probability. 
@@ -286,7 +286,7 @@ def get_cl_value(cl, npois = None):
         #check if requested coverage probability is in the dictionary
         cls = cldict[npois]
         if cl in cls:
-            return cls[cl]
+            return cls[cl] + ybest if not ybest is None else cls[cl]
         else:
             print "WARNING:\tunknown confidence level! Cannot compute errors"
     else:
@@ -393,7 +393,7 @@ def create_parabola(xmin, xmax, xbest, ybest=None):
     parabel.SetLineColor(ROOT.kBlack)
     return parabel
 
-def create_lines_from_RooFitResult(var, pathToErrors, xmin, xmax, ymin,ymax, bonly = False):
+def create_lines_from_RooFitResult(var, pathToErrors, xmin, xmax, ymin,ymax, ybest=None, bonly = False):
     clresults = {}
     style = 2
     clname = "68.27%"
@@ -415,7 +415,7 @@ def create_lines_from_RooFitResult(var, pathToErrors, xmin, xmax, ymin,ymax, bon
                 print results.getErrorLo(), "\t", results.getErrorHi()
                 print vals
                 lines = []
-                line_hor = create_straight_line(val = get_cl_value(cl = clname, npois = 1),
+                line_hor = create_straight_line(val = get_cl_value(cl = clname, npois = 1, ybest = ybest),
                                                                 minVal = xmin,
                                                                 maxVal = xmax,
                                                                 mode = "horizontal",
@@ -471,9 +471,10 @@ def create_lines(   graph, xbest, clStyles, granularity, ybest = None,
             if isinstance(parabel, ROOT.TF1):
                 x_down = None
                 x_up = None
+                cl = get_cl_value(clname, 1, ybest)
                 if not xbest == None:
                     x_down = find_crossing( graph = parabel,
-                                            cl = get_cl_value(clname, 1), 
+                                            cl = cl, 
                                             start = xbest, 
                                             stop = xmin,
                                             granularity = granularity)
@@ -482,7 +483,7 @@ def create_lines(   graph, xbest, clStyles, granularity, ybest = None,
                     else:
                         vals.append("none")
                     x_up = find_crossing(   graph = parabel,
-                                            cl = get_cl_value(clname,1), 
+                                            cl = cl, 
                                             start = xbest, 
                                             stop = xmax,
                                             granularity = granularity)
@@ -491,7 +492,7 @@ def create_lines(   graph, xbest, clStyles, granularity, ybest = None,
                     else:
                         vals.append("none")
                     print vals
-                line_hor = create_straight_line(val = get_cl_value(cl = clname, npois = 1),
+                line_hor = create_straight_line(val = cl,
                                                 minVal = xmin,
                                                 maxVal = xmax,
                                                 mode = "horizontal",
@@ -519,9 +520,9 @@ def create_lines(   graph, xbest, clStyles, granularity, ybest = None,
     return clresults
 
 def save_output(canvas, graph, name):
-    canvas.SaveAs(name + ".pdf")
-    canvas.SaveAs(name+".png")
-    canvas.SaveAs(name + "_canvas.root")
+    canvas.Print(name + ".pdf", "pdf")
+    canvas.Print(name+".png", "png")
+    canvas.Print(name + "_canvas.root", "root")
     # graph.SaveAs(name + ".root")
 
 
@@ -532,6 +533,7 @@ def fill_graph(graph, xVals, yVals, zVals = None):
             if zVals is not None:
                 graph.SetPoint(i, xVals[i], yVals[i], zVals[i])
             else:
+                print "setting point {}: ({},{})".format(i, xVals[i], yVals[i])
                 graph.SetPoint(i, xVals[i], yVals[i])
     elif isinstance(graph, ROOT.TH1):
         for i in range(len(xVals)):
@@ -560,7 +562,7 @@ def set_titles(graph, xtitle, ytitle, ztitle = None):
 
 def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
                 xtitle = None, ytitle = None, pathToErrors = None,
-                doProfile = False, bonly = False):
+                doProfile = False, bonly = False, nllcutoff = 10):
     cls = { "68.27%"    : 2,  
             # "95%"       : 3
             }       
@@ -578,36 +580,42 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     outfile = ROOT.TFile(filename + ".root", "RECREATE")
     xVals = []
     yVals = []
+    nllvals = []
     listxbest = []
     listybest = []
+    xbest = None
+    ybest = None
+    nllbest = None
     for i, e in enumerate(limit):
         x = eval("e." + xVar)
         y = eval("e." + yVar)
-        # print "current values: {0}, {1}".format(x, y)
-        
-        if yVar == "deltaNLL":
-            if y >= 0 and y < 10:
-                # print "\tsaving values {0}, {1}".format(x, 2*y)
-                xVals.append(x)
-                yVals.append(2*y)
-        else:
+        nll = 2*e.deltaNLL
+        print "current values: {0}, {1}".format(x, y)
+
+        if nll <= nllcutoff:
+            print "\tsaving values {0}, {1}".format(x, y)
             xVals.append(x)
             yVals.append(y)
-            
-        if y == 0:
-            listxbest.append(xVals[-1])
-            listybest.append(yVals[-1])
+
+        if nllbest is None or nll < nllbest:
+            xbest = xVals[-1]
+            ybest = yVals[-1]
+            nllbest = nll
     
-    if len(listxbest) == 0:
-        xbest = None
-    else:
-        xbest = fsum(listxbest)/len(listxbest)
-    if len(listybest) == 0:
-        ybest = None
-    else:
-        ybest = fsum(listybest)/len(listybest)
+    # if len(listxbest) == 0:
+    #     xbest = None
+    # else:
+    #     xbest = fsum(listxbest)/len(listxbest)
+    # if len(listybest) == 0:
+    #     ybest = None
+    # else:
+    #     ybest = fsum(listybest)/len(listybest)
     print "found best fit point at (x, y) = ({0}, {1})".format(xbest, ybest)
-    
+    # if not ybest is None and ybest != 0 and yVar == "deltaNLL":
+    #     print "rebasing y values to ", ybest
+    #     yVals = [y - ybest for y in yVals]
+    print xVals
+    print yVals
     # c = helperfuncs.getCanvas()
     xmin = min(xVals)
     xmax = max(xVals)
@@ -625,6 +633,8 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     set_titles(graph = graph, xtitle = xtitle, ytitle = ytitle)
     if isinstance(graph, ROOT.TGraph):
         graph.Sort()
+    for i in range(graph.GetN()):
+        print("{}: ({}, {})".format(i, graph.GetX()[i], graph.GetY()[i]))
     graph.Draw()
     ymin = graph.GetYaxis().GetXmin()
     if isinstance(graph, ROOT.TGraph):
@@ -643,6 +653,7 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
                                                     pathToErrors = pathToErrors,
                                                     xmin = xmin, xmax = xmax,
                                                     ymin = ymin, ymax = ymax,
+                                                    ybest = ybest,
                                                     bonly = bonly)
         if len(results) == 0:
             results = create_lines( graph = graph, xbest = xbest, 
@@ -697,7 +708,7 @@ def do1DScan(   limit, xVar, yVar, outputDirectory, suffix, granularity,
     
 def do2DScan(   limit, xVar, yVar, outputDirectory, suffix, 
                 xtitle= None, ytitle = None, pathToErrors = None,
-                doProfile = False, npois = None):
+                doProfile = False, npois = None, nllcutoff = 10):
     cls = { "68.27%"    : 2,  #68%
             "95%"       : 3}  #95%
     if xtitle == None:
@@ -720,8 +731,8 @@ def do2DScan(   limit, xVar, yVar, outputDirectory, suffix,
         z = e.deltaNLL
         #print "current values: {0}, {1}".format(x, y)
 
-        if z >= 0 and z < 10:
-            #print "saving values {0}, {1}".format(x, 2*y)
+        if z >= 0 and z < nllcutoff:
+            print "saving values {0}, {1}".format(x, 2*y)
             xVals.append(x)
             yVals.append(y)
             zVals.append(2*z)
@@ -865,6 +876,12 @@ if __name__ == '__main__':
                         help = "in 2D contour, draw cl level for this number of pois",
                         dest = "npois",
                         type = "int")
+    parser.add_option(  "--nllcutoff",
+                        help = "use this value as cut off for the negative log likelihood",
+                        dest = "nllcutoff",
+                        type = "float",
+                        default = 10
+    )
     (options, args) = parser.parse_args()
     
     directDrawPath = options.directDraw
@@ -883,6 +900,7 @@ if __name__ == '__main__':
     pathToErrors = options.pathToErrors
     doProfile = options.doProfile
     npois = options.npois
+    nllcutoff = options.nllcutoff
     
     if pathToErrors is not None:
         if not os.path.exists(pathToErrors):
@@ -1013,7 +1031,8 @@ if __name__ == '__main__':
                                 ytitle = ytitle,
                                 pathToErrors = pathToErrors,
                                 doProfile = doProfile,
-                                npois = npois)
+                                npois = npois,
+                                nllcutoff = nllcutoff)
                 else:
                     do1DScan(   limit, xVar = xVar, yVar = yVar, 
                                 outputDirectory = outputDirectory, 
@@ -1023,7 +1042,8 @@ if __name__ == '__main__':
                                 ytitle = ytitle,
                                 pathToErrors = pathToErrors,
                                 doProfile = doProfile,
-                                bonly = bonly)
+                                bonly = bonly,
+                                nllcutoff = nllcutoff)
     
     
             else:
