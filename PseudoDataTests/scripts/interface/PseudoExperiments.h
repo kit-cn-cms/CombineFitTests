@@ -281,8 +281,9 @@ private:
   void storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TFile* file, const RooFitResult* result, std::map<TString, std::map<TString, TH1*> >& correlations);
   void storeRooFitResults(std::map<TString,TH1*>& hists, std::map<TString, TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString,TH1*>& hErrorsLo, TFile* file, const RooFitResult* result, std::map<TString, std::map<TString, std::vector<double> > >& correlations);
   void storeRooFitResults(std::map<TString,std::vector<Double_t> >& histVecs, std::map<TString,std::vector<Double_t> >& hErrorVecs, std::map<TString,std::vector<Double_t> >& hErrorsHiVecs, std::map<TString, std::vector<Double_t> >& hErrorsLoVecs, TFile* file, const RooFitResult* result, std::map<TString, std::map<TString, std::vector<Double_t> > >& correlationVecs);
-  
-  void readRooRealVar(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TIter it) const;
+
+  void readRooRealVar(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TIter it) const;  
+  void readRooRealVar(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TIter it, std::map<TString, TH1*>& biasMap) const;
   void readRooRealVar(std::map<TString,std::vector<Double_t> >& histVecs, std::map<TString,std::vector<Double_t> >& hErrorVecs, std::map<TString,std::vector<Double_t> >& hErrorsHiVecs, std::map<TString, std::vector<Double_t> >& hErrorsLoVecs, TIter it) const;
   void readRooRealVar(TH1* hist, const RooFitResult* result, const TString& currentVarName) const;
   void readRooRealVar(std::vector<Double_t>& histVec, const RooFitResult* result, const TString& currentVarName) const;

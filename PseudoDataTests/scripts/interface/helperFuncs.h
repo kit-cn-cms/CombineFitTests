@@ -89,6 +89,15 @@ namespace helperFuncs{
       else return x;
   }
 
+  void find_and_fill_histo(std::map<TString, TH1*>& histos, const TString& name, const double& value, const bool& debug){
+    if(debug) std::cout << "looking for parameter " << name.Data() <<std::endl;
+    std::map<TString, TH1*>::const_iterator iter = histos.find(name);
+    if(iter != histos.end())
+    {
+      if(debug) std::cout << "\tfound it! Filling histo for parameter " << iter->first << "\n";
+        iter->second->Fill(value);
+    }
+  }
   double findMaxValue(const std::vector<TH1*>& histos, const TString mode = "y")
   {
     std::cout << "looking for maximum value; comparing " << histos.size() << " histos; mode: " << mode << std::endl;

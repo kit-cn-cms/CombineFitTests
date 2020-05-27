@@ -48,24 +48,45 @@ void PseudoExperiments::readRooRealVar(std::map<TString,TH1*>& hists, std::map<T
   while((param = (RooRealVar*)it.Next())){
     if(!helperFuncs::compare_classname(param, "RooRealVar")) continue;
     //Double_t value = param->getVal();
-    if(debug_) std::cout << "looking for parameter " << param->GetName() <<std::endl;
-    std::map<TString, TH1*>::const_iterator iter = hists.find(param->GetName());
-    if(iter != hists.end())
-    {
-      if(debug_) std::cout << "\tfound it! Filling histo for parameter " << iter->first << "\n";
-      iter->second->Fill(param->getVal());
-      
-      std::map<TString, TH1*>::const_iterator iter_errorHi = hErrorsHi.find( iter->first);
-      if(debug_) std::cout << "\tfound it! Filling error high histo for parameter " << iter->first << "\n";
-      iter_errorHi->second->Fill(param->getErrorHi());
     
-      std::map<TString, TH1*>::const_iterator iter_errorLo = hErrorsLo.find( iter->first);
-      if(debug_) std::cout << "\tfound it! Filling error low histo for parameter " << iter->first << "\n";
-      iter_errorLo->second->Fill(param->getErrorLo());
+    helperFuncs::find_and_fill_histo(hists, param->GetName(), param->getVal(), debug_);
     
-      std::map<TString, TH1*>::const_iterator iter_errors = hErrors.find( iter->first);
-      if(debug_) std::cout << "\tfound it! Filling error histo for parameter " << iter->first << "\n";
-      iter_errors->second->Fill(param->getError());
+    helperFuncs::find_and_fill_histo(hErrorsHi, param->GetName(), param->getErrorHi(), debug_);
+  
+    helperFuncs::find_and_fill_histo(hErrorsLo, param->GetName(), param->getErrorLo(), debug_);
+  
+    helperFuncs::find_and_fill_histo(hErrors, param->GetName(), param->getError(), debug_);
+
+  }
+}
+
+void PseudoExperiments::readRooRealVar(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TIter it, std::map<TString, TH1*>& biasMap) const{
+  RooRealVar* param = NULL;
+
+  // if(init) TIter it = result->floatParsInit().createIterator();
+  // else TIter it = result->floatParsFinal().createIterator();
+  double bias = 0;
+  std::cout << "entering bias code\n";
+  while((param = (RooRealVar*)it.Next())){
+    if(!helperFuncs::compare_classname(param, "RooRealVar")) continue;
+    //Double_t value = param->getVal();
+    
+    helperFuncs::find_and_fill_histo(hists, param->GetName(), param->getVal(), debug_);
+    
+    helperFuncs::find_and_fill_histo(hErrorsHi, param->GetName(), param->getErrorHi(), debug_);
+  
+    helperFuncs::find_and_fill_histo(hErrorsLo, param->GetName(), param->getErrorLo(), debug_);
+  
+    helperFuncs::find_and_fill_histo(hErrors, param->GetName(), param->getError(), debug_);
+
+    if(std::find(pois_.begin(), pois_.end(), param->GetName()) != pois_.end()){
+      if(param->getError() == 0) {
+        std::cerr << "ERROR: Could not calculate bias, error is 0 for parameter " << param->GetName() << std::endl;
+        continue;
+      }
+      bias = (param->getVal()-injectedMu_)/param->getError();
+      std::cout << "\tfilling bias for param " << param->GetName() << " ("<< bias << ")\n";
+      helperFuncs::find_and_fill_histo(biasMap, param->GetName(), bias, debug_);
     }
   }
 }
@@ -448,7 +469,6 @@ void PseudoExperiments::addExperiments(TString& sourceDir, const TString& mlfitF
   for(auto& container : postfitSshapes_) container->createShapeHistos(injectedMu_);
 }
 
-
 bool PseudoExperiments::checkFitStatus(TFile* file){
   bool storeExperiment = true;
   int fit_status=7;
@@ -559,7 +579,6 @@ void PseudoExperiments::initContainers(TFile* file, const RooFitResult* result, 
   createHistograms(valuesPostfitSerrorLo_, nps_, "postfitS_errorLo");
 }
 
-
 void PseudoExperiments::createHistograms(std::map<TString,TH1*>& hists, const std::vector<TString>& nps, const TString& name, int nBins, Double_t min, Double_t max) const {
   if (! nps.empty() )
   {
@@ -568,7 +587,6 @@ void PseudoExperiments::createHistograms(std::map<TString,TH1*>& hists, const st
       }
   }
 }
-
 
 TH1* PseudoExperiments::createHistogram(const TString& par, const TString& name, int nBins, Double_t min, Double_t max) const {
   if( debug_ ) std::cout << "DEBUG: createHistogram: " << par << ", " << name << std::endl;
@@ -580,7 +598,6 @@ TH1* PseudoExperiments::createHistogram(const TString& par, const TString& name,
   h->SetDirectory(0);
   return h;
 }
-
 
 void PseudoExperiments::storePrefitValues(std::map<TString,TH1*>& hists, std::map<TString,TH1*>& hErrors, std::map<TString,TH1*>& hErrorsHi, std::map<TString, TH1*>& hErrorsLo, TFile* file) const {
   TStopwatch watch;
@@ -630,9 +647,10 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
         createHistograms(valuesPostfitSerrors_,pois_,"postfitS_errors");
         createHistograms(valuesPostfitSerrorHi_, pois_, "postfitS_errorHi");
         createHistograms(valuesPostfitSerrorLo_, pois_, "postfitS_errorLo");
+        createHistograms(biasPostfitS_, pois_, "biasfitS", 40, -2, 2);
     }
   }
-  readRooRealVar(hists, hErrors, hErrorsHi, hErrorsLo, result->floatParsFinal().createIterator());
+  readRooRealVar(hists, hErrors, hErrorsHi, hErrorsLo, result->floatParsFinal().createIterator(), biasPostfitS_);
 
   if(debug_)std::cout << std::endl;
   collectCorrelations(correlations, result);
@@ -670,9 +688,11 @@ void PseudoExperiments::storeRooFitResults(std::map<TString,TH1*>& hists, std::m
         createHistograms(valuesPostfitSerrors_,pois_,"postfitS_errors");
         createHistograms(valuesPostfitSerrorHi_, pois_, "postfitS_errorHi");
         createHistograms(valuesPostfitSerrorLo_, pois_, "postfitS_errorLo");
+
+        createHistograms(biasPostfitS_, pois_, "biasfitS", 40, -2, 2);
     }
   }
-  readRooRealVar(hists, hErrors, hErrorsHi, hErrorsLo, result->floatParsFinal().createIterator());
+  readRooRealVar(hists, hErrors, hErrorsHi, hErrorsLo, result->floatParsFinal().createIterator(), biasPostfitS_);
 
   if(debug_)std::cout << std::endl;
   collectCorrelations(correlations, result);
