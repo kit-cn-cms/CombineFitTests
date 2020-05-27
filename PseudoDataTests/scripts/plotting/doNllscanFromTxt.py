@@ -117,6 +117,6 @@ if os.path.exists(pathToTxt):
                 continue
             
             do_1D_scan(param = param, datacard = datacard, cmdList = cmdList, suffix = outputDirectory)
-            do_impact_scan(param = param, datacard = datacard, cmdList = cmdList, suffix = outputDirectory)
+            #do_impact_scan(param = param, datacard = datacard, cmdList = cmdList, suffix = outputDirectory)
         os.chdir(basepath)
     

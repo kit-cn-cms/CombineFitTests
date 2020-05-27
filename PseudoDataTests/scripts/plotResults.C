@@ -16,12 +16,14 @@
 #include "TLine.h"
 #include "TStyle.h"
 
-#include "LabelMaker.h"
-#include "PseudoExperiments.h"
-#include "TheLooks.h"
-#include "drawPullPlots.h"
-#include "helperFuncs.h"
-#include "createLatexOutput.h"
+#include "interface/LabelMaker.h"
+#include "interface/TheLooks.h"
+#include "interface/drawPullPlots.h"
+#include "interface/helperFuncs.h"
+#include "interface/createLatexOutput.h"
+
+#include "src/PseudoExperiments.CC"
+
 
 void printCorrelationPlots(TH2D* correlationPlot, const TString& outlabel, const TString label){
     if(correlationPlot)
@@ -911,16 +913,16 @@ void plotResults(TString pathname, TString pathToShapeExpectationRootfile = "", 
             if (folder->IsDirectory() && folderName.Contains("sig")) {
               loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), -999, "old model ");
               ncolor++;
-              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "extra tt2B 1D ", "fitDiagnostics_MS_mlfit0.root");
-              ncolor++;
-              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "extra tt2B mu_ttb_bb ", "fitDiagnostics_MS_mlfit1.root");
-              ncolor++;
-              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "extra tt2B mu_tthf ", "fitDiagnostics_MS_mlfit2.root");
-              ncolor++;
-              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "ttHF 1D ", "fitDiagnostics_MS_mlfit3.root");
-              ncolor++;
-              loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "ttHF mu_tthf ", "fitDiagnostics_MS_mlfit4.root");
-              ncolor++;
+              //loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "extra tt2B 1D ", "fitDiagnostics_MS_mlfit0.root");
+              //ncolor++;
+              //loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "extra tt2B mu_ttb_bb ", "fitDiagnostics_MS_mlfit1.root");
+              //ncolor++;
+              //loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "extra tt2B mu_tthf ", "fitDiagnostics_MS_mlfit2.root");
+              //ncolor++;
+              //loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "ttHF 1D ", "fitDiagnostics_MS_mlfit0.root");
+              //ncolor++;
+              //loadPseudoExperiments(pathname+"/"+folderName, folderName, expSet, colors.at(ncolor), injectedMu, "ttHF mu_tthf ", "fitDiagnostics_MS_mlfit1.root");
+              //ncolor++;
             }
             if (folder->IsDirectory() && folderName.Contains("PseudoExperiment")){
               loadPseudoExperiments(pathname, pathname, expSet, colors.at(ncolor), injectedMu);

@@ -13,5 +13,5 @@ if len(scripts)==0:
     sys.exit("received no input!")
 
 scripts = [os.path.abspath(x) for x in scripts if os.path.exists(x)]
-config.runtime = 432000 #= 5 days
+#config.runtime = 432000 #= 5 days
 config.submitArrayToBatch(scripts, basepath+"/arrayJobs.sh")

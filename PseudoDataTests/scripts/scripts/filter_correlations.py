@@ -61,6 +61,8 @@ if os.path.exists(correlationspath):
             if clname.startswith("TH2"):
                 keyname = key.GetName()
                 h = corfile.Get(keyname)
+                print h
+                print cut
                 new, lines = filter_values(hIn = h, cut = cut)
     if not new is None:
         ROOT.gStyle.SetOptStat(0)

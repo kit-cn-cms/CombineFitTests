@@ -23,8 +23,7 @@ if not basefolder in sys.path:
 from batchConfig import *
 batch = batchConfig()
 
-workdir = "/nfs/dust/cms/user/pkeicher/tth_analysis_study/CombineFitTests/PseudoDataTests/scripts"
-pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/setup_combine_cmssw.sh"
+pathToCMSSWsetup="/nfs/dust/cms/user/pkeicher/setup_combine_cmssw_new.sh"
 
 usage = "usage: %prog [options] path/to/datacard"
 parser = OptionParser(usage = usage)
@@ -233,7 +232,8 @@ doWorkspaces = options.doWorkspaces
 additionalWSs = options.additionalWSs
 runlocally = options.runlocally
 
-additionalWSs = [os.path.abspath(x) for x in additionalWSs]
+if not additionalWSs is None:
+    additionalWSs = [os.path.abspath(x) for x in additionalWSs]
     
 #--------------------------------------------------------------------------------------------------------------------------------------------
 #global parameters

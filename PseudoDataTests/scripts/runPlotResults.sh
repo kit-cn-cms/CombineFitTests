@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CMSSW_BASE=/nfs/dust/cms/user/pkeicher/CMSSW_8_1_0
+CMSSW_BASE=/nfs/dust/cms/user/pkeicher/CMSSW_10_2_13
 export VO_CMS_SW_DIR=/cvmfs/cms.cern.ch
 source $VO_CMS_SW_DIR/cmsset_default.sh
 cd $CMSSW_BASE

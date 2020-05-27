@@ -10,7 +10,7 @@ infiless=sys.argv[1:]
 # toRemove="ttH_hcc ttH_htt  ttH_hgg       ttH_hgluglu     ttH_hww         ttH_hzz         ttH_hzg".split()
 # toRemove+="ttbarZ          diboson ttbarW          singlet           wjets                      zjets".split()
 # toRemove=["QCD"]
-toRemove="diboson".split()
+toRemove="ttbb_5FS".split()
 # setVariable = ["ttbarPlusBBbar"]
 setVariable = []
 for infiles in infiless:
