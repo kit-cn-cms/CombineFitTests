@@ -34,7 +34,7 @@ def check_workspace(pathToDatacard):
         print "generating workspace for", pathToDatacard
         
         bashCmd = ["source {0} ;".format(pathToCMSSWsetup)]
-        bashCmd.append("text2workspace.py -m 125 " + pathToDatacard)
+        bashCmd.append("text2workspace.py -m 125.38 " + pathToDatacard)
         bashCmd.append("-o " + outputPath)
         print bashCmd
         subprocess.call([" ".join(bashCmd)], shell = True)
@@ -69,7 +69,7 @@ def make_mdf_command(   datacard, nPoints, unconstrained, params, xVar,
     # multidimfitcmd += ' --cminFallbackAlgo "Minuit2,migrad,0:0.3"'
     # multidimfitcmd += ' --cminOldRobustMinimize=0'
     # multidimfitcmd += ' --X-rtd MINIMIZER_MaxCalls=9999999'
-    multidimfitcmd.append('-m 125')
+    multidimfitcmd.append('-m 125.38')
     if "--firstPoint=0" in additionalCmds or not any("--firstPoint" in x for x in additionalCmds):
          multidimfitcmd.append('--saveWorkspace')
     if additionalCmds:

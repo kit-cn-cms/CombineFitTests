@@ -28,7 +28,7 @@ def reset_directory(outputDirectory):
 def do_prefit(datacard, cmdlist = None):
     
     # cmd = "combine -M FitDiagnostics -m 125 --cminDefaultMinimizerStrategy 0 --cminDefaultMinimizerTolerance 1e-5"
-    cmd = "combine -M FitDiagnostics -m 125"
+    cmd = "combine -M FitDiagnostics -m 125.38"
     if cmdlist:
         cmd += " "+ " ".join(cmdlist)
     cmd += " " + datacard
@@ -63,7 +63,7 @@ def do_1D_scan(param, datacard, cmdList, suffix = None):
         cmd += (' -a "--setParameters r={0}"'.format(r)).split()
     # cmd += " -n _" + os.path.basename(outputDirectory)
     cmd += '-a "--floatOtherPOIs 1"'.split()
-    cmd += "--nPointsPerJob 2".split()
+    cmd += "--nPointsPerJob 5".split()
     cmd += "--points 400".split()
     
     print " ".join(cmd)
