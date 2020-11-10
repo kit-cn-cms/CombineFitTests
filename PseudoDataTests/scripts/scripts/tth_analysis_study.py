@@ -15,7 +15,7 @@ ROOT.gROOT.SetBatch(True)
 ROOT.gDirectory.cd('PyROOT:/')
 
 directory = os.path.dirname(os.path.abspath(sys.argv[0]))
-basefolder = os.path.abspath(os.path.join(directory, "base"))
+basefolder = os.path.abspath(os.path.join(directory,"..", "base"))
 
 if not basefolder in sys.path:
     sys.path.append(basefolder)
@@ -275,10 +275,10 @@ pathsToMSworkspaces, additionalToyCmds, additionalFitCmds, murange):
     generate bash script to generate toys and perform maximum likelihood fits.
 
     Command for toy generation:
-    combine -M GenerateOnly -m 125 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard
+    combine -M GenerateOnly -m 125.38 --saveToys -t $numberOfToysPerExperiment -n _$((numberOfToysPerExperiment))toys_sig$signalStrength --expectSignal $signalStrength -s $((randomseed)) $toyDatacard
 
     Command for FitDiagnostcs (both for simple fit and multi signal model):
-    combine -M FitDiagnostics -m 125 --cminFallbackAlgo Minuit2,migrad,0:0.00001 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
+    combine -M FitDiagnostics -m 125.38 --cminFallbackAlgo Minuit2,migrad,0:1e-2 --saveNormalizations --saveShapes --rMin=-10.00 --rMax=10.00 -t $numberOfToysPerExperiment --toysFile $toyFile --minos all $targetDatacard
 
     Keyword arguments:
 
@@ -290,7 +290,7 @@ pathsToMSworkspaces, additionalToyCmds, additionalFitCmds, murange):
     additionalFitCmds           --  list of additional combine command to use for MaxLikelihoodFit
     """
     #create combine command for toy generation
-    generateToysCmd = "combine -M GenerateOnly -m 125 "
+    generateToysCmd = "combine -M GenerateOnly -m 125.38 "
     generateToysCmd += "--saveToys -t $numberOfToysPerExperiment "
     generateToysCmd += "-n _$((numberOfToysPerExperiment))toys_sig$signalStrength "
     generateToysCmd += "--expectSignal $signalStrength " 
@@ -303,7 +303,7 @@ pathsToMSworkspaces, additionalToyCmds, additionalFitCmds, murange):
     #create combine MaxLikelihoodFit command
 
     mlfitCmd = "combine -M FitDiagnostics "
-    mlfitCmd += "-m 125 "
+    mlfitCmd += "-m 125.38 "
     # mlfitCmd += "--cminFallbackAlgo Minuit2,migrad,0:1e-2 "
     #mlfitCmd += "--cminDefaultMinimizerStrategy 0 "
     #mlfitCmd += "--cminDefaultMinimizerTolerance 1e-2 "
